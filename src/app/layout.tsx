@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { PetalBurstProvider } from "@/lib/petal-burst";
@@ -43,7 +44,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html

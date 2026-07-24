@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
-const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const ORIGIN =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : 'http://localhost:3000');
 
 interface LineItem {
   id: string;
@@ -21,38 +26,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // In a production environment, this would create a Stripe Checkout Session.
-    // For development, we simulate the redirect.
-    //
-    // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-    // const session = await stripe.checkout.sessions.create({
-    //   mode: 'payment',
-    //   line_items: items.map((item) => ({
-    //     price_data: {
-    //       currency: 'usd',
-    //       product_data: {
-    //         name: item.name,
-    //       },
-    //       unit_amount: item.price,
-    //     },
-    //     quantity: item.quantity,
-    //   })),
-    //   success_url: `${ORIGIN}/cart?success=true`,
-    //   cancel_url: `${ORIGIN}/cart?canceled=true`,
-    // });
-    // return NextResponse.json({ url: session.url });
+    const secretKey = process.env.STRIPE_SECRET_KEY;
 
-    // Simulated success for development
-    console.log('[Checkout] Items received:', JSON.stringify(items, null, 2));
-    console.log('[Checkout] Would redirect to Stripe Checkout');
+    // No secret key configured (e.g. local dev without a .env.local):
+    // simulate a successful checkout instead of crashing.
+    if (!secretKey) {
+      console.log('[Checkout] No STRIPE_SECRET_KEY; simulating success');
+      const itemSummary = items
+        .map((i) => `${i.quantity}x ${i.name}`)
+        .join(', ');
+      const successUrl = `${ORIGIN}/cart?success=true&items=${encodeURIComponent(itemSummary)}`;
+      return NextResponse.json({ url: successUrl });
+    }
 
-    // Build a query string with order details for a simulated success
-    const itemSummary = items
-      .map((i) => `${i.quantity}x ${i.name}`)
-      .join(', ');
-    const successUrl = `${ORIGIN}/cart?success=true&items=${encodeURIComponent(itemSummary)}`;
+    const stripe = new Stripe(secretKey);
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: items.map((item) => ({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: item.name,
+          },
+          unit_amount: item.price,
+        },
+        quantity: item.quantity,
+      })),
+      success_url: `${ORIGIN}/cart?success=true`,
+      cancel_url: `${ORIGIN}/cart?canceled=true`,
+    });
 
-    return NextResponse.json({ url: successUrl });
+    return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('[Checkout] Error:', error);
     return NextResponse.json(

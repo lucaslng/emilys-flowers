@@ -1,7 +1,5 @@
 'use client';
 
-import React from 'react';
-
 interface FilterBarProps {
   categories: { label: string; value: string }[];
   selectedCategory: string;

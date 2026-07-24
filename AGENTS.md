@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Emily's Flowers
 
-Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScript (strict), Tailwind v4, GSAP animations, Stripe (stubbed). Single package, no monorepo.
+Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScript (strict), Tailwind v4, GSAP animations, Stripe. Single package, no monorepo.
 
 ## Commands
 
@@ -34,16 +34,16 @@ Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.js
 - **Prices are integer cents** (Stripe convention): `2499` = $24.99. All cart math in `src/lib/cart-context.tsx` stays in cents.
 - **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount). `useCart()` throws if used outside `CartProvider` (which lives in the root layout, so this is normally fine).
 
-## Stripe (currently stubbed)
+## Stripe
 
-`src/app/api/checkout/route.ts` **simulates** a successful checkout — the real `stripe.checkout.sessions.create` call is commented out and it returns a fake success URL. `src/lib/stripe.ts` loads the client via `@stripe/stripe-js`.
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. `src/lib/stripe.ts` loads the client via `@stripe/stripe-js`.
 
-To enable real payments, uncomment the Stripe block in the route and set:
-- `STRIPE_SECRET_KEY` (server)
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, used by `src/lib/stripe.ts`)
-- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs; defaults to `http://localhost:3000`)
+Required env vars:
+- `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, used by `src/lib/stripe.ts`) — must match the same mode as the secret key
+- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs) — set to the production domain in the Production environment; previews fall back to the auto-injected `NEXT_PUBLIC_VERCEL_URL`, local dev defaults to `http://localhost:3000`
 
-`.env*` is gitignored.
+On Vercel, scope live keys to the **Production** environment and test keys to **Preview** so the production branch uses live and PR previews use sandbox. `.env*` is gitignored.
 
 ## Styling & animation conventions
 
