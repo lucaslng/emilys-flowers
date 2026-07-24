@@ -5,10 +5,12 @@
 // remount boundary to apply a subtle page-enter animation via a CSS class.
 // The reduced-motion guard in globals.css disables the animation when needed.
 
+import type { ReactNode } from 'react';
+
 export default function Template({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return <div className="page-enter">{children}</div>;
 }

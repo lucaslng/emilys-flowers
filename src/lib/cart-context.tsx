@@ -1,6 +1,7 @@
 'use client';
 
-import React, {
+import {
+  type ReactNode,
   createContext,
   useContext,
   useReducer,
@@ -99,7 +100,7 @@ const STORAGE_KEY = 'emilys-flowers-cart';
 
 // --- Provider ---
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
   // Hydrate from localStorage on mount

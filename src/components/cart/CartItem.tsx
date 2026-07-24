@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
 import { CartItem as CartItemType } from '@/types';

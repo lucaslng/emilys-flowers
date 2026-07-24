@@ -1,11 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type ReactNode, type ElementType } from 'react';
 import { gsap, ScrollTrigger, useGSAP } from '@/lib/gsap';
 
 interface RevealProps {
-  children: React.ReactNode;
-  as?: React.ElementType;
+  children: ReactNode;
+  as?: ElementType;
   className?: string;
   /** Reveal children one-by-one with a stagger instead of the wrapper as a single unit. */
   stagger?: boolean;
@@ -32,7 +32,7 @@ export default function Reveal({
   once = true,
 }: RevealProps) {
   const container = useRef<HTMLDivElement>(null);
-  const Tag = (as || 'div') as React.ElementType;
+  const Tag = (as || 'div') as ElementType;
 
   useGSAP(
     () => {

@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import Button from '@/components/ui/Button';

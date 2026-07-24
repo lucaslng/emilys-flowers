@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
