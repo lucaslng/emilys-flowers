@@ -1,26 +1,203 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFFAFA;
+  --foreground: #4A3B3B;
+  --surface: #FFF5F5;
+  --blush: #F9E4E4;
+  --lavender: #E8D5E8;
+  --rose: #D4A5A5;
+  --border: #F0E0E0;
+  --muted: #8B7B7B;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-blush: var(--blush);
+  --color-lavender: var(--lavender);
+  --color-rose: var(--rose);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* ─── Reduced Motion Guard ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-init { opacity: 1 !important; transform: none !important; }
+  .page-enter { opacity: 1 !important; transform: none !important; }
+}
+
+/* ─── Keyframes ────────────────────────────────────────────────── */
+@keyframes fade-up {
+  0%   { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sway {
+  0%   { transform: rotate(-3deg); }
+  100% { transform: rotate(3deg); }
+}
+
+@keyframes float {
+  0%   { transform: translateY(-6px); }
+  100% { transform: translateY(6px); }
+}
+
+/* Vertical fall is driven by `top` (container-relative %), so a petal truly
+   traverses its parent and resets OFF-SCREEN (clipped by `overflow: hidden`).
+   `transform` only carries the gentle horizontal sway + rotation. The loop
+   jumps from `top: 112%` (below, clipped) back to `top: -12%` (above,
+   clipped), so the reset is invisible — no teleport. Opacity fades the petal
+   in/out near the clipped edges as a soft secondary safeguard. */
+@keyframes petal-fall {
+  0%   { top: -12%; transform: translateX(0px)  rotate(0deg);   opacity: 0; }
+  10%  { opacity: 0.85; }
+  25%  { transform: translateX(10px)  rotate(90deg); }
+  50%  { transform: translateX(-8px)  rotate(180deg); }
+  75%  { transform: translateX(12px)  rotate(270deg); }
+  90%  { opacity: 0.85; }
+  100% { top: 112%; transform: translateX(0px)  rotate(360deg); opacity: 0; }
+}
+
+/* Navbar variant: the bar is short + sticky, so a long fall reads as a jitter.
+   Instead, a gentle in-place drift + slow spin that returns to its starting
+   transform/opacity, looping seamlessly (start state == end state). No fall,
+   no off-screen reset needed — no teleport. */
+@keyframes petal-drift {
+  0%   { transform: translate(0px, 0px)  rotate(0deg);   opacity: 0; }
+  25%  { transform: translate(6px, 2px)  rotate(90deg);  opacity: 0.55; }
+  50%  { transform: translate(-5px, -3px) rotate(180deg); opacity: 0.7; }
+  75%  { transform: translate(7px, 1px)  rotate(270deg); opacity: 0.55; }
+  100% { transform: translate(0px, 0px)  rotate(360deg); opacity: 0; }
+}
+
+@keyframes bloom-glow {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 4px 2px rgba(249, 228, 228, 0.3); }
+  50%      { opacity: 1;   box-shadow: 0 0 12px 6px rgba(212, 165, 165, 0.4); }
+}
+
+@keyframes spin-bloom {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes draw-stroke {
+  0%   { stroke-dashoffset: var(--dash, 1000); }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes page-enter {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Animation Utility Classes ────────────────────────────────── */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.page-enter {
+  animation: page-enter 300ms ease-out both;
+}
+
+.animate-sway {
+  animation: sway 3s ease-in-out infinite alternate;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite alternate;
+}
+
+/* Decorative petals. Base `opacity: 0` so that under `prefers-reduced-motion`
+   (which forces the animation to a single 0.01ms iteration) the petals settle
+   to their non-animated state and stay invisible — no motion, no static clutter.
+   `pointer-events: none` + `z-index: 0` keep them behind live content; the
+   surrounding section establishes a stacking context (Tailwind `isolate` /
+   sticky nav) and the real content sits in a `relative z-10` wrapper. */
+.petal {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: petal-fall 10s linear infinite;
+}
+
+/* Navbar petals: faint, behind the nav's content. `z-index: -1` places them
+   above the nav's own background but below the (non-positioned) links, logo
+   and cart icon within the sticky nav's stacking context. */
+.petal-nav {
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  animation: petal-drift 9s ease-in-out infinite;
+}
+
+/* ─── Product Card: museum-plaque / gallery label ──────────────── */
+/* Anti-generic: sharp corners (border-radius: 0), a single 1px hairline
+   border, NO shadow on side cards, edge-to-edge image, a hairline
+   divider under the image, and an editorial specimen label below.
+   Hover draws a 2px rose underline under the product name (width 0→100%)
+   — a calm, non-zoom delight. The reduced-motion guard forces the
+   transition to ~instant, so the underline snaps to full width on hover
+   and settles to width 0 on rest. No broken state. */
+.plaque-card {
+  border: 1px solid #F0E0E0;
+  border-radius: 0;
+  background: #FFFAFA;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.plaque-card.is-emphasized {
+  border-color: #D4A5A5;
+  box-shadow: 0 10px 28px -16px rgba(212, 165, 165, 0.45);
+}
+.plaque-divider {
+  border-top: 1px solid #F0E0E0;
+}
+.plaque-name {
+  position: relative;
+}
+.plaque-name::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 2px;
+  width: 0;
+  background: #D4A5A5;
+  transition: width 0.45s ease;
+}
+.group:hover .plaque-name::after,
+.group:focus-within .plaque-name::after {
+  width: 100%;
+}
+
+.bloom-glow {
+  animation: bloom-glow 3s ease-in-out infinite;
+}
+
+.spin-bloom {
+  animation: spin-bloom 6s linear infinite;
+}
+
+.draw-stroke {
+  stroke-dasharray: var(--dash, 1000);
+  stroke-dashoffset: var(--dash, 1000);
+  animation: draw-stroke 1.5s ease-out forwards;
 }
