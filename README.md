@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Emily's Flowers
 
-## Getting Started
+Handcrafted ribbon flower storefront. Browse individual ribbon flowers and bouquets, add them to a cart, and check out via Stripe.
 
-First, run the development server:
+Built with Next.js 16 (App Router), React 19, TypeScript (strict), Tailwind v4, and GSAP animations.
+
+## Getting started
+
+Package manager is [bun](https://bun.sh). Install dependencies and start the dev server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+bun run dev       # dev server on :3000
+bun run build     # production build
+bun start         # serve the production build
+bunx tsc --noEmit # ad-hoc typecheck (no script defined)
+```
 
-## Learn More
+There is no `lint`, `typecheck`, or `test` script.
 
-To learn more about Next.js, take a look at the following resources:
+## Routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/` — home
+- `/flowers` — individual ribbon flowers
+- `/bouquets` — bouquet collection
+- `/cart` — shopping cart
+- `/checkout` — checkout
+- `POST /api/checkout` — Stripe Checkout session (currently stubbed)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Stripe
 
-## Deploy on Vercel
+Checkout is currently **stubbed** — `src/app/api/checkout/route.ts` simulates a successful checkout. To enable real payments, uncomment the Stripe block in that route and set:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `STRIPE_SECRET_KEY` (server)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client)
+- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs; defaults to `http://localhost:3000`)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`.env*` is gitignored.
+
+## Project structure
+
+- `src/app/` — App Router pages, layouts, API routes
+- `src/components/` — UI, layout, cart, and shop components
+- `src/lib/` — products data, cart context, GSAP setup, Stripe client, PetalBurst singleton
+- `src/types/` — shared TypeScript types
+
+Products are hardcoded in `src/lib/products.ts` (no database or CMS). Prices are integer cents (Stripe convention).
