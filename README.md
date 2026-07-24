@@ -33,15 +33,17 @@ There is no `lint`, `typecheck`, or `test` script.
 - `/bouquets` — bouquet collection
 - `/cart` — shopping cart
 - `/checkout` — checkout
-- `POST /api/checkout` — Stripe Checkout session (currently stubbed)
+- `POST /api/checkout` — Stripe Checkout session
 
 ## Stripe
 
-Checkout is currently **stubbed** — `src/app/api/checkout/route.ts` simulates a successful checkout. To enable real payments, uncomment the Stripe block in that route and set:
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set, and falls back to a simulated success URL when the key is absent (so `bun run dev` works without keys). Required env vars:
 
-- `STRIPE_SECRET_KEY` (server)
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client)
-- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs; defaults to `http://localhost:3000`)
+- `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client) — matching live/test pair
+- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs) — production domain in Production; previews fall back to `NEXT_PUBLIC_VERCEL_URL`, local dev to `http://localhost:3000`
+
+On Vercel, scope live keys to the Production environment and test keys to Preview so the production branch uses live and PR previews use sandbox.
 
 `.env*` is gitignored.
 

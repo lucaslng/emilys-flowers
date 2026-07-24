@@ -1,18 +1,17 @@
 # Stripe Checkout
 
 > **Read this before touching `src/app/api/checkout/route.ts`,
-> `src/lib/stripe.ts`, or enabling real payments.** The Stripe.js client API
-> changed — `redirectToCheckout` is gone — and the project is currently
-> stubbed.
+> `src/lib/stripe.ts`, or Stripe env wiring.** The Stripe.js client API
+> changed — `redirectToCheckout` is gone — and the route creates real
+> Checkout Sessions when `STRIPE_SECRET_KEY` is set.
 
-## Current state: stubbed
+## Current state
 
-The checkout route at `src/app/api/checkout/route.ts` **simulates** a
-successful checkout. The real `stripe.checkout.sessions.create` call is
-**commented out**, and the handler returns a fake success URL. No money moves.
-
-This is intentional for local development. To enable real payments, see
-[Enabling real payments](#enabling-real-payments) below.
+The checkout route at `src/app/api/checkout/route.ts` creates a **real**
+Stripe Checkout Session when `STRIPE_SECRET_KEY` is set. When the key is
+absent (e.g. local dev without a `.env.local`), it falls back to a simulated
+success URL so `bun run dev` still works without keys. No money moves in the
+fallback.
 
 ## Versions
 
@@ -25,18 +24,29 @@ This is intentional for local development. To enable real payments, see
 
 ### Server side — Route Handler
 
-`src/app/api/checkout/route.ts` exports a `POST` handler. The real (uncommented)
-flow:
+`src/app/api/checkout/route.ts` exports a `POST` handler. The real flow:
 
 ```ts
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const ORIGIN =
+  process.env.NEXT_PUBLIC_BASE_URL ||
+  (process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : 'http://localhost:3000')
 
 export async function POST(request: Request) {
   const { items } = await request.json()
 
+  const secretKey = process.env.STRIPE_SECRET_KEY
+
+  // No key configured — simulate success instead of crashing.
+  if (!secretKey) {
+    return NextResponse.json({ url: `${ORIGIN}/cart?success=true` })
+  }
+
+  const stripe = new Stripe(secretKey)
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: items.map((item: { name: string; price: number; quantity: number }) => ({
@@ -47,13 +57,18 @@ export async function POST(request: Request) {
       },
       quantity: item.quantity,
     })),
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cart?success=true`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cart?canceled=true`,
+    success_url: `${ORIGIN}/cart?success=true`,
+    cancel_url: `${ORIGIN}/cart?canceled=true`,
   })
 
   return NextResponse.json({ url: session.url })
 }
 ```
+
+The `ORIGIN` fallback chain is what lets preview deployments work without
+per-branch config: `NEXT_PUBLIC_BASE_URL` is set only in the Production
+environment, previews fall through to Vercel's auto-injected
+`NEXT_PUBLIC_VERCEL_URL`, and local dev defaults to `http://localhost:3000`.
 
 ### Client side — redirect
 
@@ -79,8 +94,9 @@ export const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHAB
 ```
 
 This file has no `'use client'` directive but runs client-side (imported only by
-client code). `stripePromise` is currently unused in the stubbed flow but would
-be needed for embedded Checkout or Stripe Elements.
+client code). `stripePromise` is currently unused — the redirect flow only needs
+the server-side `session.url` — but would be needed for embedded Checkout or
+Stripe Elements.
 
 ## ⚠️ `redirectToCheckout` is removed
 
@@ -108,9 +124,9 @@ convention.
 
 | Variable | Where used | Notes |
 |---|---|---|
-| `STRIPE_SECRET_KEY` | Server — `route.ts` (`new Stripe(...)`) | `sk_live_...` or `sk_test_...` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client — `src/lib/stripe.ts` (`loadStripe`) | `pk_live_...` or `pk_test_...` |
-| `NEXT_PUBLIC_BASE_URL` | Server — `route.ts` (success/cancel URLs) | Defaults to `http://localhost:3000` |
+| `STRIPE_SECRET_KEY` | Server — `route.ts` (`new Stripe(...)`) | `sk_live_...` (production) or `sk_test_...` (preview/dev) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client — `src/lib/stripe.ts` (`loadStripe`) | `pk_live_...` or `pk_test_...` — must match the secret key's mode |
+| `NEXT_PUBLIC_BASE_URL` | Server — `route.ts` (success/cancel URLs) | Set in Production only; previews fall back to `NEXT_PUBLIC_VERCEL_URL`, local dev to `http://localhost:3000` |
 
 ### Local env files (gitignored)
 
@@ -122,35 +138,36 @@ convention.
 Next.js 16 automatically loads `.env.local` and `.env` files — no extra config
 needed.
 
-## Enabling real payments
+## Testing with Stripe test cards
 
-1. **Set environment variables** in `.env` (test mode) or `.env.live` (live):
-   ```
-   STRIPE_SECRET_KEY=sk_test_...
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-   NEXT_PUBLIC_BASE_URL=http://localhost:3000  # or your production URL
-   ```
+When running with sandbox (`sk_test_...`) keys, use these test cards:
 
-2. **Uncomment the Stripe block** in `src/app/api/checkout/route.ts`. The
-   commented code shows the real `stripe.checkout.sessions.create` call. Remove
-   the fake-URL fallback.
+- Success: `4242 4242 4242 4242`
+- Decline: `4000 0000 0000 0002`
+- 3DS: `4000 0027 6000 3184`
 
-3. **Handle the build without env vars.** If env vars aren't set during
-   `bun run build` (e.g., CI), `new Stripe(undefined)` will throw. Guard it:
-   ```ts
-   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_placeholder')
-   ```
-   The placeholder lets the module load; the route will fail at request time if
-   the real key is missing (which is correct — you want a clear error, not a
-   build failure).
+Any future expiry date and any CVC work in test mode.
 
-4. **Test the full flow** locally with test cards:
-   - Success: `4242 4242 4242 4242`
-   - Decline: `4000 0000 0000 0002`
-   - 3DS: `4000 0027 6000 3184`
+## Vercel environment scoping
 
-5. **Update `AGENTS.md`** — the Stripe section says "currently stubbed." If you
-   enable real payments, update that section to reflect the new state.
+Vercel has three deployment environments, and env vars are set **per
+environment** — this is what gives you live-on-prod / sandbox-on-previews
+without per-branch config:
+
+| Vercel env | Deployments | Stripe keys |
+|---|---|---|
+| **Production** | Your production branch (e.g. `main`) | Live (`sk_live_...` / `pk_live_...`) |
+| **Preview** | Every other branch / PR | Test (`sk_test_...` / `pk_test_...`) |
+| **Development** | `vercel dev` / local pulls | Test keys (or live, your call) |
+
+Set `NEXT_PUBLIC_BASE_URL` **only** in the Production environment (your stable
+domain). Leave it unset for Preview and Development — the `ORIGIN` fallback
+chain in the route resolves preview URLs automatically via
+`NEXT_PUBLIC_VERCEL_URL`.
+
+Keep key pairs matched within each environment: live secret + live publishable
+together, test pair together. Mixing a live secret with a test publishable (or
+vice versa) will fail.
 
 ## App Router gotchas
 
