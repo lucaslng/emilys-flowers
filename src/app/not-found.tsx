@@ -79,7 +79,7 @@ export default function NotFound() {
             const cx = r.left + r.width / 2;
             const cy = r.top + r.height * 0.3;
             gsap.delayedCall(1.0, () => {
-              firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 130 });
+              firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 115 });
             });
           }
         },
@@ -104,7 +104,7 @@ export default function NotFound() {
     const r = svg.getBoundingClientRect();
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height * 0.3;
-    firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 110 });
+    firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 95 });
   }
 
   const outerPetals = Array.from({ length: 6 }, (_, i) => (
@@ -133,7 +133,7 @@ export default function NotFound() {
   return (
     <section
       ref={root}
-      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[#FFFAFA] py-16 sm:py-24"
+      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[#FFFAFA] py-8 sm:py-10"
     >
       {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded
           via the .petal class (base opacity:0, forced to a single 0.01ms
@@ -147,14 +147,14 @@ export default function NotFound() {
       <Container className="relative z-10">
         <div
           ref={cardRef}
-          className="plaque-card is-emphasized mx-auto max-w-xl px-8 py-12 sm:px-14 sm:py-16"
+          className="plaque-card is-emphasized mx-auto max-w-xl px-8 py-8 sm:px-12 sm:py-10"
         >
           {/* Pressed ribbon flower specimen */}
           <div className="flex justify-center">
             <svg
               ref={flowerSvg}
-              width="160"
-              height="224"
+              width="130"
+              height="182"
               viewBox="0 0 200 280"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -206,7 +206,7 @@ export default function NotFound() {
           </div>
 
           {/* Specimen label divider */}
-          <div className="plaque-divider my-8" />
+          <div className="plaque-divider my-5" />
 
           {/* Specimen catalog number */}
           <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-[#8B7B7B]">
@@ -214,18 +214,18 @@ export default function NotFound() {
           </p>
 
           {/* Heading */}
-          <h1 className="mt-4 text-center font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
+          <h1 className="mt-3 text-center font-serif text-2xl font-bold text-[#4A3B3B] sm:text-3xl">
             This bloom has wandered off
           </h1>
 
           {/* Subtext */}
-          <p className="mt-3 text-center font-sans text-base text-[#8B7B7B]">
+          <p className="mt-2 text-center font-sans text-base text-[#8B7B7B]">
             The page you&rsquo;re looking for isn&rsquo;t in our garden.
             Let&rsquo;s find your way back.
           </p>
 
           {/* CTAs — Link styled as button (established pattern in this codebase) */}
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
               href="/"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F9E4E4] px-8 py-4 text-base font-sans font-medium text-[#4A3B3B] transition-all duration-200 hover:scale-[1.02] hover:bg-[#F0D4D4] active:scale-[0.98] active:shadow-[0_0_15px_rgba(212,165,165,0.5)]"
