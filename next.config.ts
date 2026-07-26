@@ -75,6 +75,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    inlineCss: true, // Inlines critical CSS into the HTML payload
+  },
 };
 
 export default nextConfig;
