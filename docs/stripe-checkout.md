@@ -112,6 +112,35 @@ If you need inline/embedded Checkout instead of a redirect, use the Embedded
 Checkout API (`stripe.initEmbeddedCheckout` with `clientSecret`), but that's a
 bigger change and not currently wired.
 
+## `Permissions-Policy: payment` — only matters for embedded integrations
+
+The merchant origin's `Permissions-Policy` header is **per-origin** and does
+not propagate across a full-page redirect. Because the current flow redirects
+to `checkout.stripe.com` (Stripe's own origin, which serves its own headers),
+the merchant's `Permissions-Policy` has **zero effect** on whether Apple Pay /
+Google Pay work there. That's why `vercel.json` deliberately **omits** the
+`payment` directive — `payment=(self)` would be a no-op (it's the browser
+default anyway) and would falsely imply the merchant origin uses the Payment
+Request API. It doesn't.
+
+**If you migrate to Stripe Elements / Express Checkout Element / Embedded
+Checkout** (any integration where Stripe's payment UI renders on the merchant
+origin, typically inside an iframe), this changes:
+
+- Stripe's iframes need access to the Payment Request API on the merchant
+  origin to show Apple Pay / Google Pay.
+- The containing iframe must carry `allow="payment"` (or `allow="payment *"`
+  for the Payment Request Button Element) — Stripe manages this on the
+  iframes it injects, but only if the merchant origin doesn't block it.
+- At that point, ensure `Permissions-Policy` does **not** set `payment=()` on
+  the merchant origin. Either omit `payment` (defaults to `self`) or set
+  `payment=(self)` explicitly. Do **not** use `payment=()` — it would break
+  Apple Pay / Google Pay in the embedded flow.
+
+Until that migration happens, leave `payment` out of `Permissions-Policy`.
+See Stripe's Apple Pay and Express Checkout Element docs for the iframe
+`allow` attribute details.
+
 ## Prices are integer cents
 
 Stripe requires `unit_amount` in the smallest currency unit (cents for USD).
