@@ -60,6 +60,7 @@ On Vercel, scope live keys to the **Production** environment and test keys to **
   - `bugfix/` — defect fixes (e.g. `bugfix/cart-cents-rounding`)
   - `docs/` — documentation-only changes (e.g. `docs/branch-prefix-policy`)
 - Do not branch off `main` with a bare name or an ad-hoc prefix. If an existing branch predates this policy, leave it as-is; apply the prefixes to new work going forward.
+- **Don't reference external repos' issues/PRs/commits** in this repo's issues, PRs, or commit messages. No "fixes vercel/next.js#1234", no "based on facebook/react#5678", no citing upstream issue/PR numbers you can't verify belong to this codebase. Only reference this repo's own issues/PRs/commits.
 
 ## Worktree workflow
 
