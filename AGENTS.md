@@ -61,8 +61,29 @@ On Vercel, scope live keys to the **Production** environment and test keys to **
   - `docs/` — documentation-only changes (e.g. `docs/branch-prefix-policy`)
 - Do not branch off `main` with a bare name or an ad-hoc prefix. If an existing branch predates this policy, leave it as-is; apply the prefixes to new work going forward.
 
+## Worktree workflow
+
+This repo uses a **bare-repo + sibling-worktree** layout — not `.slim/worktrees/`. The repo root is a bare repository (`.bare/` + a `.git` file pointing at it); each worktree is a sibling directory at the root, organized by branch prefix:
+
+```text
+emilys-flowers/
+├── .bare/            # shared bare store
+├── main/             # worktree on `main`
+├── feature/<slug>/   # worktree on `feature/<slug>`
+├── bugfix/<slug>/    # worktree on `bugfix/<slug>`
+└── docs/<slug>/      # worktree on `docs/<slug>`
+```
+
+To start a lane from the repo root:
+
+```bash
+git worktree add -b <prefix>/<slug> <prefix>/<slug> main
+```
+
+Do all lane work inside the worktree directory, not `main/`. There is no `.slim/` and no metadata manifest — do not create them. See `.agents/skills/worktrees/SKILL.md` for the full protocol (pre-flight, integration, cleanup, user-confirmation guards).
+
 ## Notes
 
 - `CLAUDE.md` contains only `@AGENTS.md` — this file is the source of truth; edit here, not there.
 - `next-env.d.ts`, `*.tsbuildinfo`, and `.next/` are gitignored (generated). Don't edit `next-env.d.ts`.
-- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, styling/animation conventions, git conventions — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.
+- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, styling/animation conventions, git conventions, worktree workflow — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.
