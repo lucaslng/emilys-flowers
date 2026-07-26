@@ -1,14 +1,17 @@
 /**
  * Post-build script: injects a per-page <meta http-equiv="Content-Security-Policy">
- * tag with hash-based script-src into pre-rendered HTML files.
+ * tag with hash-based script-src and style-src into pre-rendered HTML files.
  *
- * This replaces 'unsafe-inline' in script-src with sha256 hashes of each
- * inline <script> block's DOM text content.  The CSP is computed statically
- * at build time — no middleware, no per-request SSR, no runtime proxy.
+ * This replaces 'unsafe-inline' in script-src and style-src with sha256 hashes
+ * of inline <script> blocks, <style> blocks, AND style="..." attribute values.
+ * The CSP is computed statically at build time — no middleware, no per-request
+ * SSR, no runtime proxy.
  *
- * The hash is computed over the raw text content between <script> and </script>
- * (which IS the DOM text content — the HTML parser treats <script> element
- * content as raw text and does NOT decode HTML entities inside it).
+ * Hash computation differs by element type:
+ *   - <script> and <style> content: RAWTEXT / script-data state — NO HTML
+ *     entity decoding. Hash the raw bytes between opening and closing tags.
+ *   - style="..." attribute values: the HTML parser DOES decode HTML entities
+ *     in attribute values, so entities must be decoded before hashing.
  *
  * frame-ancestors is intentionally excluded: it is NOT supported in <meta>
  * CSP tags and stays in the HTTP header (next.config.ts).
@@ -33,7 +36,7 @@ const CSP_DIRECTIVES = [
   // vercel.live scoped out of production so a compromised vercel.live origin
   // cannot execute code in the production origin.
   `script-src 'self' {HASHES} https://js.stripe.com${isProduction ? "" : ` ${vercelLive}`}`,
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self'{STYLE_BLOCK_HASHES}{STYLE_ATTR_HASHES}",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   // vercel.live scoped out of production.
@@ -53,17 +56,29 @@ const CSP_DIRECTIVES = [
 // the leading space if present), group 2 = inner text content.
 const SCRIPT_RE = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/g;
 
+// Regex to find <style> blocks. Same structure as SCRIPT_RE; style elements
+// cannot have a src attribute so we don't filter on it, but we keep the same
+// capture groups for consistency.
+const STYLE_RE = /<style(\s[^>]*)?>([\s\S]*?)<\/style>/gi;
+
+// Regex to find style="..." attribute values. Capture group 1 is the raw
+// attribute value (with HTML entities still encoded, e.g. &quot;).
+// This is applied against the full HTML; false positives inside <script>
+// content are avoided because script strings use \" not raw " for quoting.
+const STYLE_ATTR_RE = /\sstyle="([^"]*)"/g;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
  * Compute a single CSP hash directive value: `'sha256-<base64>'`.
- * Hashes the raw text content (DOM text node) of an inline <script>.
- * Inside <script> elements the HTML parser treats content as raw text and
- * does NOT decode HTML entities, so we hash the bytes as-is.
+ * Hashes the raw text content (DOM text node) of an inline <script> or
+ * <style> element. Both element types are in the HTML parser's RAWTEXT or
+ * script-data state, which does NOT decode HTML entities, so we hash the
+ * raw bytes as-is.
  */
-function hashScriptContent(content: string): string {
+function hashContent(content: string): string {
   const hash = createHash("sha256");
   hash.update(content, "utf-8");
   return `'sha256-${hash.digest("base64")}'`;
@@ -79,6 +94,37 @@ function hasSrcAttribute(attrs: string | undefined): boolean {
   if (!attrs) return false;
   // Match either  src="..."  or  src='...'  or  src=...  (unquoted).
   return /\ssrc(=|>|\s)/.test(attrs);
+}
+
+/**
+ * Decode HTML entities in a style="..." attribute value to match the DOM
+ * attribute value that the browser hashes. Inside HTML attribute values the
+ * parser DOES decode character references (unlike <script>/<style> content).
+ *
+ * Order matters: decode &amp; LAST to avoid double-decoding
+ * (e.g. &amp;quot; → &quot; → ", not &amp;quot; → ").
+ */
+function decodeStyleAttrValue(raw: string): string {
+  // Named entities that commonly appear in inline styles
+  let s = raw;
+  s = s.replace(/&quot;/g, '"');
+  s = s.replace(/&#39;/g, "'");
+  s = s.replace(/&#x27;/gi, "'");
+  s = s.replace(/&lt;/g, "<");
+  s = s.replace(/&gt;/g, ">");
+  s = s.replace(/&nbsp;/g, "\u00A0");
+  // Decode numeric entities (decimal and hex) — these can appear anywhere
+  // but we handle the common ones explicitly above; this catch-all is for
+  // completeness.
+  s = s.replace(/&#(\d+);/g, (_m: string, code: string) =>
+    String.fromCodePoint(Number(code)),
+  );
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_m: string, code: string) =>
+    String.fromCodePoint(Number.parseInt(code, 16)),
+  );
+  // Decode &amp; LAST to avoid double-decoding.
+  s = s.replace(/&amp;/g, "&");
+  return s;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +150,8 @@ function main(): void {
   // 2. Process each file
   let totalFilesWithScripts = 0;
   let totalFilesWithoutScripts = 0;
-  const warnings: string[] = [];
+  const scriptWarnings: string[] = [];
+  let totalFilesWithStyles = 0;
 
   for (const filePath of htmlFiles.sort()) {
     let html: string;
@@ -116,17 +163,33 @@ function main(): void {
     }
 
     // 2a. Extract inline script hashes
-    const hashes: string[] = [];
+    const scriptHashes: string[] = [];
     let match: RegExpExecArray | null;
 
-    // Reset lastIndex since we reuse the regex across files.
     SCRIPT_RE.lastIndex = 0;
     while ((match = SCRIPT_RE.exec(html)) !== null) {
       const attrs = match[1] ?? "";
       const body = match[2];
       if (!hasSrcAttribute(attrs)) {
-        hashes.push(hashScriptContent(body));
+        scriptHashes.push(hashContent(body));
       }
+    }
+
+    // 2b. Extract inline <style> block hashes
+    const styleBlockHashes: string[] = [];
+    STYLE_RE.lastIndex = 0;
+    while ((match = STYLE_RE.exec(html)) !== null) {
+      const body = match[2];
+      styleBlockHashes.push(hashContent(body));
+    }
+
+    // 2c. Extract style="..." attribute hashes (decode entities first)
+    const styleAttrHashes: string[] = [];
+    STYLE_ATTR_RE.lastIndex = 0;
+    while ((match = STYLE_ATTR_RE.exec(html)) !== null) {
+      const rawValue = match[1];
+      const decodedValue = decodeStyleAttrValue(rawValue);
+      styleAttrHashes.push(hashContent(decodedValue));
     }
 
     const route = filePath
@@ -135,8 +198,8 @@ function main(): void {
       .replace(/\/index$/, "/")
       .replace(/^\//, "/");
 
-    if (hashes.length === 0) {
-      warnings.push(
+    if (scriptHashes.length === 0) {
+      scriptWarnings.push(
         `[inject-csp-hashes] WARNING: No inline scripts found in ${filePath} ` +
           "(this may be normal for error pages with no JS).",
       );
@@ -145,16 +208,27 @@ function main(): void {
       totalFilesWithScripts++;
     }
 
-    // 2b. Deduplicate and sort
-    const uniqueHashes = [...new Set(hashes)].sort();
-    const hashValues = uniqueHashes.join(" ");
+    if (styleBlockHashes.length > 0) {
+      totalFilesWithStyles++;
+    }
 
-    // 2c. Build CSP string
+    // 2d. Deduplicate and sort
+    const uniqueScriptHashes = [...new Set(scriptHashes)].sort();
+    const uniqueStyleBlockHashes = [...new Set(styleBlockHashes)].sort();
+    const uniqueStyleAttrHashes = [...new Set(styleAttrHashes)].sort();
+    const scriptHashValues = uniqueScriptHashes.join(" ");
+    const styleBlockHashValues = uniqueStyleBlockHashes.length > 0 ? " " + uniqueStyleBlockHashes.join(" ") : "";
+    const styleAttrHashValues = uniqueStyleAttrHashes.length > 0 ? " " + uniqueStyleAttrHashes.join(" ") : "";
+
+    // 2e. Build CSP string
     const csp = CSP_DIRECTIVES.map((d) =>
-      d.replace("{HASHES}", hashValues),
+      d
+        .replace("{HASHES}", scriptHashValues)
+        .replace("{STYLE_BLOCK_HASHES}", styleBlockHashValues)
+        .replace("{STYLE_ATTR_HASHES}", styleAttrHashValues),
     ).join("; ");
 
-    // 2d. Inject <meta> tag into <head>
+    // 2e. Inject <meta> tag into <head>
     const metaTag = `<meta http-equiv="Content-Security-Policy" content="${csp.replace(/"/g, "&quot;")}">`;
 
     // Insert after <head> (prefer after the opening <head> tag itself, but
@@ -171,7 +245,7 @@ function main(): void {
     const modifiedHtml =
       html.slice(0, headEnd) + "\n" + metaTag + html.slice(headEnd);
 
-    // 2e. Write back
+    // 2f. Write back
     try {
       writeFileSync(filePath, modifiedHtml, "utf-8");
     } catch (err) {
@@ -182,13 +256,21 @@ function main(): void {
       process.exit(1);
     }
 
-    // 2f. Print summary
+    // 2h. Print summary
     const routeLabel = route === "/" ? " /" : ` ${route}`;
+    const scriptSummary = `${uniqueScriptHashes.length} script hash${uniqueScriptHashes.length === 1 ? "" : "es"}`;
+    const styleBlockSummary = uniqueStyleBlockHashes.length > 0
+      ? `,  ${uniqueStyleBlockHashes.length} style-block hash${uniqueStyleBlockHashes.length === 1 ? "" : "es"}`
+      : "";
+    const styleAttrSummary = uniqueStyleAttrHashes.length > 0
+      ? `,  ${uniqueStyleAttrHashes.length} style-attr hash${uniqueStyleAttrHashes.length === 1 ? "" : "es"}`
+      : "";
     console.log(
       `[inject-csp-hashes]${routeLabel}  ` +
-        `${uniqueHashes.length} unique hash${uniqueHashes.length === 1 ? "" : "es"} ` +
-        `from ${hashes.length} inline script${hashes.length === 1 ? "" : "s"}  ` +
-        `CSP length: ${csp.length} chars  (${filePath})`,
+        `${scriptSummary} from ${scriptHashes.length} script${scriptHashes.length === 1 ? "" : "s"}` +
+        `${styleBlockSummary}` +
+        `${styleAttrSummary}` +
+        `  CSP: ${csp.length} chars  (${filePath})`,
     );
 
     // Print full CSP for root page
@@ -209,13 +291,14 @@ function main(): void {
   }
 
   // Print warnings for individual files with no scripts (non-fatal).
-  for (const w of warnings) {
+  for (const w of scriptWarnings) {
     console.warn(w);
   }
 
   console.log(
     `[inject-csp-hashes] Done: ${htmlFiles.length} file(s) processed ` +
-      `(${totalFilesWithScripts} with scripts, ${totalFilesWithoutScripts} without).`,
+      `(${totalFilesWithScripts} with scripts, ${totalFilesWithoutScripts} without scripts, ` +
+      `${totalFilesWithStyles} with style tags).`,
   );
 }
 

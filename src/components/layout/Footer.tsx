@@ -33,13 +33,13 @@ export default function Footer() {
   return (
     <footer className="relative isolate overflow-hidden border-t border-[#F0E0E0] bg-[#FFF5F5]">
       {/* Ambient falling petals — behind all footer content */}
-      <span className="petal text-[#D4A5A5] text-lg"  style={{ left: '6%',  animationDuration: '11s', animationDelay: '0s' }}   aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-xl"  style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-sm"  style={{ left: '38%', animationDuration: '9s',  animationDelay: '4s' }}   aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-2xl" style={{ left: '52%', animationDuration: '13s', animationDelay: '1s' }}  aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-base" style={{ left: '66%', animationDuration: '10s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-lg"  style={{ left: '78%', animationDuration: '12s', animationDelay: '3s' }}  aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-sm"  style={{ left: '90%', animationDuration: '15s', animationDelay: '6s' }}  aria-hidden="true">❀</span>
+      <span className="petal petal-foot-1 text-[#D4A5A5] text-lg"  aria-hidden="true">❀</span>
+      <span className="petal petal-foot-2 text-[#D4A5A5] text-xl"  aria-hidden="true">✿</span>
+      <span className="petal petal-foot-3 text-[#D4A5A5] text-sm"  aria-hidden="true">❀</span>
+      <span className="petal petal-foot-4 text-[#D4A5A5] text-2xl" aria-hidden="true">✿</span>
+      <span className="petal petal-foot-5 text-[#D4A5A5] text-base" aria-hidden="true">❀</span>
+      <span className="petal petal-foot-6 text-[#D4A5A5] text-lg"  aria-hidden="true">✿</span>
+      <span className="petal petal-foot-7 text-[#D4A5A5] text-sm"  aria-hidden="true">❀</span>
 
       <div className="relative z-10">
         {/* Links */}

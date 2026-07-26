@@ -66,7 +66,7 @@ The CSP is split across two delivery mechanisms:
 | Mechanism | Directives | Rationale |
 |-----------|-----------|-----------|
 | HTTP header (`next.config.ts`) | `frame-ancestors 'none'`, `upgrade-insecure-requests` | `frame-ancestors` is not supported in `<meta>` CSP. `upgrade-insecure-requests` is duplicated as defense-in-depth. |
-| `<meta>` tag (post-build script) | `default-src`, `script-src`, `style-src`, `img-src`, `font-src`, `connect-src`, `worker-src`, `frame-src`, `base-uri`, `form-action`, `object-src` | All other directives, computed per-page with hash sources. |
+| `<meta>` tag (post-build script) | `default-src`, `script-src` (with hashes), `style-src` (with hashes or bare `'self'`), `img-src`, `font-src`, `connect-src`, `worker-src`, `frame-src`, `base-uri`, `form-action`, `object-src` | All other directives, computed per-page with hash sources for `<script>` blocks, `<style>` blocks, and `style="..."` attribute values. |
 
 Both CSPs are enforced independently by the browser — a resource must satisfy
 both to load. This split is safe because the two sets of directives have no
@@ -78,6 +78,24 @@ overlap in the directives they control.
 dependencies — it uses only `node:crypto`, `node:fs`, `node:path`, and Bun's
 `Glob` API.
 
+The script hashes three categories of inline content:
+
+| Category | Source | Entity handling | Example |
+|----------|--------|----------------|---------|
+| `<script>` blocks | Inline flight data, bootstrapping | Raw bytes (RAWTEXT state — no decoding) | `self.__next_f.push(...)` |
+| `<style>` blocks | Framework error-page CSS | Raw bytes (RAWTEXT state — no decoding) | `:root { --next-error-*: ... }` |
+| `style="..."` attrs | `next/image` fill positioning, error-page UI | **Decode entities** (attribute values ARE decoded) | `style="font-family:...&quot;...&quot;;"` |
+
+The entity-decoding distinction is critical: `<script>` and `<style>` element
+content is treated as raw text by the HTML parser (RAWTEXT / script-data state),
+so HTML entities are NOT decoded. But `style="..."` attribute values ARE
+subject to HTML entity decoding by the parser. The browser hashes the DOM
+attribute value (after decoding), so the script must decode entities before
+hashing attribute values.
+
+The entity decoder handles `&quot;`, `&amp;` (last), `&lt;`, `&gt;`, `&#39;`,
+`&nbsp;`, and numeric entities (`&#NNN;`, `&#xHH;`).
+
 **Fail-safe behavior (security-critical):**
 
 - If no `*.html` files are found in `.next/server/app/`, the script exits with
@@ -87,23 +105,44 @@ dependencies — it uses only `node:crypto`, `node:fs`, `node:path`, and Bun's
 - If a file has zero inline scripts but others do, a warning is printed to
   stderr but the build does not fail (e.g. `_global-error.html` might
   genuinely have no inline scripts).
-- The script NEVER emits `'unsafe-inline'` in `script-src`. If hashes cannot
-  be found, the build fails rather than falling back to an insecure policy.
+- The script NEVER emits `'unsafe-inline'` in `script-src` or `style-src`. If
+  hashes cannot be found, the build fails rather than falling back to an
+  insecure policy.
 
 **Hash computation:**
 
-The browser hashes the DOM text content of a `<script>` element. Inside a
-`<script>` element, the HTML parser treats content as raw text — it does NOT
-decode HTML entities. Therefore the hash is computed over the raw byte content
-between `<script>` and `</script>`, matching the browser's behavior exactly.
+The browser hashes the DOM text content of `<script>` and `<style>` elements,
+and the DOM attribute value of `style="..."` attributes. Inside `<script>` and
+`<style>` elements, the HTML parser treats content as raw text (RAWTEXT or
+script-data state) — it does NOT decode HTML entities. For `style="..."`
+attribute values, the parser DOES decode HTML entities. The script handles
+both cases correctly.
 
-## What stays `'unsafe-inline'`
+## Dropping `'unsafe-inline'` from `style-src`
 
-`style-src` retains `'unsafe-inline'` because `next/font` emits inline
-`@font-face` CSS declarations that vary per build. CSS injection has
-significantly limited XSS impact compared to script injection (CSS can exfiltrate
-data via attribute selectors but cannot execute code), so this is an acceptable
-trade-off.
+`style-src` no longer uses `'unsafe-inline'`. Three categories of inline styles
+are covered:
+
+1. **`style={{}}` JSX attributes** (decorative petal animations) were refactored
+   to CSS classes. Nineteen petal animation spans (7 in `Navbar.tsx`, 7 in
+   `Footer.tsx`, 5 in `not-found.tsx`) had their per-instance `left`, `top`,
+   `animation-duration`, and `animation-delay` values moved into named CSS
+   classes (`.petal-nav-1`–`7`, `.petal-foot-1`–`7`, `.petal-404-1`–`5`) in
+   `globals.css`. No visual values changed.
+
+2. **Framework `<style>` blocks** (e.g. `_global-error.html` error-page CSS) are
+   hashed by the post-build script and allowed via `'sha256-...'` in `style-src`.
+
+3. **Framework `style="..."` attributes** (e.g. `next/image` fill positioning,
+   error-page button/layout styles) are hashed by the post-build script. The
+   script extracts each `style="..."` value, decodes HTML entities (attribute
+   values ARE entity-decoded by the HTML parser, unlike `<script>`/`<style>`
+   content), and computes a sha256 hash. These hashes are added to `style-src`
+   alongside any `<style>`-block hashes.
+
+Pages without any of the above get `style-src 'self'` (no hashes, no
+`'unsafe-inline'`). All animation behavior is preserved, including the
+`prefers-reduced-motion` guard.
 
 ## Production/preview scoping
 
@@ -136,8 +175,9 @@ to allow scripts from `https://cdn.example.com`:
 2. **HTML inspection**: Open `.next/server/app/index.html` and verify:
    - The `<meta http-equiv="Content-Security-Policy">` tag is present in `<head>`.
    - `script-src` contains `'sha256-...'` entries (no `'unsafe-inline'`).
-   - `style-src` contains `'unsafe-inline'`.
+   - `style-src` contains no `'unsafe-inline'`. Pages with `next/image` (index, flowers, bouquets) have `'sha256-...'` entries for the fill positioning style. `_global-error.html` has hashes for both its `<style>` block and its `style="..."` attrs (including the entity-decoded font-family). Other pages have bare `style-src 'self'`.
    - `frame-ancestors` is absent from the meta tag.
+   - Zero `style="..."` attributes appear on user-facing petals in the built HTML.
 3. **Browser DevTools**: Deploy to a preview deployment, open the page, and
    check the Console for CSP violation reports. The Security tab shows the
    effective CSP. All page functionality (navigation, cart, checkout) should
@@ -180,7 +220,10 @@ mentions of "CSP hash" or "inline script integrity" in the changelog.
   allowed by origin (`https://js.stripe.com`). A compromised Stripe CDN could
   still execute arbitrary JavaScript. `'strict-dynamic'` or nonce-based CSP
   could further restrict this, but would require non-static delivery.
-- **Data exfiltration via allowed CSS**: `style-src 'unsafe-inline'` allows
-  inline styles, which can be used for CSS-based data exfiltration (e.g.
-  attribute selectors with external URLs). This is a known limitation that is
-  acceptable for this project's threat model.
+- **Data exfiltration via allowed CSS**: Inline `style` attributes and
+  `<style>` blocks are now hash-gated (no `'unsafe-inline'`), so CSS-based
+  data exfiltration via injected inline styles (e.g. attribute selectors with
+  external URLs) is blocked. External stylesheets loaded via `<link>` remain
+  allowed by origin, and hashed `<style>` blocks are allowed. Hash-gating
+  inline styles is a meaningful improvement over `'unsafe-inline'` for CSS
+  injection attacks.
