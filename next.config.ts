@@ -1,3 +1,5 @@
+// next.config.ts
+
 import type { NextConfig } from "next";
 
 // VERCEL_ENV is injected by Vercel at build time as "production" | "preview" | "development"
@@ -48,8 +50,7 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value:
-      "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   },
   {
     key: "Strict-Transport-Security",
@@ -74,6 +75,12 @@ const securityHeaders = [
   {
     key: "Cross-Origin-Resource-Policy",
     value: "same-origin",
+  },
+  {
+    key: "Access-Control-Allow-Origin",
+    value:
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "*"),
   },
 ];
 
