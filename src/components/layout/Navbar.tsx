@@ -19,13 +19,13 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-[#F0E0E0] bg-[#FFFAFA]/95 backdrop-blur-sm">
       {/* Subtle ambient petals — behind all nav content (z -1), non-interactive */}
-      <span className="petal-nav petal-nav-1 text-[#D4A5A5] text-xs"  aria-hidden="true">❀</span>
-      <span className="petal-nav petal-nav-2 text-[#D4A5A5] text-sm"  aria-hidden="true">✿</span>
-      <span className="petal-nav petal-nav-3 text-[#D4A5A5] text-base" aria-hidden="true">❀</span>
-      <span className="petal-nav petal-nav-4 text-[#D4A5A5] text-xs"  aria-hidden="true">✿</span>
-      <span className="petal-nav petal-nav-5 text-[#D4A5A5] text-sm"  aria-hidden="true">❀</span>
-      <span className="petal-nav petal-nav-6 text-[#D4A5A5] text-xs"  aria-hidden="true">✿</span>
-      <span className="petal-nav petal-nav-7 text-[#D4A5A5] text-sm"  aria-hidden="true">❀</span>
+      <span className="petal-nav text-[#D4A5A5] text-xs"  style={{ left: '8%',  top: '12px', animationDuration: '9s',  animationDelay: '0s' }}   aria-hidden="true">❀</span>
+      <span className="petal-nav text-[#D4A5A5] text-sm"  style={{ left: '24%', top: '38px', animationDuration: '12s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
+      <span className="petal-nav text-[#D4A5A5] text-base" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }}   aria-hidden="true">❀</span>
+      <span className="petal-nav text-[#D4A5A5] text-xs"  style={{ left: '56%', top: '34px', animationDuration: '13s', animationDelay: '1s' }}   aria-hidden="true">✿</span>
+      <span className="petal-nav text-[#D4A5A5] text-sm"  style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
+      <span className="petal-nav text-[#D4A5A5] text-xs"  style={{ left: '82%', top: '40px', animationDuration: '14s', animationDelay: '3s' }}   aria-hidden="true">✿</span>
+      <span className="petal-nav text-[#D4A5A5] text-sm"  style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }}   aria-hidden="true">❀</span>
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
