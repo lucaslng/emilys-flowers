@@ -149,33 +149,6 @@ body {
   animation: petal-drift 9s ease-in-out infinite;
 }
 
-/* Per-petal position + timing (replaces inline style={{}} for strict CSP).
-   These override the base animation-duration/animation-delay from .petal-nav
-   and .petal, while respecting prefers-reduced-motion (the global * rule
-   forces animation-duration: 0.01ms !important). */
-/* Navbar petals (7) */
-.petal-nav-1 { left: 8%;  top: 12px; animation-duration: 9s;  animation-delay: 0s; }
-.petal-nav-2 { left: 24%; top: 38px; animation-duration: 12s; animation-delay: 2.5s; }
-.petal-nav-3 { left: 42%; top: 20px; animation-duration: 10s; animation-delay: 4s; }
-.petal-nav-4 { left: 56%; top: 34px; animation-duration: 13s; animation-delay: 1s; }
-.petal-nav-5 { left: 68%; top: 16px; animation-duration: 11s; animation-delay: 5.5s; }
-.petal-nav-6 { left: 82%; top: 40px; animation-duration: 14s; animation-delay: 3s; }
-.petal-nav-7 { left: 92%; top: 22px; animation-duration: 12s; animation-delay: 6s; }
-/* Footer petals (7) — no top (driven by petal-fall keyframe) */
-.petal-foot-1 { left: 6%;  animation-duration: 11s; animation-delay: 0s; }
-.petal-foot-2 { left: 22%; animation-duration: 14s; animation-delay: 2.5s; }
-.petal-foot-3 { left: 38%; animation-duration: 9s;  animation-delay: 4s; }
-.petal-foot-4 { left: 52%; animation-duration: 13s; animation-delay: 1s; }
-.petal-foot-5 { left: 66%; animation-duration: 10s; animation-delay: 5.5s; }
-.petal-foot-6 { left: 78%; animation-duration: 12s; animation-delay: 3s; }
-.petal-foot-7 { left: 90%; animation-duration: 15s; animation-delay: 6s; }
-/* 404 / not-found petals (5) — no top (driven by petal-fall keyframe) */
-.petal-404-1 { left: 10%; animation-duration: 11s; animation-delay: 0s; }
-.petal-404-2 { left: 22%; animation-duration: 14s; animation-delay: 3s; }
-.petal-404-3 { left: 78%; animation-duration: 12s; animation-delay: 1.5s; }
-.petal-404-4 { left: 88%; animation-duration: 15s; animation-delay: 5s; }
-.petal-404-5 { left: 50%; animation-duration: 13s; animation-delay: 7s; }
-
 /* ─── Product Card: museum-plaque / gallery label ──────────────── */
 /* Anti-generic: sharp corners (border-radius: 0), a single 1px hairline
    border, NO shadow on side cards, edge-to-edge image, a hairline

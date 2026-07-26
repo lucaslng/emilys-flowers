@@ -138,11 +138,11 @@ export default function NotFound() {
       {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded
           via the .petal class (base opacity:0, forced to a single 0.01ms
           iteration under prefers-reduced-motion, so they stay invisible). */}
-      <span className="petal petal-404-1 text-[#D4A5A5] text-xs"   aria-hidden="true">&#10040;</span>
-      <span className="petal petal-404-2 text-[#D4A5A5] text-sm"   aria-hidden="true">&#10047;</span>
-      <span className="petal petal-404-3 text-[#D4A5A5] text-base" aria-hidden="true">&#10040;</span>
-      <span className="petal petal-404-4 text-[#D4A5A5] text-xs"   aria-hidden="true">&#10047;</span>
-      <span className="petal petal-404-5 text-[#D4A5A5] text-sm"   aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#D4A5A5] text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#D4A5A5] text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-[#D4A5A5] text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#D4A5A5] text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-[#D4A5A5] text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
 
       <Container className="relative z-10">
         <div
