@@ -16,16 +16,16 @@ test.describe("Checkout flow", () => {
     await expect(page.locator("h2")).toContainText("Order Summary");
   });
 
-  test("clicking Pay with Stripe redirects and clears cart when no STRIPE_SECRET_KEY", async ({ page }) => {
+  test("clicking Pay with Stripe redirects to success page and clears cart", async ({ page }) => {
     await page.goto("/bouquets");
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/checkout");
 
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
-    // The simulated checkout redirects to /cart?success=true&items=...
-    // Then CheckoutSuccessHandler strips query params and clears cart.
-    // Wait for navigation to /cart.
+    // The webServer forces simulated checkout mode (see playwright.config.ts), so
+    // /api/checkout returns /cart?success=true&items=... Then CheckoutSuccessHandler
+    // strips query params and clears cart. Wait for navigation to /cart.
     await expect(page).toHaveURL(/\/cart/, { timeout: 15_000 });
 
     // Cart should be cleared (empty state visible after success handler runs)

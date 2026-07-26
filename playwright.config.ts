@@ -15,7 +15,12 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "bun run build && bun run start",
+    // Prefix STRIPE_SECRET_KEY= (empty) on both build and start so the checkout
+    // route always runs in its simulated-success mode, even when a developer has
+    // a real key in .env. Next.js does not override an existing env var (even an
+    // empty one) with .env values, so this forces `!secretKey` → simulated path.
+    // E2E must never hit the real Stripe API.
+    command: "STRIPE_SECRET_KEY= bun run build && STRIPE_SECRET_KEY= bun run start",
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
