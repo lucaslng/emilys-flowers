@@ -45,6 +45,18 @@ Required env vars:
 
 On Vercel, scope live keys to the **Production** environment and test keys to **Preview** so the production branch uses live and PR previews use sandbox. `.env*` is gitignored.
 
+## Security headers & CSP
+
+`next.config.ts` bakes a Content-Security-Policy and security headers into every response at build time (so the policy is fixed per deployment — `VERCEL_ENV` at build determines which variant ships). See `docs/security-headers.md` for the full rationale.
+
+- **`script-src` carries `'unsafe-inline'`** because Next.js/React emit inline scripts (RSC payload, streaming retry, route timing) core to hydration. **SRI does not replace `'unsafe-inline'`** — SRI only adds `integrity` to *external* scripts; it does nothing for inline execution. They're complementary.
+- **`'unsafe-eval'`** is gated on `NODE_ENV === 'development'` (not `VERCEL_ENV`) — Vercel preview builds are production builds and don't need it.
+- **`experimental.sri`** (sha256) adds `integrity` attributes to external chunk scripts at build time. App Router only, experimental.
+- **vercel.live** is scoped into script/connect/frame-src only on non-production (#16).
+- **`worker-src`** allows `blob:` + `m.stripe.network` for Stripe Radar fraud detection (#14).
+- **COEP is report-only** — enforcing breaks Stripe checkout iframes (#15). **CORP `same-origin`** is enforced (governs how others embed us, not how we load Stripe).
+- Pages are fully static; a nonce-based CSP would force dynamic rendering on every page (no static gen/ISR/PPR/CDN caching), so we keep `'unsafe-inline'` + SRI instead.
+
 ## Styling & animation conventions
 
 - **Tailwind v4, CSS-first config**: there is no `tailwind.config.js`. Theme tokens are declared with `@theme inline` in `src/app/globals.css`. Custom color tokens: `background`, `foreground`, `surface`, `blush`, `lavender`, `rose`, `border`, `muted`. Fonts map to `--font-sans` (Inter) / `--font-serif` (Playfair Display).
@@ -86,4 +98,4 @@ Do all lane work inside the worktree directory, not `main/`. There is no `.slim/
 
 - `CLAUDE.md` contains only `@AGENTS.md` — this file is the source of truth; edit here, not there.
 - `next-env.d.ts`, `*.tsbuildinfo`, and `.next/` are gitignored (generated). Don't edit `next-env.d.ts`.
-- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, styling/animation conventions, git conventions, worktree workflow — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.
+- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, security headers/CSP, styling/animation conventions, git conventions, worktree workflow — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.

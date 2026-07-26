@@ -40,6 +40,7 @@ writing code that touches any of these areas.
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the museum-plaque card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
 | [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts`, `src/lib/stripe.ts`, or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) and Vercel env scoping. |
+| [security-headers.md](./security-headers.md) | Before touching `next.config.ts` security headers, the CSP policy, or `experimental.sri`. Covers the SRI-vs-`'unsafe-inline'` trap, why `'unsafe-eval'` is dev-only, and the COEP/CORP/COOP tradeoffs. |
 
 ## Quick orientation
 
