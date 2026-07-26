@@ -10,14 +10,16 @@ Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScri
 
 ## Commands
 
-Only three scripts exist — there is **no `lint`, `typecheck`, or `test` script**. Do not assume they work.
-
 ```bash
 bun run dev       # dev server on :3000
 bun run build     # production build
 bun start         # serve the production build
+bun test          # unit tests (bun's built-in runner)
+bun run test:e2e  # Playwright E2E (builds + serves on :3000 first)
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
+
+There is **no `lint` or `typecheck` script** — do not assume they work. `bun test` and `bun run test:e2e` are defined; see the Testing section below for the full stack.
 
 Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.json` has been removed — do not reintroduce it or switch to npm.
 
@@ -32,7 +34,7 @@ Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.js
 
 - **Products are hardcoded** in `src/lib/products.ts` (no DB/CMS). Helpers: `getProductById`, `getFeaturedProducts`, `getProductsByCategory`. Images are `picsum.photos` placeholders, whitelisted in `next.config.ts` `images.remotePatterns`.
 - **Prices are integer cents** (Stripe convention): `2499` = $24.99. All cart math in `src/lib/cart-context.tsx` stays in cents.
-- **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount). `useCart()` throws if used outside `CartProvider` (which lives in the root layout, so this is normally fine).
+- **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount). `useCart()` throws if used outside `CartProvider` (which lives in the root layout, so this is normally fine). The `cartReducer` is exported from that module so it can be unit-tested in isolation as a pure function.
 
 ## Stripe
 
@@ -44,6 +46,17 @@ Required env vars:
 - `NEXT_PUBLIC_BASE_URL` (success/cancel URLs) — set to the production domain in the Production environment; previews fall back to the auto-injected `NEXT_PUBLIC_VERCEL_URL`, local dev defaults to `http://localhost:3000`
 
 On Vercel, scope live keys to the **Production** environment and test keys to **Preview** so the production branch uses live and PR previews use sandbox. `.env*` is gitignored.
+
+## Testing
+
+Two layers: **bun test** for unit tests and **Playwright** for E2E. Both are wired and must stay green.
+
+- **Unit tests** live in `src/lib/__tests__/*.test.ts` and are pure-logic (no DOM, no TSX rendering) — they test `products.ts` data/helpers and the exported `cartReducer` directly. Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias resolves automatically (bun reads `tsconfig.json` paths). No happy-dom / testing-library — keep unit tests dependency-free; if a component needs DOM rendering, that belongs in E2E, not here.
+- **E2E tests** live in `e2e/*.spec.ts` and use `@playwright/test`. `playwright.config.ts` runs `bun run build && bun run start` on `:3000` (production build, per Next.js guidance) with a chromium project and `baseURL http://localhost:3000`. Prefer web-first assertions (`expect(locator).toBeVisible()` / `toContainText()`) — they auto-wait and absorb the `template.tsx` page-enter animation. To put items in the cart, drive the real UI (navigate to `/bouquets`, click "Add to Cart") rather than injecting `localStorage`, except for narrow edge cases where `page.addInitScript` is clearer.
+- **Checkout E2E runs without `STRIPE_SECRET_KEY`** so `/api/checkout` uses its simulated success path (redirects to `/cart?success=true&items=...` and `CheckoutSuccessHandler` clears the cart). Do not set a Stripe key in the E2E environment. The API route is also tested directly (empty items → 400, valid items → 200 with `url`).
+- **`bunfig.toml`** excludes `e2e/**` from `bun test` discovery so the two runners don't collide. `bun test` runs only unit tests; `bun run test:e2e` runs only Playwright.
+- **Generated dirs** `test-results/` and `playwright-report/` are gitignored. Browser binaries live outside the repo (installed via `bunx playwright install chromium`).
+- When adding source that should be unit-testable as pure logic, export the function (as `cartReducer` is exported) rather than reaching for a DOM test harness.
 
 ## Styling & animation conventions
 

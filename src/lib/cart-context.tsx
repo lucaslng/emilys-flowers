@@ -24,7 +24,7 @@ type CartAction =
   | { type: 'CLEAR_CART' }
   | { type: 'HYDRATE'; payload: CartItem[] };
 
-function cartReducer(state: CartState, action: CartAction): CartState {
+export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_TO_CART': {
       const existingIndex = state.items.findIndex(

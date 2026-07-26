@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "bun run --bun next dev",
     "build": "bun run --bun next build",
-    "start": "bun run --bun next start"
+    "start": "bun run --bun next start",
+    "test": "bun test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -17,7 +19,9 @@
     "stripe": "^22.3.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.3.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
