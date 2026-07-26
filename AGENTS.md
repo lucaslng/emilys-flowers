@@ -51,7 +51,7 @@ On Vercel, scope live keys to the **Production** environment and test keys to **
 
 - **`script-src` carries `'unsafe-inline'`** because Next.js/React emit inline scripts (RSC payload, streaming retry, route timing) core to hydration. **SRI does not replace `'unsafe-inline'`** — SRI only adds `integrity` to *external* scripts; it does nothing for inline execution. They're complementary.
 - **`'unsafe-eval'`** is gated on `NODE_ENV === 'development'` (not `VERCEL_ENV`) — Vercel preview builds are production builds and don't need it.
-- **`experimental.sri`** (sha256) adds `integrity` attributes to external chunk scripts at build time. App Router only, experimental.
+- **`experimental.sri` is disabled.** Turbopack's runtime chunk uses a stable (non-content-hashed) filename, so Vercel's CDN serves stale chunks across deployments and SRI integrity checks fail — known bug [vercel/next.js#91633](https://github.com/vercel/next.js/issues/91633), open since Mar 2026. The CSP with `'unsafe-inline'` already handles script authorization; SRI was additive. See `docs/security-headers.md`.
 - **vercel.live** is scoped into script/connect/frame-src only on non-production (#16).
 - **`worker-src`** allows `blob:` + `m.stripe.network` for Stripe Radar fraud detection (#14).
 - **COEP is report-only** — enforcing breaks Stripe checkout iframes (#15). **CORP `same-origin`** is enforced (governs how others embed us, not how we load Stripe).

@@ -69,26 +69,68 @@ The gate is `NODE_ENV === 'development'`, **not** `!isProduction`. Gating on
 over-permission. `NODE_ENV` is the right signal because it's `'development'`
 only for `bun run dev` (local).
 
-## `experimental.sri`
+## `experimental.sri` — disabled (known Turbopack bug)
 
-```ts
-experimental: {
-  sri: {
-    algorithm: 'sha256', // or 'sha384' or 'sha512'
+SRI (Subresource Integrity) adds `integrity="sha256-…"` attributes to external
+`<script src>` tags so the browser can verify the file wasn't modified in
+transit. It's complementary to `'unsafe-inline'` (which authorizes inline
+scripts); SRI protects *external* scripts from tampering.
+
+**We do not enable it.** It's broken with Turbopack on Vercel.
+
+### The bug
+
+Turbopack's `turbopack-*` runtime chunk uses a **stable, non-content-hashed
+filename** (e.g. `turbopack-004yph6-w775e.js`). Different deployments produce
+the same filename with different content. Vercel's CDN serves `/_next/static/`
+as immutable, so:
+
+1. Deployment A builds `turbopack-xyz.js` with content hash `H1` → CDN caches it.
+2. Deployment B builds the same filename with content hash `H2` → HTML references
+   `integrity="sha256-H2"`.
+3. Browser loads deployment B's HTML but gets the CDN-cached chunk from
+   deployment A (content `H1`) → **integrity mismatch → resource blocked**.
+
+The error looks like:
+
+> Failed to find a valid digest in the 'integrity' attribute for resource
+> '…/_next/static/chunks/turbopack-004yph6-w775e.js' with computed SHA-256
+> integrity 'zuBJLdRXvTFpn+wJGIMdce359tW4GUS2+pnAYQOUHSE='. The resource
+> has been blocked.
+
+This was confirmed locally: the same chunk filename produced different file
+hashes on macOS vs Vercel Linux, and the local build's HTML integrity attr
+matched the local file (SRI works in isolation) — the failure is CDN skew
+across deployments, not a hash computation bug.
+
+### Status
+
+- **Known bug:** [vercel/next.js#91633](https://github.com/vercel/next.js/issues/91633)
+  (opened Mar 19 2026, the day after SRI shipped for Turbopack in 16.2).
+  No labels, no assignee, no PR, no Vercel/Next.js response as of Jul 2026.
+- SRI for Turbopack was announced in the
+  [Next.js 16.2 blog post](https://nextjs.org/blog/next-16-2-turbopack#subresource-integrity-support).
+- The Next.js docs still list SRI as **"Experimental"** — "Feature may change
+  or be removed."
+
+### Why we disable it instead of working around it
+
+- **The CSP with `'unsafe-inline'` already handles script authorization.**
+  SRI was additive protection against external-script tampering, not a
+  load-bearing security control for this storefront.
+- **The alternative workaround is `next build --webpack`**, which uses
+  webpack's `SubresourceIntegrityPlugin` (different hash pipeline, content-hashed
+  filenames). That keeps SRI but abandons Turbopack's build speed — not worth
+  it for an experimental feature on a static storefront.
+- **Re-enable once #91633 is fixed** (Turbopack content-hashes the runtime
+  chunk, or Vercel invalidates stale chunks across deployments). Add back:
+  ```ts
+  experimental: {
+    sri: { algorithm: 'sha256' }, // or 'sha384' or 'sha512'
   },
-},
-```
-
-App Router only, experimental. At build time, Next.js computes the hash of
-each external chunk and adds `integrity="sha256-…"` to the `<script>` tag.
-The browser refuses to execute the script if the fetched file's hash doesn't
-match — protecting against CDN/transport tampering.
-
-Limitations (per the docs):
-
-- **Experimental** — may change or be removed.
-- **App Router only** — not supported in Pages Router.
-- **Build-time only** — cannot hash dynamically generated scripts.
+  ```
+  Then verify on a fresh Vercel preview that the `turbopack-*` chunk's
+  `integrity` attr matches the served file's computed hash.
 
 ## Why not nonces?
 

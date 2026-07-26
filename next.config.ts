@@ -64,11 +64,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  experimental: {
-    sri: {
-      algorithm: 'sha256',
-    },
-  },
+  // experimental.sri is disabled: Turbopack's runtime chunk uses a stable (non-content-hashed)
+  // filename, so Vercel's CDN serves stale chunks across deployments → integrity mismatches.
+  // Known bug: https://github.com/vercel/next.js/issues/91633. See docs/security-headers.md.
   async headers() {
     return [
       {
