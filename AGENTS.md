@@ -53,8 +53,16 @@ On Vercel, scope live keys to the **Production** environment and test keys to **
 - **Reduced motion**: `globals.css` collapses animations to ~instant and hides decorative petals under `prefers-reduced-motion: reduce`. New animations/motion components must respect this guard.
 - **Product cards use a "museum-plaque" style** (`.plaque-card` in globals.css): sharp corners, 1px hairline border, no shadow, hover draws a rose underline under the name. Match this language for new product-facing cards rather than introducing generic rounded/shadowed cards.
 
+## Git conventions
+
+- **Branch prefixes (required from now on):** name every new branch with one of these prefixes:
+  - `feature/` — new functionality or enhancements (e.g. `feature/gift-wrap-option`)
+  - `bugfix/` — defect fixes (e.g. `bugfix/cart-cents-rounding`)
+  - `docs/` — documentation-only changes (e.g. `docs/branch-prefix-policy`)
+- Do not branch off `main` with a bare name or an ad-hoc prefix. If an existing branch predates this policy, leave it as-is; apply the prefixes to new work going forward.
+
 ## Notes
 
 - `CLAUDE.md` contains only `@AGENTS.md` — this file is the source of truth; edit here, not there.
 - `next-env.d.ts`, `*.tsbuildinfo`, and `.next/` are gitignored (generated). Don't edit `next-env.d.ts`.
-- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, styling/animation conventions — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.
+- **Keep this file accurate.** If you change anything documented here — commands, architecture, data/state, Stripe wiring, styling/animation conventions, git conventions — update the corresponding section in this same edit. Treat `AGENTS.md` as living documentation, not a snapshot.
