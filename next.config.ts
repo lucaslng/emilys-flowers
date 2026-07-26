@@ -1,45 +1,26 @@
 import type { NextConfig } from "next";
 
-// VERCEL_ENV is injected by Vercel at build time as "production" | "preview" | "development"
-// (https://vercel.com/docs/environment-variables/system-environment-variables). It is undefined
-// in local dev. We treat anything other than "production" as preview so the Vercel Live toolbar
-// keeps working on previews and locally; production is the strict opt-in. Because next.config.ts
-// is evaluated at build time, the CSP below is baked per deployment. See issue #16.
-const isProduction = process.env.VERCEL_ENV === "production";
+// ---------------------------------------------------------------------------
+// Content-Security-Policy
+//
+// The bulk of the CSP (script-src with hashes, style-src, img-src, etc.) is
+// injected per-page via a <meta http-equiv="Content-Security-Policy"> tag by
+// scripts/inject-csp-hashes.ts after every build.  Only directives NOT
+// supported in <meta> tags live here in the HTTP header.
+//
+//   frame-ancestors — NOT supported in <meta> CSP; stays in the HTTP header.
+//   upgrade-insecure-requests — supported in <meta> but duplicated here as
+//     defense-in-depth against meta-tag stripping.
+//
+// All other CSP directives (script-src, style-src, etc.) are handled by the
+// post-build script which computes sha256 hashes of every inline <script>
+// block, removing the need for 'unsafe-inline'.
+//
+// VERCEL_ENV production/preview scoping for vercel.live is handled in the
+// post-build script, not here. See scripts/inject-csp-hashes.ts.
+// ---------------------------------------------------------------------------
 
-// Vercel Live (https://vercel.live) is the preview/collaboration toolbar. It needs script,
-// connect (WebSocket), and frame access to render its iframe. Scoped to non-production below so
-// a compromised vercel.live origin cannot execute code in the production checkout origin. See #16.
-const vercelLive = "https://vercel.live";
-const vercelLiveConnect = "https://vercel.live wss://vercel.live";
-
-const csp = [
-  "default-src 'self'",
-  // vercel.live scoped out of production (#16).
-  `script-src 'self' 'unsafe-inline' https://js.stripe.com${isProduction ? "" : ` ${vercelLive}`}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  // vercel.live scoped out of production (#16).
-  `connect-src 'self' https://api.stripe.com https://r.stripe.com https://m.stripe.com https://v3.stripe.com${
-    isProduction ? "" : ` ${vercelLiveConnect}`
-  }`,
-  // Stripe Radar (fraud detection) spawns web workers off blob: and https://m.stripe.network to
-  // collect device fingerprint signals. Without worker-src, browsers fall back to default-src
-  // 'self', blocking the worker and silently disabling fraud signals. See issue #14.
-  "worker-src 'self' blob: https://m.stripe.network",
-  // vercel.live added on non-production so the Live toolbar iframe renders (#16). Previously the
-  // toolbar's script+connect were allowed but its iframe was blocked by frame-src, producing a
-  // CSP violation and a broken toolbar on preview.
-  `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com${
-    isProduction ? "" : ` ${vercelLive}`
-  }`,
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self' https://checkout.stripe.com",
-  "object-src 'none'",
-  "upgrade-insecure-requests",
-].join("; ");
+const csp = "frame-ancestors 'none'; upgrade-insecure-requests";
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
