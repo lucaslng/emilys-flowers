@@ -1,17 +1,47 @@
 'use client';
 
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
 
+/**
+ * Reads the `?success=true` query param that Stripe (or the simulated
+ * checkout) appends on a successful payment and clears the cart once.
+ * Wrapped in <Suspense> because useSearchParams() requires a boundary
+ * in Next.js 16 production builds.
+ */
+function CheckoutSuccessHandler() {
+  const searchParams = useSearchParams();
+  const { clearCart } = useCart();
+
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      clearCart();
+      // Strip the query param so a refresh or history navigation
+      // doesn't re-trigger the handler.
+      window.history.replaceState(null, '', '/cart');
+    }
+    // clearCart is stable (useCallback with [] in CartProvider);
+    // run only once on mount.
+  }, [searchParams, clearCart]);
+
+  return null;
+}
+
 export default function CartPage() {
   const { items, clearCart } = useCart();
 
   return (
-    <div className="py-12 sm:py-16">
+    <>
+      <Suspense fallback={null}>
+        <CheckoutSuccessHandler />
+      </Suspense>
+      <div className="py-12 sm:py-16">
       <Container>
         <div className="mb-8 text-center">
           <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
@@ -84,6 +114,7 @@ export default function CartPage() {
           </div>
         )}
       </Container>
-    </div>
+      </div>
+    </>
   );
 }
