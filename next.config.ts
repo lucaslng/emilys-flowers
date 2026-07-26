@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    sri: {
+      algorithm: 'sha256', // or 'sha384' or 'sha512'
+    },
+  },
 };
 
 export default nextConfig;
