@@ -24,11 +24,14 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     // The webServer forces simulated checkout mode (see playwright.config.ts), so
-    // /api/checkout returns /cart?success=true&items=... Then CheckoutSuccessHandler
-    // strips query params and clears cart. Wait for navigation to /cart.
-    await expect(page).toHaveURL(/\/cart/, { timeout: 15_000 });
+    // /api/checkout returns /checkout/success?success=true&order=...&items=...
+    await expect(page).toHaveURL(/\/checkout\/success/, { timeout: 15_000 });
 
-    // Cart should be cleared (empty state visible after success handler runs)
+    // Success page shows the thank-you heading
+    await expect(page.locator("h1")).toContainText("Thank you for your order", { timeout: 5_000 });
+
+    // The success page clears the cart on mount — confirm by visiting /cart
+    await page.goto("/cart");
     await expect(page.locator("h2")).toContainText("Your cart is empty", { timeout: 5_000 });
   });
 
@@ -51,6 +54,7 @@ test.describe("Checkout flow", () => {
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
+    expect(body.url).toContain("/checkout/success");
     expect(body.url).toContain("success=true");
   });
 });

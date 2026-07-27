@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { validateLineItems, type LineItem } from '@/lib/checkout';
-
+import { encodeOrderItems, generateOrderNumber } from '@/lib/order';
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
@@ -19,16 +19,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const itemsParam = encodeOrderItems(items);
     const secretKey = process.env.STRIPE_SECRET_KEY;
 
     // No secret key configured (e.g. local dev without a .env.local):
     // simulate a successful checkout instead of crashing.
     if (!secretKey) {
       console.log('[Checkout] No STRIPE_SECRET_KEY; simulating success');
-      const itemSummary = items
-        .map((i) => `${i.quantity}x ${i.name}`)
-        .join(', ');
-      const successUrl = `${origin}/cart?success=true&items=${encodeURIComponent(itemSummary)}`;
+      const order = generateOrderNumber();
+      const successUrl = `${origin}/checkout/success?success=true&order=${order}&items=${itemsParam}`;
       return NextResponse.json({ url: successUrl });
     }
 
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
         },
         quantity: item.quantity,
       })),
-      success_url: `${origin}/cart?success=true`,
+      success_url: `${origin}/checkout/success?success=true&order={CHECKOUT_SESSION_ID}&items=${itemsParam}`,
       cancel_url: `${origin}/cart?canceled=true`,
     });
 
