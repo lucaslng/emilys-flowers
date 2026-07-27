@@ -166,12 +166,6 @@ jobs:
     # URLs fast and lets E2E be path-filtered without stalling previews. The
     # default `success()` check still requires `unit` to pass.
     if: github.ref != 'refs/heads/main'
-    # Job-scoped (least privilege): the other jobs keep the workflow-level
-    # `contents: read`. `pull-requests: write` lets this job look up the PR
-    # for the head SHA and post/update a sticky preview-URL comment on it.
-    permissions:
-      contents: read
-      pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -194,7 +188,6 @@ jobs:
       # overwriting the preview Worker's production deployment. The alias
       # produces a URL like `<alias>-emilys-flowers-preview.<subdomain>.workers.dev`.
       - name: Deploy to preview Worker
-        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -209,48 +202,5 @@ jobs:
             | sed 's/^-//;s/-$//' \
             | cut -c1-40 \
             | sed 's/-$//')
-          URL="https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
-          echo "Preview URL: ${URL}"
-          # Surface to the comment step below. $GITHUB_OUTPUT is the supported
-          # channel for step outputs in composite/run steps (set-output is deprecated).
-          echo "preview-url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
           bunx opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias "$ALIAS"
-
-      # This workflow triggers on `push`, not `pull_request`, so
-      # github.event.pull_request is unavailable. Look up the PR (if any) for
-      # the head SHA via the REST API. Returns the PR number as a string step
-      # output, or an empty string when the branch has no open PR — in which
-      # case the comment step is skipped (no PR to comment on).
-      - name: Find PR for this commit
-        id: pr
-        uses: actions/github-script@v9
-        with:
-          result-encoding: string
-          script: |
-            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-            });
-            // Prefer the first OPEN PR; fall back to the first result if none are open.
-            const pr = prs.data.find(p => p.state === 'open') ?? prs.data[0];
-            return pr ? String(pr.number) : '';
-
-      # Sticky: keyed by `header`, so re-pushes UPDATE the same comment instead
-      # of stacking duplicates. Skipped when no PR was found (e.g. a branch
-      # pushed without an open PR). `if` is a GitHub Actions expression, so the
-      # empty-string check is truthy-only.
-      - name: Comment preview URL on PR
-        if: steps.pr.outputs.result != ''
-        uses: marocchino/sticky-pull-request-comment@v3
-        with:
-          number: ${{ steps.pr.outputs.result }}
-          header: cloudflare-preview-url
-          message: |
-            ## ☁️ Cloudflare preview deployed
-
-            Push `${{ github.sha.substring(0, 7) }}` on `${{ github.ref_name }}` is live at:
-
-            **${{ steps.deploy.outputs.preview-url }}**
-
-            <sub>Test Stripe keys · auto-updated on each push · from `deploy.yml`</sub>
