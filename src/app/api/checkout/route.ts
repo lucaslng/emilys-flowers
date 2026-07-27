@@ -34,6 +34,10 @@ export async function POST(request: Request) {
     const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      billing_address_collection: 'required',
+      shipping_address_collection: {
+        allowed_countries: ['CA'],
+      },
       line_items: items.map((item) => ({
         price_data: {
           currency: 'usd',
