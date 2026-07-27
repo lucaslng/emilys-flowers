@@ -124,8 +124,24 @@ jobs:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
         run: bunx opennextjs-cloudflare build
 
+      # Use `upload` (wrangler versions upload) instead of `deploy` so each
+      # branch gets its own preview version with a stable URL, rather than
+      # overwriting the preview Worker's production deployment. The alias
+      # produces a URL like `<alias>-emilys-flowers-preview.<subdomain>.workers.dev`.
       - name: Deploy to preview Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx opennextjs-cloudflare deploy --env preview -- --keep-vars
+        run: |
+          # Sanitize branch name for DNS: lowercase, replace / _ . with -, squeeze
+          # consecutive hyphens, strip leading/trailing -, truncate to 40 chars
+          # (workers.dev subdomain label limit is 63; worker name is 22 + 1 hyphen).
+          ALIAS=$(echo "${{ github.ref_name }}" \
+            | tr '[:upper:]' '[:lower:]' \
+            | tr '/_.' '-' \
+            | tr -s '-' \
+            | sed 's/^-//;s/-$//' \
+            | cut -c1-40 \
+            | sed 's/-$//')
+          echo "Preview URL: https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
+          bunx opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias "$ALIAS"
