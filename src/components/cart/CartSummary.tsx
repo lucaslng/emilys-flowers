@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useCart } from '@/lib/cart-context';
+import { useCart, computeShipping } from '@/lib/cart-context';
+import { formatPrice } from '@/lib/format';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
 
@@ -9,7 +10,7 @@ export default function CartSummary() {
   const { items, getTotal, getItemCount } = useCart();
   const subtotal = getTotal();
   const itemCount = getItemCount();
-  const shipping = subtotal >= 5000 ? 0 : 599;
+  const shipping = computeShipping(subtotal);
   const total = subtotal + shipping;
 
   return (
@@ -26,7 +27,7 @@ export default function CartSummary() {
             <span>
               Items ({itemCount})
             </span>
-            <span className="tabular-nums">${(subtotal / 100).toFixed(2)}</span>
+            <span className="tabular-nums">${formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
             <span>Shipping</span>
@@ -34,7 +35,7 @@ export default function CartSummary() {
               {shipping === 0 ? (
                 <span className="text-green-700">Free</span>
               ) : (
-                `$${(shipping / 100).toFixed(2)}`
+                `$${formatPrice(shipping)}`
               )}
             </span>
           </div>
@@ -46,7 +47,7 @@ export default function CartSummary() {
           <div className="plaque-divider pt-3">
             <div className="flex justify-between font-serif text-lg font-bold text-[#4A3B3B]">
               <span>Total</span>
-              <span className="tabular-nums">${(total / 100).toFixed(2)}</span>
+              <span className="tabular-nums">${formatPrice(total)}</span>
             </div>
           </div>
         </div>
