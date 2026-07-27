@@ -188,6 +188,17 @@ body {
   width: 100%;
 }
 
+/* ─── Cart item: plaque language + calm border-warm on hover ────── */
+/* Extends `.plaque-card` (sharp corners, hairline border, no shadow)
+   with a rose border-warm on hover. The `:hover` specificity beats
+   `.plaque-card`'s base `border-color`, and `.plaque-card`'s own
+   `transition: border-color 0.4s ease` carries the animation — so we
+   don't redeclare the transition here. Used on cart line items so the
+   cart reads as part of the same editorial system as the product cards. */
+.cart-item-card:hover {
+  border-color: #D4A5A5;
+}
+
 .bloom-glow {
   animation: bloom-glow 3s ease-in-out infinite;
 }
