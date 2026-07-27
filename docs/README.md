@@ -21,8 +21,8 @@ doc.
 
 | Package | Version | Notes |
 |---|---|---|
-| Next.js | `16.2.11` | App Router, Turbopack default, async request APIs |
-| React / react-dom | `19.2.4` | `use()`, Actions, `ref` as prop, `<Context>` shorthand |
+| Next.js | `16.2.12` | App Router, Turbopack default, async request APIs |
+| React / react-dom | `19.2.8` | `use()`, Actions, `ref` as prop, `<Context>` shorthand |
 | Tailwind CSS | `^4` (resolves to 4.3.x) | CSS-first config, no `tailwind.config.js` |
 | GSAP | `^3.15.0` | Import via `@/lib/gsap`, not directly |
 | `@gsap/react` | `^2.1.2` | `useGSAP` hook with automatic cleanup |
@@ -39,20 +39,19 @@ writing code that touches any of these areas.
 | [nextjs-and-react.md](./nextjs-and-react.md) | Before touching routes, layouts, data fetching, metadata, route handlers, or React hooks/components. Covers Next.js 16 + React 19 breaking changes. |
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the museum-plaque card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
-| [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts`, `src/lib/stripe.ts`, or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) and Vercel env scoping. |
+| [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts`, `src/lib/stripe.ts`, or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) |
 
 ## Quick orientation
 
 - **Package manager:** `bun` (lockfile is `bun.lock`; do not reintroduce
   `package-lock.json`).
-- **Scripts:** only `dev`, `build`, `start`. No `lint`/`typecheck`/`test` script.
-  Ad-hoc typecheck: `bunx tsc --noEmit`.
+- **Scripts:** `dev`, `build`, `start`, `test`, `test:e2e`, `preview`,
+  `deploy`, `upload`, `cf-typegen`. No `lint`/`typecheck` script — ad-hoc
+  typecheck: `bunx tsc --noEmit`.
 - **Path alias:** `@/*` → `./src/*`.
 - **TypeScript:** `strict`, `noEmit`, `moduleResolution: bundler`.
 - **Products** are hardcoded in `src/lib/products.ts` — no DB/CMS.
 - **Prices** are integer cents everywhere (`2499` = $24.99).
 - **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`,
   persisted to `localStorage` key `emilys-flowers-cart`.
-- **Stripe** creates real Checkout Sessions when `STRIPE_SECRET_KEY` is set;
-  falls back to a simulated success URL when the key is absent. Live keys are
-  scoped to the Vercel Production environment, test keys to Preview.
+- **Stripe** creates real Checkout Sessions when `STRIPE_SECRET_KEY` is set to live keys, sandbox when set to test keys
