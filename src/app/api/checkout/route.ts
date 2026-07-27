@@ -1,11 +1,8 @@
+// route.ts
+
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const ORIGIN =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : 'http://localhost:3000');
 
 interface LineItem {
   id: string;
@@ -15,6 +12,7 @@ interface LineItem {
 }
 
 export async function POST(request: Request) {
+  const origin = new URL(request.url).origin;
   try {
     const body = await request.json();
     const { items } = body as { items: LineItem[] };
@@ -35,11 +33,11 @@ export async function POST(request: Request) {
       const itemSummary = items
         .map((i) => `${i.quantity}x ${i.name}`)
         .join(', ');
-      const successUrl = `${ORIGIN}/cart?success=true&items=${encodeURIComponent(itemSummary)}`;
+      const successUrl = `${origin}/cart?success=true&items=${encodeURIComponent(itemSummary)}`;
       return NextResponse.json({ url: successUrl });
     }
 
-    const stripe = new Stripe(secretKey);
+    const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: items.map((item) => ({
@@ -52,8 +50,8 @@ export async function POST(request: Request) {
         },
         quantity: item.quantity,
       })),
-      success_url: `${ORIGIN}/cart?success=true`,
-      cancel_url: `${ORIGIN}/cart?canceled=true`,
+      success_url: `${origin}/cart?success=true`,
+      cancel_url: `${origin}/cart?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url });

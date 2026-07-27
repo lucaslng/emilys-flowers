@@ -1,0 +1,9 @@
+# Local Workers runtime secrets (read by `wrangler dev` / `bun run preview`).
+# Copy to `.dev.vars` (gitignored) and fill in real values.
+# Production secrets are set via `wrangler secret put` or the Cloudflare dashboard — never here.
+
+# Stripe — server (test mode for local dev)
+STRIPE_SECRET_KEY=sk_test_xxx
+
+# Stripe — client (safe to expose; used by src/lib/stripe.ts)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx

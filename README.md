@@ -18,13 +18,30 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Scripts
 
 ```bash
-bun run dev       # dev server on :3000
-bun run build     # production build
-bun start         # serve the production build
+bun run dev       # dev server on :3000 (Next.js, with OpenNext bindings injected)
+bun run build     # production build (Next.js)
+bun start         # serve the production build (Node.js runtime — NOT Workers)
+bun test          # unit tests (bun's built-in runner)
+bun run test:e2e  # Playwright E2E (builds + serves on :3000 first)
+bun run preview   # build + serve in the local Workers runtime (Miniflare via wrangler)
+bun run deploy    # build + deploy to Cloudflare Workers
+bun run upload    # build + upload Worker without activating (wrangler upload)
+bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
 There is no `lint`, `typecheck`, or `test` script.
+
+## Deployment — Cloudflare Workers
+
+This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext), not Vercel.
+
+- `wrangler.jsonc` — Workers config (`main`, `nodejs_compat`, `IMAGES` binding for `next/image`, `WORKER_SELF_REFERENCE` service binding).
+- `open-next.config.ts` — OpenNext adapter config (default is sufficient; R2 cache commented out).
+- `bun run preview` — build + serve locally in the Workers runtime (Miniflare) to verify before deploying.
+- `bun run deploy` — build + deploy to Cloudflare Workers.
+
+Secrets (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`) are set via `wrangler secret put` or the Cloudflare dashboard — never in `wrangler.jsonc` `vars`. Locally, use `.dev.vars` (gitignored; see `.dev.vars.example`).
 
 ## Routes
 
@@ -41,9 +58,6 @@ There is no `lint`, `typecheck`, or `test` script.
 
 - `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client) — matching live/test pair
-- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs) — production domain in Production; previews fall back to `NEXT_PUBLIC_VERCEL_URL`, local dev to `http://localhost:3000`
-
-On Vercel, scope live keys to the Production environment and test keys to Preview so the production branch uses live and PR previews use sandbox.
 
 `.env*` is gitignored.
 

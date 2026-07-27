@@ -11,17 +11,31 @@ Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScri
 ## Commands
 
 ```bash
-bun run dev       # dev server on :3000
-bun run build     # production build
-bun start         # serve the production build
+bun run dev       # dev server on :3000 (Next.js, with OpenNext bindings injected)
+bun run build     # production build (Next.js)
+bun start         # serve the production build (Node.js runtime — NOT Workers)
 bun test          # unit tests (bun's built-in runner)
 bun run test:e2e  # Playwright E2E (builds + serves on :3000 first)
+bun run preview   # build + serve in the local Workers runtime (Miniflare via wrangler)
+bun run deploy   # build + deploy to Cloudflare Workers
+bun run upload    # build + upload Worker without activating (wrangler upload)
+bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
 There is **no `lint` or `typecheck` script** — do not assume they work. `bun test` and `bun run test:e2e` are defined; see the Testing section below for the full stack.
 
 Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.json` has been removed — do not reintroduce it or switch to npm.
+
+## Deployment — Cloudflare Workers
+
+This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext). It is **not** a Vercel project — `vercel.json` was removed and no Vercel env vars (`VERCEL_ENV`, `VERCEL_URL`, `NEXT_PUBLIC_VERCEL_URL`) are referenced anywhere. Do not reintroduce them.
+
+- **`wrangler.jsonc`** is the Workers config: `main: .open-next/worker.js`, `nodejs_compat` flag, `IMAGES` binding (Cloudflare Images for `next/image`), and `WORKER_SELF_REFERENCE` service binding (required by OpenNext for ISR revalidation, even though this app has no ISR today — keep it).
+- **`open-next.config.ts`** is the OpenNext adapter config. The default `defineCloudflareConfig({})` is sufficient for this app (hardcoded products, no ISR/SSG data fetching, no DB). R2 incremental cache is commented out — enable it only if you add cached data fetching.
+- **`next.config.ts`** ends with an unconditional `import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev())` — this is the official pattern; it injects `wrangler.jsonc` bindings into `next dev` so `getCloudflareContext()` works locally. It self-guards outside dev.
+- **Generated dirs** `.open-next/` (build output) and `.wrangler/` (local state) are gitignored. `cloudflare-env.d.ts` (from `bun run cf-typegen`) is also gitignored — regenerate it locally when you start referencing `CloudflareEnv` in code, then commit it once code depends on its types.
+- **Local Workers secrets** go in `.dev.vars` (gitignored). A `.dev.vars.example` template is tracked. Runtime secrets on production are set via `wrangler secret put` or the Cloudflare dashboard — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only).
 
 ## Architecture
 
@@ -38,14 +52,14 @@ Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.js
 
 ## Stripe
 
-`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. `src/lib/stripe.ts` loads the client via `@stripe/stripe-js`.
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. `src/lib/stripe.ts` loads the client via `@stripe/stripe-js`. The route derives `origin` from `request.url` (no `NEXT_PUBLIC_BASE_URL` / `NEXT_PUBLIC_VERCEL_URL` fallback chain — those were removed with the Vercel migration).
 
 Required env vars:
+
 - `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, used by `src/lib/stripe.ts`) — must match the same mode as the secret key
-- `NEXT_PUBLIC_BASE_URL` (success/cancel URLs) — set to the production domain in the Production environment; previews fall back to the auto-injected `NEXT_PUBLIC_VERCEL_URL`, local dev defaults to `http://localhost:3000`
 
-On Vercel, scope live keys to the **Production** environment and test keys to **Preview** so the production branch uses live and PR previews use sandbox. `.env*` is gitignored.
+On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set via `wrangler secret put` (never in `wrangler.jsonc` `vars`). `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is inlined by Next.js at build time, so it must be present during `opennextjs-cloudflare build` (set it as a build variable in the Cloudflare dashboard / Workers Builds) **and** deployed as a runtime secret for any server code that reads it. Locally, both come from `.env.local` (read by `next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
 
 ## Testing
 

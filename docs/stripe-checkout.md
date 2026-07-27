@@ -30,23 +30,18 @@ fallback.
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const ORIGIN =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : 'http://localhost:3000')
-
 export async function POST(request: Request) {
+  const origin = new URL(request.url).origin
   const { items } = await request.json()
 
   const secretKey = process.env.STRIPE_SECRET_KEY
 
   // No key configured — simulate success instead of crashing.
   if (!secretKey) {
-    return NextResponse.json({ url: `${ORIGIN}/cart?success=true` })
+    return NextResponse.json({ url: `${origin}/cart?success=true` })
   }
 
-  const stripe = new Stripe(secretKey)
+  const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() })
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
     line_items: items.map((item: { name: string; price: number; quantity: number }) => ({
@@ -57,18 +52,24 @@ export async function POST(request: Request) {
       },
       quantity: item.quantity,
     })),
-    success_url: `${ORIGIN}/cart?success=true`,
-    cancel_url: `${ORIGIN}/cart?canceled=true`,
+    success_url: `${origin}/cart?success=true`,
+    cancel_url: `${origin}/cart?canceled=true`,
   })
 
   return NextResponse.json({ url: session.url })
 }
 ```
 
-The `ORIGIN` fallback chain is what lets preview deployments work without
-per-branch config: `NEXT_PUBLIC_BASE_URL` is set only in the Production
-environment, previews fall through to Vercel's auto-injected
-`NEXT_PUBLIC_VERCEL_URL`, and local dev defaults to `http://localhost:3000`.
+The `origin` is derived from `request.url` — the Worker knows its own host
+from the incoming request, so there is no `NEXT_PUBLIC_BASE_URL` /
+`NEXT_PUBLIC_VERCEL_URL` fallback chain (those were removed with the Vercel
+migration). This works on every deployment target: `localhost:3000` in dev,
+the `*.workers.dev` preview URL, and the production custom domain.
+
+`Stripe.createFetchHttpClient()` is required on Cloudflare Workers — the
+default Node.js `http`-based client does not run in the Workers runtime, so
+the SDK must use the `fetch`-based client. This call is a no-op on Node.js
+(`bun run start` / E2E), so it's safe unconditionally.
 
 ### Client side — redirect
 
@@ -118,7 +119,7 @@ The merchant origin's `Permissions-Policy` header is **per-origin** and does
 not propagate across a full-page redirect. Because the current flow redirects
 to `checkout.stripe.com` (Stripe's own origin, which serves its own headers),
 the merchant's `Permissions-Policy` has **zero effect** on whether Apple Pay /
-Google Pay work there. That's why `vercel.json` deliberately **omits** the
+Google Pay work there. That's why `next.config.ts` deliberately **omits** the
 `payment` directive — `payment=(self)` would be a no-op (it's the browser
 default anyway) and would falsely imply the merchant origin uses the Payment
 Request API. It doesn't.
@@ -155,17 +156,20 @@ convention.
 |---|---|---|
 | `STRIPE_SECRET_KEY` | Server — `route.ts` (`new Stripe(...)`) | `sk_live_...` (production) or `sk_test_...` (preview/dev) |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client — `src/lib/stripe.ts` (`loadStripe`) | `pk_live_...` or `pk_test_...` — must match the secret key's mode |
-| `NEXT_PUBLIC_BASE_URL` | Server — `route.ts` (success/cancel URLs) | Set in Production only; previews fall back to `NEXT_PUBLIC_VERCEL_URL`, local dev to `http://localhost:3000` |
+
+There is **no `NEXT_PUBLIC_BASE_URL`** — the route derives `origin` from
+`request.url`, so success/cancel URLs resolve automatically on every host
+(localhost, `*.workers.dev`, custom domain).
 
 ### Local env files (gitignored)
 
-- `.env` — Stripe sandbox (test-mode) keys
-- `.env.live` — Stripe live (production) keys — **keep secret**
+- `.env` / `.env.local` — read by `next dev`; Stripe sandbox (test-mode) keys
+- `.dev.vars` — read by `wrangler dev` / `bun run preview` (Workers runtime)
 - `example.env` — template with placeholder `sk_test_xxx` / `pk_test_xxx`
-  (this is the only one tracked in git)
+  (this is the only env file tracked in git)
 
 Next.js 16 automatically loads `.env.local` and `.env` files — no extra config
-needed.
+needed for `bun run dev`. For `bun run preview` (Miniflare), use `.dev.vars`.
 
 ## Testing with Stripe test cards
 
@@ -177,26 +181,34 @@ When running with sandbox (`sk_test_...`) keys, use these test cards:
 
 Any future expiry date and any CVC work in test mode.
 
-## Vercel environment scoping
+## Cloudflare Workers secret management
 
-Vercel has three deployment environments, and env vars are set **per
-environment** — this is what gives you live-on-prod / sandbox-on-previews
-without per-branch config:
+On Cloudflare Workers, env vars are **not** scoped per-environment the way
+Vercel does it. There is one deployed Worker, and secrets are attached to it
+directly.
 
-| Vercel env | Deployments | Stripe keys |
-|---|---|---|
-| **Production** | Your production branch (e.g. `main`) | Live (`sk_live_...` / `pk_live_...`) |
-| **Preview** | Every other branch / PR | Test (`sk_test_...` / `pk_test_...`) |
-| **Development** | `vercel dev` / local pulls | Test keys (or live, your call) |
+| Variable | Local dev | Production (runtime) | Production (build-time) |
+|---|---|---|---|
+| `STRIPE_SECRET_KEY` | `.env.local` or `.dev.vars` | `wrangler secret put STRIPE_SECRET_KEY` | N/A (server-only) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `.env.local` or `.dev.vars` | `wrangler secret put NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Same value in Workers Builds "Build variables" |
 
-Set `NEXT_PUBLIC_BASE_URL` **only** in the Production environment (your stable
-domain). Leave it unset for Preview and Development — the `ORIGIN` fallback
-chain in the route resolves preview URLs automatically via
-`NEXT_PUBLIC_VERCEL_URL`.
+Two important details:
 
-Keep key pairs matched within each environment: live secret + live publishable
-together, test pair together. Mixing a live secret with a test publishable (or
-vice versa) will fail.
+- **`NEXT_PUBLIC_*` is inlined at build time.** Next.js replaces
+  `process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the client bundle during
+  `opennextjs-cloudflare build`. It must therefore be present **as a build
+  variable** (Cloudflare dashboard → Workers Builds → "Build variables and
+  secrets") **and** deployed as a runtime secret for any server code that
+  reads it. Locally, `next dev` and `wrangler dev` both read it from `.env*`
+  / `.dev.vars`.
+- **Never put secrets in `wrangler.jsonc` `vars`.** That field is for
+  non-sensitive config (feature flags, public URLs) and is committed to git.
+  Secrets go through `wrangler secret put` or the dashboard, which encrypts
+  them at rest and keeps them out of the repo.
+
+Keep key pairs matched: live secret + live publishable together, test pair
+together. Mixing a live secret with a test publishable (or vice versa) will
+fail.
 
 ## App Router gotchas
 
