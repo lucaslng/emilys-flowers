@@ -40,9 +40,8 @@
       },
       "observability": {
         "enabled": true
-      }
-      // Add a custom domain for production when ready:
-      // "routes": [{ "pattern": "emilys-flowers.com/*", "custom_domain": true }]
+      },
+      "routes": [{ "pattern": "emilysflowers.ca", "custom_domain": true }]
     },
     "preview": {
       "name": "emilys-flowers-preview",
