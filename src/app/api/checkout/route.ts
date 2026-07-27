@@ -2,17 +2,19 @@
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { encodeOrderItems, generateOrderNumber, type OrderLineItem } from '@/lib/order';
+import { validateLineItems, type LineItem } from '@/lib/checkout';
+import { encodeOrderItems, generateOrderNumber } from '@/lib/order';
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   try {
     const body = await request.json();
-    const { items } = body as { items: OrderLineItem[] };
+    const { items } = body as { items: LineItem[] };
 
-    if (!items || items.length === 0) {
+    const validation = validateLineItems(items);
+    if (!validation.ok) {
       return NextResponse.json(
-        { error: 'No items provided' },
+        { error: validation.error },
         { status: 400 }
       );
     }

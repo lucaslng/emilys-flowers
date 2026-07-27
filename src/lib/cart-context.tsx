@@ -82,6 +82,27 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
+// --- Cart math (pure, unit-tested) ---
+// AGENTS.md: all cart math stays in cents and lives in this module.
+
+/** Sum of (price * quantity) across items, in cents. */
+export function computeCartTotal(items: CartItem[]): number {
+  return items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+}
+
+/** Total unit count across all items. */
+export function computeCartItemCount(items: CartItem[]): number {
+  return items.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+/** Free shipping at/above $50 (5000 cents); otherwise flat $5.99 (599 cents). */
+export function computeShipping(subtotalCents: number): number {
+  return subtotalCents >= 5000 ? 0 : 599;
+}
+
 // --- Context ---
 
 interface CartContextType {
@@ -144,14 +165,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getTotal = useCallback(() => {
-    return state.items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
-    );
+    return computeCartTotal(state.items);
   }, [state.items]);
 
   const getItemCount = useCallback(() => {
-    return state.items.reduce((sum, item) => sum + item.quantity, 0);
+    return computeCartItemCount(state.items);
   }, [state.items]);
 
   const value = useMemo(

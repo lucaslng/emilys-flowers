@@ -9,6 +9,12 @@ name: Deploy
 #
 # Tests live here (not in test.yml) so they gate deploys. test.yml handles
 # PR-only feedback; this workflow handles push events (tests + deploy).
+#
+# Unit tests always run and gate both deploys. E2E runs only when app/e2e-
+# affecting files change (see the `changes` job filter). E2E gates production
+# deploys but NOT preview deploys — previews are disposable and deploy fast on
+# unit-gating alone. If E2E is skipped (no relevant files changed), production
+# deploys proceed; if E2E runs and fails, production is blocked.
 
 on:
   push:
@@ -24,12 +30,55 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect e2e-relevant changes
+        id: filter
+        shell: bash
+        run: |
+          # Diff base: PR base SHA for pull_request, before-SHA for push.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+
+          # New branch / first push: before is all-zeros → treat all as changed.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Fail safe: if the diff can't be computed, run E2E.
+          if ! DIFF=$(git diff --name-only "$BASE" 2>/dev/null); then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # E2E runs when any app/e2e-affecting file changes.
+          if echo "$DIFF" | grep -E \
+            '^src/|^e2e/|^public/|^playwright\.config\.ts$|^next\.config\.ts$|^tsconfig\.json$|^package\.json$|^bun\.lock$|^\.github/workflows/' \
+            >/dev/null; then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e=false" >> "$GITHUB_OUTPUT"
+          fi
+
   unit:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -43,10 +92,12 @@ jobs:
 
   e2e:
     name: E2E tests
+    needs: [changes]
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -65,7 +116,7 @@ jobs:
         run: bun run test:e2e
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -75,11 +126,15 @@ jobs:
   deploy-production:
     name: Deploy → production
     needs: [unit, e2e]
-    if: github.ref == 'refs/heads/main'
+    # `!cancelled()` + explicit result checks let production deploy when E2E
+    # was skipped (path-filtered out) while still blocking on a failed E2E or
+    # failed unit. The default `success()` status check would skip this job
+    # whenever E2E is skipped, so it must be overridden here.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.unit.result == 'success' && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -105,12 +160,22 @@ jobs:
 
   deploy-preview:
     name: Deploy → preview
-    needs: [unit, e2e]
+    needs: [unit]
+    # Preview deploys gate on unit tests only — E2E no longer blocks previews
+    # (previews are disposable; E2E still gates production). This keeps preview
+    # URLs fast and lets E2E be path-filtered without stalling previews. The
+    # default `success()` check still requires `unit` to pass.
     if: github.ref != 'refs/heads/main'
+    # Job-scoped (least privilege): the other jobs keep the workflow-level
+    # `contents: read`. `pull-requests: write` lets this job look up the PR
+    # for the head SHA and post/update a sticky preview-URL comment on it.
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -129,6 +194,7 @@ jobs:
       # overwriting the preview Worker's production deployment. The alias
       # produces a URL like `<alias>-emilys-flowers-preview.<subdomain>.workers.dev`.
       - name: Deploy to preview Worker
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -143,5 +209,51 @@ jobs:
             | sed 's/^-//;s/-$//' \
             | cut -c1-40 \
             | sed 's/-$//')
-          echo "Preview URL: https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
+          URL="https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
+          echo "Preview URL: ${URL}"
+          # Surface to the comment step below. $GITHUB_OUTPUT is the supported
+          # channel for step outputs in composite/run steps (set-output is deprecated).
+          # GitHub Actions expressions have no substring operation, so the short
+          # SHA is computed here in bash and passed as an output too.
+          echo "preview-url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "short-sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
           bunx opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias "$ALIAS"
+
+      # This workflow triggers on `push`, not `pull_request`, so
+      # github.event.pull_request is unavailable. Look up the PR (if any) for
+      # the head SHA via the REST API. Returns the PR number as a string step
+      # output, or an empty string when the branch has no open PR — in which
+      # case the comment step is skipped (no PR to comment on).
+      - name: Find PR for this commit
+        id: pr
+        uses: actions/github-script@v9
+        with:
+          result-encoding: string
+          script: |
+            const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            // Prefer the first OPEN PR; fall back to the first result if none are open.
+            const pr = prs.data.find(p => p.state === 'open') ?? prs.data[0];
+            return pr ? String(pr.number) : '';
+
+      # Sticky: keyed by `header`, so re-pushes UPDATE the same comment instead
+      # of stacking duplicates. Skipped when no PR was found (e.g. a branch
+      # pushed without an open PR). `if` is a GitHub Actions expression, so the
+      # empty-string check is truthy-only.
+      - name: Comment preview URL on PR
+        if: steps.pr.outputs.result != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          number: ${{ steps.pr.outputs.result }}
+          header: cloudflare-preview-url
+          message: |
+            ## ☁️ Cloudflare preview deployed
+
+            Push `${{ steps.deploy.outputs.short-sha }}` on `${{ github.ref_name }}` is live at:
+
+            **${{ steps.deploy.outputs.preview-url }}**
+
+            <sub>Test Stripe keys · auto-updated on each push · from `deploy.yml`</sub>
