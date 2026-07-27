@@ -7,11 +7,7 @@ import { formatPrice } from '@/lib/format';
 import { gsap, useGSAP } from '@/lib/gsap';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
+import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 export default function CartSummary() {
   const { items, getTotal, getItemCount } = useCart();

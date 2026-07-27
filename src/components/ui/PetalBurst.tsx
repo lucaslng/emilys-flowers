@@ -25,6 +25,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { gsap } from '@/lib/gsap';
+import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 export interface PetalBurstHandle {
   /** Fire a burst of petals from `from` to `to` (viewport coordinates). */
@@ -55,11 +56,6 @@ function createPetal(color: string): HTMLDivElement {
     `<path d="M12 2 C 7 7, 7 15, 12 20 C 17 15, 17 7, 12 2 Z" fill="${color}"/>` +
     '</svg>';
   return wrapper;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps>(

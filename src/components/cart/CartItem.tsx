@@ -6,14 +6,10 @@ import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { CartItem as CartItemType } from '@/types';
 import { gsap, useGSAP } from '@/lib/gsap';
+import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 interface CartItemProps {
   item: CartItemType;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export default function CartItem({ item }: CartItemProps) {
