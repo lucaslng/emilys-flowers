@@ -46,12 +46,14 @@ Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in Wo
 
 - **`.github/workflows/test.yml`** — PR-only CI feedback. Runs unit + E2E tests on PRs targeting `main`. Does **not** trigger on push (avoids duplicating tests that `deploy.yml` already runs).
 - **`.github/workflows/deploy.yml`** — push-triggered. Runs unit + E2E tests, then deploys based on branch:
-  - `main` push → `deploy-production` job → `opennextjs-cloudflare deploy --env production -- --keep-vars`
-  - any other branch push → `deploy-preview` job → `opennextjs-cloudflare deploy --env preview -- --keep-vars`
+  - `main` push → `deploy-production` job → `opennextjs-cloudflare deploy --env production -- --keep-vars` (promotes to the production Worker's production URL)
+  - any other branch push → `deploy-preview` job → `opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias <sanitized-branch>` (creates a per-branch preview version with a stable URL like `<branch>-emilys-flowers-preview.<subdomain>.workers.dev`, without overwriting other branches' previews)
   - both deploy jobs are gated by `needs: [unit, e2e]`; a red test suite blocks deploys
   - `concurrency` cancels superseded preview runs but never cancels a production deploy mid-flight
 
-`--keep-vars` is **required** on every deploy: without it, `wrangler deploy` deletes dashboard-set runtime secrets (`STRIPE_SECRET_KEY`) that aren't declared in `wrangler.jsonc`. The `--` separator is required by the OpenNext CLI's yargs setup to forward `--keep-vars` to `wrangler` as a positional arg.
+`--keep-vars` is **required** on every deploy: without it, `wrangler deploy`/`wrangler versions upload` deletes dashboard-set runtime secrets (`STRIPE_SECRET_KEY`) that aren't declared in `wrangler.jsonc`. The `--` separator is required by the OpenNext CLI's yargs setup to forward `--keep-vars` (and `--preview-alias`) to `wrangler` as positional args.
+
+The preview job uses `upload` (which calls `wrangler versions upload`) rather than `deploy` so each branch gets its own preview version instead of overwriting the preview Worker's production deployment. All preview versions share the `emilys-flowers-preview` Worker's secret namespace (test Stripe keys), which is exactly what's wanted — every preview branch should use test keys.
 
 ### Required GitHub Secrets
 
