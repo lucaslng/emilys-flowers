@@ -40,6 +40,8 @@ Cloudflare Workers has no built-in per-project Preview/Production env-var toggle
 
 **Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
 
+The preview Worker is **preview-only**: it never serves a promoted production deployment, only per-branch preview versions (via `wrangler versions upload --preview-alias`). Its `env.preview` stanza sets `workers_dev: false` (disables the production `workers.dev` route) **and** `preview_urls: true` (keeps the wildcard preview URLs active). `preview_urls` defaults to `workers_dev`, so both must be set explicitly — setting only `workers_dev: false` would disable preview URLs too.
+
 ### CI/CD — GitHub Actions
 
 Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in Workers Builds):

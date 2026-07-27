@@ -46,6 +46,13 @@
     },
     "preview": {
       "name": "emilys-flowers-preview",
+      // This Worker only serves per-branch preview versions (via
+      // `wrangler versions upload --preview-alias`), never a promoted
+      // production deployment. Disable the production workers.dev route
+      // but keep preview URLs active — `preview_urls` defaults to
+      // `workers_dev`, so it must be explicitly set to true here.
+      "workers_dev": false,
+      "preview_urls": true,
       "assets": {
         "directory": ".open-next/assets",
         "binding": "ASSETS"
