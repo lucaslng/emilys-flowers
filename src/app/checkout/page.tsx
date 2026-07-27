@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useCart } from '@/lib/cart-context';
+import { useCart, computeShipping } from '@/lib/cart-context';
+import { formatPrice } from '@/lib/format';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
 
   const subtotal = getTotal();
-  const shipping = subtotal >= 5000 ? 0 : 599;
+  const shipping = computeShipping(subtotal);
   const total = subtotal + shipping;
 
   const handleCheckout = async () => {
@@ -105,7 +106,7 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                   <span className="font-sans text-sm font-medium text-[#4A3B3B]">
-                    ${((item.product.price * item.quantity) / 100).toFixed(2)}
+                    ${formatPrice(item.product.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -117,7 +118,7 @@ export default function CheckoutPage() {
                   Subtotal ({getItemCount()} item
                   {getItemCount() !== 1 ? 's' : ''})
                 </span>
-                <span>${(subtotal / 100).toFixed(2)}</span>
+                <span>${formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
                 <span>Shipping</span>
@@ -125,13 +126,13 @@ export default function CheckoutPage() {
                   {shipping === 0 ? (
                     <span className="text-green-700">Free</span>
                   ) : (
-                    `$${(shipping / 100).toFixed(2)}`
+                    `$${formatPrice(shipping)}`
                   )}
                 </span>
               </div>
               <div className="flex justify-between border-t border-[#F0E0E0] pt-2 font-serif text-lg font-bold text-[#4A3B3B]">
                 <span>Total</span>
-                <span>${(total / 100).toFixed(2)}</span>
+                <span>${formatPrice(total)}</span>
               </div>
             </div>
           </div>

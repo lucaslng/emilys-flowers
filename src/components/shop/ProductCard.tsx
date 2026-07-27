@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
+import { formatPrice } from '@/lib/format';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
 import { firePetalBurst } from '@/lib/petal-burst';
@@ -67,7 +68,7 @@ export default function ProductCard({
 
         <div className="mt-auto flex items-center justify-between pt-4">
           <span className="font-serif text-xl font-bold tabular-nums text-[#4A3B3B]">
-            ${(product.price / 100).toFixed(2)}
+            ${formatPrice(product.price)}
           </span>
           <Button
             variant="primary"
