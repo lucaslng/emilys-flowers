@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useCart, computeShipping } from '@/lib/cart-context';
+import { useCart, toLineItems } from '@/lib/cart-context';
+import { computeShipping } from '@/lib/order';
 import { formatPrice } from '@/lib/format';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -25,12 +26,7 @@ export default function CheckoutPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map((item) => ({
-            id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity,
-          })),
+          items: toLineItems(items),
         }),
       });
 

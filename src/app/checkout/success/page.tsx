@@ -5,7 +5,7 @@
 // Shown after a completed Stripe Checkout (or the simulated checkout path used
 // in local dev / E2E). The checkout API redirects here with two query params:
 //
-//   ?success=true&order=<EF-XXXXXX | cs_test_...>&items=<base64url OrderLineItem[]>
+//   ?success=true&order=<EF-XXXXXX | cs_test_...>&items=<base64url LineItem[]>
 //
 // We decode `items` back into the line-item list (see `src/lib/order.ts`), show
 // a warm confirmation + an order summary that mirrors `/checkout`, clear the
@@ -21,7 +21,8 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
-import { decodeOrderItems, type OrderLineItem } from '@/lib/order';
+import { decodeOrderItems, computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
+import { formatPrice } from '@/lib/format';
 import { getProductById } from '@/lib/products';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
@@ -37,7 +38,7 @@ function CheckoutSuccessContent() {
 
   const order = searchParams.get('order') ?? '';
   const encodedItems = searchParams.get('items') ?? '';
-  const items: OrderLineItem[] = decodeOrderItems(encodedItems);
+  const items: LineItem[] = decodeOrderItems(encodedItems);
   const hasItems = items.length > 0;
 
   // The order is already placed — clear the cart once on mount.
@@ -103,11 +104,10 @@ function CheckoutSuccessContent() {
     { scope: root, dependencies: [] }
   );
 
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const shipping = subtotal >= 5000 ? 0 : 599;
+  const subtotal = computeLineItemTotal(items);
+  const shipping = computeShipping(subtotal);
   const total = subtotal + shipping;
-  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const fmt = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const itemCount = computeLineItemCount(items);
 
   return (
     <div ref={root} className="mx-auto max-w-2xl">
@@ -197,7 +197,7 @@ function CheckoutSuccessContent() {
                     </p>
                   </div>
                   <span className="font-sans text-sm font-medium tabular-nums text-[#4A3B3B]">
-                    {fmt(item.price * item.quantity)}
+                    {`$${formatPrice(item.price * item.quantity)}`}
                   </span>
                 </div>
               );
@@ -212,7 +212,7 @@ function CheckoutSuccessContent() {
               <span>
                 Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})
               </span>
-              <span>{fmt(subtotal)}</span>
+              <span>{`$${formatPrice(subtotal)}`}</span>
             </div>
             <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
               <span>Shipping</span>
@@ -220,13 +220,13 @@ function CheckoutSuccessContent() {
                 {shipping === 0 ? (
                   <span className="text-green-700">Free</span>
                 ) : (
-                  fmt(shipping)
+                  `$${formatPrice(shipping)}`
                 )}
               </span>
             </div>
             <div className="flex justify-between border-t border-[#F0E0E0] pt-2 font-serif text-lg font-bold text-[#4A3B3B]">
               <span>Total</span>
-              <span>{fmt(total)}</span>
+              <span>{`$${formatPrice(total)}`}</span>
             </div>
           </div>
         </div>

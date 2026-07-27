@@ -10,6 +10,7 @@ import {
   useMemo,
 } from 'react';
 import { CartItem, Product } from '@/types';
+import { computeLineItemTotal, computeLineItemCount, type LineItem } from '@/lib/order';
 
 // --- State & Actions ---
 
@@ -82,25 +83,20 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
-// --- Cart math (pure, unit-tested) ---
-// AGENTS.md: all cart math stays in cents and lives in this module.
+// --- Cart → line-item seam ---
+// AGENTS.md: the order math lives in `src/lib/order.ts` and operates on the
+// flat `LineItem` shape. `CartItem` is cart-internal; this seam flattens it at
+// the cart's edge so the provider (and any cart consumer) reuses the same
+// helpers the checkout success page uses.
 
-/** Sum of (price * quantity) across items, in cents. */
-export function computeCartTotal(items: CartItem[]): number {
-  return items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-}
-
-/** Total unit count across all items. */
-export function computeCartItemCount(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.quantity, 0);
-}
-
-/** Free shipping at/above $50 (5000 cents); otherwise flat $5.99 (599 cents). */
-export function computeShipping(subtotalCents: number): number {
-  return subtotalCents >= 5000 ? 0 : 599;
+/** Flatten cart items to the flat `LineItem` shape the order module expects. */
+export function toLineItems(items: CartItem[]): LineItem[] {
+  return items.map((item) => ({
+    id: item.product.id,
+    name: item.product.name,
+    price: item.product.price,
+    quantity: item.quantity,
+  }));
 }
 
 // --- Context ---
@@ -165,11 +161,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getTotal = useCallback(() => {
-    return computeCartTotal(state.items);
+    return computeLineItemTotal(toLineItems(state.items));
   }, [state.items]);
 
   const getItemCount = useCallback(() => {
-    return computeCartItemCount(state.items);
+    return computeLineItemCount(toLineItems(state.items));
   }, [state.items]);
 
   const value = useMemo(
