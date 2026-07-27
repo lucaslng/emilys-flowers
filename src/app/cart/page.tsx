@@ -11,11 +11,7 @@ import Reveal from '@/components/ui/Reveal';
 import SquiggleUnderline from '@/components/ui/SquiggleUnderline';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
+import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 export default function CartPage() {
   const { items, clearCart } = useCart();

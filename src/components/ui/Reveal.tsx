@@ -2,6 +2,7 @@
 
 import { useRef, type ReactNode, type ElementType } from 'react';
 import { gsap, ScrollTrigger, useGSAP } from '@/lib/gsap';
+import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 interface RevealProps {
   children: ReactNode;
@@ -14,11 +15,6 @@ interface RevealProps {
   duration?: number;
   /** Animate only the first time it enters the viewport. */
   once?: boolean;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false;
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export default function Reveal({
