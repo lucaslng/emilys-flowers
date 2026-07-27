@@ -1,7 +1,7 @@
 # Stripe Checkout
 
-> **Read this before touching `src/app/api/checkout/route.ts`,
-> `src/lib/stripe.ts`, or Stripe env wiring.** The Stripe.js client API
+> **Read this before touching `src/app/api/checkout/route.ts`
+> or Stripe env wiring.** The Stripe.js client API
 > changed — `redirectToCheckout` is gone — and the route creates real
 > Checkout Sessions when `STRIPE_SECRET_KEY` is set.
 
@@ -18,7 +18,10 @@ fallback.
 | Package | Version | Where |
 |---|---|---|
 | `stripe` (server SDK) | `^22.3.2` | `src/app/api/checkout/route.ts` |
-| `@stripe/stripe-js` (client SDK) | `^9.12.0` | `src/lib/stripe.ts` |
+
+`@stripe/stripe-js` (client SDK) is **not installed** — there is no client-side
+Stripe call site. Re-add it (with a real call site) when wiring Embedded Checkout
+or Stripe Elements.
 
 ## Architecture
 
@@ -85,20 +88,6 @@ const { url } = await res.json()
 if (url) window.location.href = url  // redirect to Stripe Checkout
 ```
 
-### `src/lib/stripe.ts`
-
-Loads the client SDK:
-
-```ts
-import { loadStripe } from '@stripe/stripe-js'
-export const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
-```
-
-This file has no `'use client'` directive but runs client-side (imported only by
-client code). `stripePromise` is currently unused — the redirect flow only needs
-the server-side `session.url` — but would be needed for embedded Checkout or
-Stripe Elements.
-
 ## ⚠️ `redirectToCheckout` is removed
 
 The client-side `stripe.redirectToCheckout({ sessionId })` method **no longer
@@ -155,7 +144,7 @@ convention.
 | Variable | Where used | Notes |
 |---|---|---|
 | `STRIPE_SECRET_KEY` | Server — `route.ts` (`new Stripe(...)`) | `sk_live_...` (production) or `sk_test_...` (preview/dev) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Client — `src/lib/stripe.ts` (`loadStripe`) | `pk_live_...` or `pk_test_...` — must match the secret key's mode |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No code consumer (reserved for future client-side Stripe SDK) | `pk_live_...` or `pk_test_...` — must match the secret key's mode when wired in |
 
 There is **no `NEXT_PUBLIC_BASE_URL`** — the route derives `origin` from
 `request.url`, so success/cancel URLs resolve automatically on every host
@@ -194,9 +183,11 @@ directly.
 
 Two important details:
 
-- **`NEXT_PUBLIC_*` is inlined at build time.** Next.js replaces
-  `process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the client bundle during
-  `opennextjs-cloudflare build`. It must therefore be present **as a build
+- **`NEXT_PUBLIC_*` is inlined at build time.** `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+  is currently unused by code (no client-side Stripe SDK call site), but its build
+  variable and runtime secret are retained for future use. When re-wired, Next.js
+  replaces `process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the client bundle
+  during `opennextjs-cloudflare build`, so it must be present **as a build
   variable** (Cloudflare dashboard → Workers Builds → "Build variables and
   secrets") **and** deployed as a runtime secret for any server code that
   reads it. Locally, `next dev` and `wrangler dev` both read it from `.env*`

@@ -112,11 +112,6 @@ A file must be a Client Component if it uses:
 | `Reveal`, `BloomSpinner`, `StemGrowth`, `SquiggleUnderline`, `PetalBurst` | `Button`, `Container` |
 | `cart-context.tsx`, `gsap.ts`, `petal-burst.tsx` | `products.ts`, `types/index.ts` |
 
-**Note:** `src/lib/stripe.ts` has no `'use client'` directive but runs
-client-side (it calls `loadStripe`). It's imported only by client code. This is
-fine — the directive gates whether the file *can* use client APIs, not where it
-runs.
-
 ## Route Handlers
 
 The project has one: `src/app/api/checkout/route.ts`. Pattern:

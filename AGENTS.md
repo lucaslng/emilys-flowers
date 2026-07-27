@@ -105,14 +105,14 @@ echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
 
 ## Stripe
 
-`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. `src/lib/stripe.ts` loads the client via `@stripe/stripe-js`. The route derives `origin` from `request.url` (no `NEXT_PUBLIC_BASE_URL` / `NEXT_PUBLIC_VERCEL_URL` fallback chain — those were removed with the Vercel migration).
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. The route derives `origin` from `request.url` (no `NEXT_PUBLIC_BASE_URL` / `NEXT_PUBLIC_VERCEL_URL` fallback chain — those were removed with the Vercel migration).
 
 Required env vars:
 
 - `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, used by `src/lib/stripe.ts`) — must match the same mode as the secret key
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client) — currently unused by code (no client-side Stripe SDK call site); reserved for future Embedded Checkout / Elements use. Must match the secret key's mode when wired in.
 
-On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set **per Worker** via `wrangler secret put STRIPE_SECRET_KEY --env production` (live) or `--env preview` (test) — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only), and never as a GitHub Secret. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is inlined by Next.js at build time, so the matching publishable key is provided to the build as a GitHub Secret (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` for `main`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` for other branches) — see the Deployment section's GitHub Secrets table. Locally, both come from `.env.local` (read by `next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
+On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set **per Worker** via `wrangler secret put STRIPE_SECRET_KEY --env production` (live) or `--env preview` (test) — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only), and never as a GitHub Secret. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is currently unused by code (no client-side Stripe SDK call site), but the matching publishable key is still provided to the build as a GitHub Secret (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` for `main`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` for other branches) — see the Deployment section's GitHub Secrets table. Locally, both come from `.env.local` (read by `next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
 
 ## Testing
 
