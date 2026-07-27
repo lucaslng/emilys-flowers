@@ -60,8 +60,16 @@ export default function CartPage() {
 
     // Stagger the items out: fade + slide right + collapse height/margins/
     // padding, then dispatch clearCart() in onComplete so React state and
-    // the visual exit stay in sync. Total duration stays well under 500ms
-    // even for a few items (0.35s + 0.05s * (n-1)) so Playwright won't flake.
+    // the visual exit stay in sync. Total duration is capped at ~0.5s
+    // regardless of item count: the stagger window shrinks as items grow
+    // (0.35s base + at most 0.15s of stagger) so a large cart still
+    // clears snappy and Playwright won't flake.
+    const baseDuration = 0.35;
+    const maxTotalDuration = 0.5;
+    const stagger = Math.min(
+      0.05,
+      (maxTotalDuration - baseDuration) / Math.max(nodes.length - 1, 1)
+    );
     const tl = gsap.timeline({
       onComplete: () => {
         clearTimelineRef.current = null;
@@ -78,9 +86,9 @@ export default function CartPage() {
       marginBottom: 0,
       paddingTop: 0,
       paddingBottom: 0,
-      duration: 0.35,
+      duration: baseDuration,
       ease: 'power2.in',
-      stagger: 0.05,
+      stagger,
     });
   };
 
