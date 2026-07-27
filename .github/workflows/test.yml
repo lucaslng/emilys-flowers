@@ -1,15 +1,14 @@
 name: Tests
 
+# PR-only CI feedback. Push events are handled by deploy.yml, which runs the
+# same tests plus the branch-based deploy (so tests don't run twice on push).
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
-# Cancel superseded runs on PRs; let main runs complete.
 concurrency:
   group: tests-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 jobs:
   unit:
