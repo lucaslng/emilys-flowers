@@ -31,6 +31,56 @@ Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.js
 
 This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext). It is **not** a Vercel project — `vercel.json` was removed and no Vercel env vars (`VERCEL_ENV`, `VERCEL_URL`, `NEXT_PUBLIC_VERCEL_URL`) are referenced anywhere. Do not reintroduce them.
 
+### Two-Worker model (production + preview)
+
+Cloudflare Workers has no built-in per-project Preview/Production env-var toggle like Vercel — a single Worker's preview versions share its secret namespace with production. To get env isolation (live Stripe keys on `main`, test keys elsewhere), `wrangler.jsonc` defines **two Wrangler `[env.*]` environments**, each of which is a **separate Worker** with its own name, secrets, vars, and bindings:
+
+- `env.production` → Worker `emilys-flowers-production` (live Stripe keys)
+- `env.preview` → Worker `emilys-flowers-preview` (test Stripe keys)
+
+**Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
+
+### CI/CD — GitHub Actions
+
+Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in Workers Builds):
+
+- **`.github/workflows/test.yml`** — PR-only CI feedback. Runs unit + E2E tests on PRs targeting `main`. Does **not** trigger on push (avoids duplicating tests that `deploy.yml` already runs).
+- **`.github/workflows/deploy.yml`** — push-triggered. Runs unit + E2E tests, then deploys based on branch:
+  - `main` push → `deploy-production` job → `opennextjs-cloudflare deploy --env production -- --keep-vars`
+  - any other branch push → `deploy-preview` job → `opennextjs-cloudflare deploy --env preview -- --keep-vars`
+  - both deploy jobs are gated by `needs: [unit, e2e]`; a red test suite blocks deploys
+  - `concurrency` cancels superseded preview runs but never cancels a production deploy mid-flight
+
+`--keep-vars` is **required** on every deploy: without it, `wrangler deploy` deletes dashboard-set runtime secrets (`STRIPE_SECRET_KEY`) that aren't declared in `wrangler.jsonc`. The `--` separator is required by the OpenNext CLI's yargs setup to forward `--keep-vars` to `wrangler` as a positional arg.
+
+### Required GitHub Secrets
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | both deploys | scoped to Workers deploys for this account |
+| `CLOUDFLARE_ACCOUNT_ID` | both deploys | |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` | production build | `pk_live_...`, inlined by Next.js at build time |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
+
+`STRIPE_SECRET_KEY` is **never** a GitHub Secret — it's a runtime secret set once per Worker via `wrangler secret put STRIPE_SECRET_KEY --env production` / `--env preview` (or the dashboard's Variables & Secrets for each Worker).
+
+### One-time setup
+
+```bash
+# 1. Create both Workers (run from a worktree):
+bunx opennextjs-cloudflare build
+bunx wrangler deploy --env production
+bunx wrangler deploy --env preview
+
+# 2. Set runtime secrets per Worker (one-time):
+echo "sk_live_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env production
+echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
+
+# 3. Add the four GitHub Secrets above to the repo, then push.
+```
+
+### Other config
+
 - **`wrangler.jsonc`** is the Workers config: `main: .open-next/worker.js`, `nodejs_compat` flag, `IMAGES` binding (Cloudflare Images for `next/image`), and `WORKER_SELF_REFERENCE` service binding (required by OpenNext for ISR revalidation, even though this app has no ISR today — keep it).
 - **`open-next.config.ts`** is the OpenNext adapter config. The default `defineCloudflareConfig({})` is sufficient for this app (hardcoded products, no ISR/SSG data fetching, no DB). R2 incremental cache is commented out — enable it only if you add cached data fetching.
 - **`next.config.ts`** ends with an unconditional `import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev())` — this is the official pattern; it injects `wrangler.jsonc` bindings into `next dev` so `getCloudflareContext()` works locally. It self-guards outside dev.
@@ -59,7 +109,7 @@ Required env vars:
 - `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client, used by `src/lib/stripe.ts`) — must match the same mode as the secret key
 
-On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set via `wrangler secret put` (never in `wrangler.jsonc` `vars`). `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is inlined by Next.js at build time, so it must be present during `opennextjs-cloudflare build` (set it as a build variable in the Cloudflare dashboard / Workers Builds) **and** deployed as a runtime secret for any server code that reads it. Locally, both come from `.env.local` (read by `next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
+On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set **per Worker** via `wrangler secret put STRIPE_SECRET_KEY --env production` (live) or `--env preview` (test) — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only), and never as a GitHub Secret. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is inlined by Next.js at build time, so the matching publishable key is provided to the build as a GitHub Secret (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` for `main`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` for other branches) — see the Deployment section's GitHub Secrets table. Locally, both come from `.env.local` (read by `next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
 
 ## Testing
 

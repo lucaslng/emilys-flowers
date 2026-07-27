@@ -21,5 +21,47 @@
   },
   "observability": {
     "enabled": true
+  },
+  "env": {
+    "production": {
+      "name": "emilys-flowers-production",
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "emilys-flowers-production"
+        }
+      ],
+      "images": {
+        "binding": "IMAGES"
+      },
+      "observability": {
+        "enabled": true
+      }
+      // Add a custom domain for production when ready:
+      // "routes": [{ "pattern": "emilys-flowers.com/*", "custom_domain": true }]
+    },
+    "preview": {
+      "name": "emilys-flowers-preview",
+      "assets": {
+        "directory": ".open-next/assets",
+        "binding": "ASSETS"
+      },
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "emilys-flowers-preview"
+        }
+      ],
+      "images": {
+        "binding": "IMAGES"
+      },
+      "observability": {
+        "enabled": true
+      }
+    }
   }
 }
