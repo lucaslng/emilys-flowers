@@ -213,7 +213,10 @@ jobs:
           echo "Preview URL: ${URL}"
           # Surface to the comment step below. $GITHUB_OUTPUT is the supported
           # channel for step outputs in composite/run steps (set-output is deprecated).
+          # GitHub Actions expressions have no substring operation, so the short
+          # SHA is computed here in bash and passed as an output too.
           echo "preview-url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "short-sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
           bunx opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias "$ALIAS"
 
       # This workflow triggers on `push`, not `pull_request`, so
@@ -249,7 +252,7 @@ jobs:
           message: |
             ## ☁️ Cloudflare preview deployed
 
-            Push `${{ github.sha.slice(0, 7) }}` on `${{ github.ref_name }}` is live at:
+            Push `${{ steps.deploy.outputs.short-sha }}` on `${{ github.ref_name }}` is live at:
 
             **${{ steps.deploy.outputs.preview-url }}**
 
