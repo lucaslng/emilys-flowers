@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
+import { formatPrice } from '@/lib/format';
 import { CartItem as CartItemType } from '@/types';
 
 interface CartItemProps {
@@ -41,7 +42,7 @@ export default function CartItem({ item }: CartItemProps) {
               {product.name}
             </h3>
             <p className="mt-0.5 font-sans text-sm text-[#8B7B7B]">
-              ${(product.price / 100).toFixed(2)} each
+              ${formatPrice(product.price)} each
             </p>
           </div>
           <button
@@ -117,7 +118,7 @@ export default function CartItem({ item }: CartItemProps) {
 
           {/* Line Total */}
           <span className="font-serif text-lg font-bold text-[#4A3B3B]">
-            ${((product.price * quantity) / 100).toFixed(2)}
+            ${formatPrice(product.price * quantity)}
           </span>
         </div>
       </div>

@@ -2,6 +2,9 @@ name: Tests
 
 # PR-only CI feedback. Push events are handled by deploy.yml, which runs the
 # same tests plus the branch-based deploy (so tests don't run twice on push).
+#
+# Unit tests always run (cheap, fast gate). E2E runs only when app/e2e-affecting
+# files change (see the `changes` job filter) — docs/config-only PRs skip E2E.
 on:
   pull_request:
     branches: [main]
@@ -11,12 +14,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect e2e-relevant changes
+        id: filter
+        shell: bash
+        run: |
+          # Diff base: PR base SHA for pull_request, before-SHA for push.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+
+          # New branch / first push: before is all-zeros → treat all as changed.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Fail safe: if the diff can't be computed, run E2E.
+          if ! DIFF=$(git diff --name-only "$BASE" 2>/dev/null); then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # E2E runs when any app/e2e-affecting file changes.
+          if echo "$DIFF" | grep -E \
+            '^src/|^e2e/|^public/|^playwright\.config\.ts$|^next\.config\.ts$|^tsconfig\.json$|^package\.json$|^bun\.lock$|^\.github/workflows/' \
+            >/dev/null; then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e=false" >> "$GITHUB_OUTPUT"
+          fi
+
   unit:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -30,10 +76,12 @@ jobs:
 
   e2e:
     name: E2E tests
+    needs: [changes]
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -52,7 +100,7 @@ jobs:
         run: bun run test:e2e
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

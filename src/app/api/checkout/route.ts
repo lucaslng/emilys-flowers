@@ -2,14 +2,8 @@
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { validateLineItems, type LineItem } from '@/lib/checkout';
 
-
-interface LineItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
@@ -17,9 +11,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { items } = body as { items: LineItem[] };
 
-    if (!items || items.length === 0) {
+    const validation = validateLineItems(items);
+    if (!validation.ok) {
       return NextResponse.json(
-        { error: 'No items provided' },
+        { error: validation.error },
         { status: 400 }
       );
     }
