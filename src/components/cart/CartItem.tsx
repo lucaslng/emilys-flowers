@@ -1,29 +1,122 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
 import { CartItem as CartItemType } from '@/types';
+import { gsap, useGSAP } from '@/lib/gsap';
 
 interface CartItemProps {
   item: CartItemType;
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCart();
   const { product, quantity } = item;
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const qtyRef = useRef<HTMLSpanElement>(null);
+  const totalRef = useRef<HTMLSpanElement>(null);
+  // Holds the in-flight exit tween so we can kill it on unmount and avoid
+  // a stale `onComplete` firing `removeFromCart` after navigation.
+  const removeTweenRef = useRef<gsap.core.Tween | null>(null);
+  // Skips the quantity-bump on the initial mount (only react to real changes).
+  const isFirstRun = useRef(true);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  // Quantity-change micro-interaction: a subtle scale bump on the
+  // quantity number and the line total whenever `quantity` changes.
+  // Skips the first run so the bump only plays on real changes, and is
+  // a no-op under reduced motion.
+  useGSAP(
+    () => {
+      if (isFirstRun.current) {
+        isFirstRun.current = false;
+        return;
+      }
+      if (prefersReducedMotion()) return;
+      const targets = [qtyRef.current, totalRef.current].filter(
+        (n): n is HTMLElement => n !== null
+      );
+      if (targets.length === 0) return;
+      gsap.fromTo(
+        targets,
+        { scale: 1 },
+        {
+          scale: 1.12,
+          duration: 0.12,
+          ease: 'power2.out',
+          yoyo: true,
+          repeat: 1,
+          stagger: 0.04,
+        }
+      );
+    },
+    { dependencies: [quantity], scope: rootRef }
+  );
+
+  // Kill any in-flight exit tween if the component unmounts mid-animation
+  // (e.g. user navigates away) so a stale onComplete can't mutate cart
+  // state after the user has moved on.
+  useEffect(() => {
+    return () => {
+      removeTweenRef.current?.kill();
+      removeTweenRef.current = null;
+    };
+  }, []);
+
   const handleDecrement = () => {
+    if (isRemoving) return;
     updateQuantity(product.id, quantity - 1);
   };
 
   const handleIncrement = () => {
+    if (isRemoving) return;
     updateQuantity(product.id, quantity + 1);
   };
 
+  const handleRemove = () => {
+    if (isRemoving) return;
+    const node = rootRef.current;
+    // Reduced motion or missing ref: dispatch immediately, no animation.
+    if (!node || prefersReducedMotion()) {
+      removeFromCart(product.id);
+      return;
+    }
+    setIsRemoving(true);
+    // Animate the row out (fade + slide + collapse height/margins/padding),
+    // then dispatch the removal in onComplete so React state and the visual
+    // exit stay in sync. Keep it short (≤400ms) so Playwright doesn't flake.
+    removeTweenRef.current = gsap.to(node, {
+      opacity: 0,
+      x: 40,
+      height: 0,
+      marginTop: 0,
+      marginBottom: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+      duration: 0.35,
+      ease: 'power2.in',
+      onComplete: () => {
+        removeTweenRef.current = null;
+        removeFromCart(product.id);
+      },
+    });
+  };
+
   return (
-    <div className="flex gap-4 rounded-xl border border-[#F0E0E0] bg-[#FFFAFA] p-4 sm:gap-6 sm:p-6">
-      {/* Image */}
-      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-[#FFF5F5] sm:h-28 sm:w-28">
+    <div
+      ref={rootRef}
+      data-cart-item
+      className="plaque-card cart-item-card group flex gap-4 p-4 sm:gap-6 sm:p-6"
+    >
+      {/* Image — sharp corners, surface backdrop */}
+      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden bg-[#FFF5F5] sm:h-28 sm:w-28">
         <Image
           src={product.images[0]}
           alt={product.name}
@@ -37,7 +130,7 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="font-serif text-base font-semibold text-[#4A3B3B]">
+            <h3 className="plaque-name font-serif text-base font-semibold text-[#4A3B3B]">
               {product.name}
             </h3>
             <p className="mt-0.5 font-sans text-sm text-[#8B7B7B]">
@@ -45,8 +138,9 @@ export default function CartItem({ item }: CartItemProps) {
             </p>
           </div>
           <button
-            onClick={() => removeFromCart(product.id)}
-            className="ml-4 flex-shrink-0 text-[#8B7B7B] transition-colors hover:text-red-500"
+            onClick={handleRemove}
+            disabled={isRemoving}
+            className="ml-4 flex-shrink-0 text-[#8B7B7B] transition-colors hover:text-[#A8625A] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={`Remove ${product.name} from cart`}
           >
             <svg
@@ -71,8 +165,8 @@ export default function CartItem({ item }: CartItemProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleDecrement}
-              disabled={quantity <= 1}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4] disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={isRemoving || quantity <= 1}
+              className="flex h-8 w-8 items-center justify-center border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Decrease quantity"
             >
               <svg
@@ -90,12 +184,16 @@ export default function CartItem({ item }: CartItemProps) {
                 />
               </svg>
             </button>
-            <span className="flex h-8 w-10 items-center justify-center font-sans text-sm font-medium text-[#4A3B3B]">
+            <span
+              ref={qtyRef}
+              className="flex h-8 w-10 items-center justify-center font-sans text-sm font-medium tabular-nums text-[#4A3B3B]"
+            >
               {quantity}
             </span>
             <button
               onClick={handleIncrement}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4]"
+              disabled={isRemoving}
+              className="flex h-8 w-8 items-center justify-center border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Increase quantity"
             >
               <svg
@@ -116,7 +214,10 @@ export default function CartItem({ item }: CartItemProps) {
           </div>
 
           {/* Line Total */}
-          <span className="font-serif text-lg font-bold text-[#4A3B3B]">
+          <span
+            ref={totalRef}
+            className="font-serif text-lg font-bold tabular-nums text-[#4A3B3B]"
+          >
             ${((product.price * quantity) / 100).toFixed(2)}
           </span>
         </div>
