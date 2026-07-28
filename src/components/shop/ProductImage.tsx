@@ -14,7 +14,7 @@ interface ProductImageProps {
   alt?: string;       // overrides product.name (checkout/success uses item.name)
   sizes: string;
   className?: string; // applied to both the next/Image and the fallback <img>
-  /** Marks this as the page's LCP image (preload + eager + fetchpriority=high). */
+  /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
   priority?: boolean;
 }
 
@@ -44,7 +44,8 @@ export default function ProductImage({
       fill
       sizes={sizes}
       className={className}
-      priority={priority}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       onError={() => setErrored(true)}
     />
   )

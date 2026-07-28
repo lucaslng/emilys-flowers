@@ -15,7 +15,7 @@ interface ProductCardProps {
   /** Optional layout classes (order / col-span / lift) applied to the card
    *  root by the featured grid. Listing grids pass nothing. */
   className?: string;
-  /** Marks this card's image as the page's LCP (preload + eager + fetchpriority=high). */
+  /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
   priority?: boolean;
 }
 
