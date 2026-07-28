@@ -211,3 +211,8 @@ export function getFeaturedProducts(): Product[] {
 export function getProductsByCategory(category: 'flower' | 'bouquet'): Product[] {
   return products.filter((p) => p.category === category);
 }
+
+export function getPriceRange(products: Product[]): [number, number] {
+  const prices = products.map((p) => p.price);
+  return [Math.min(...prices), Math.max(...prices)];
+}
