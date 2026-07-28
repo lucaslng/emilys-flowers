@@ -14,6 +14,8 @@ interface ProductImageProps {
   alt?: string;       // overrides product.name (checkout/success uses item.name)
   sizes: string;
   className?: string; // applied to both the next/Image and the fallback <img>
+  /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
+  priority?: boolean;
 }
 
 export default function ProductImage({
@@ -21,6 +23,7 @@ export default function ProductImage({
   alt,
   sizes,
   className = '',
+  priority = false,
 }: ProductImageProps) {
   const [errored, setErrored] = useState(false);
 
@@ -41,6 +44,8 @@ export default function ProductImage({
       fill
       sizes={sizes}
       className={className}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       onError={() => setErrored(true)}
     />
   )

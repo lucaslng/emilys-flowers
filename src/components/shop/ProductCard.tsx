@@ -15,12 +15,15 @@ interface ProductCardProps {
   /** Optional layout classes (order / col-span / lift) applied to the card
    *  root by the featured grid. Listing grids pass nothing. */
   className?: string;
+  /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
+  priority?: boolean;
 }
 
 export default function ProductCard({
   product,
   emphasized = false,
   className = '',
+  priority = false,
 }: ProductCardProps) {
   const { addToCart } = useCart();
 
@@ -36,6 +39,7 @@ export default function ProductCard({
           product={product}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover"
+          priority={priority}
         />
         {emphasized && (
           <span
