@@ -97,11 +97,23 @@ Before merging a lane back:
    git worktree remove <prefix>/<slug>
    ```
 
-5. Delete the branch if it was not integrated:
+5. Fast-forward local `main` to `origin/main` so the safe `-d` recognizes the
+   merge (when a PR was merged on the remote, local `main` lags behind and `-d`
+   would otherwise refuse the branch as "not merged to HEAD"):
 
    ```bash
-   git branch -d <prefix>/<slug>   # or -D if the user approves force-delete
+   git -C main merge --ff-only origin/main
    ```
+
+6. Delete the branch if it was not integrated:
+
+   ```bash
+   git branch -d <prefix>/<slug>
+   ```
+
+   Avoid `git branch -D`: the `cc-safety-net` plugin blocks force-delete, and
+   it's unnecessary once `main` is fast-forwarded — `-d` succeeds and confirms
+   the branch was actually merged.
 
 ## Mandatory user confirmation
 
