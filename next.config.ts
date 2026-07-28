@@ -54,10 +54,6 @@ const securityHeaders = [
     key: "Cross-Origin-Resource-Policy",
     value: "same-origin",
   },
-  {
-    key: "Access-Control-Allow-Origin",
-    value: process.env.NEXT_PUBLIC_BASE_URL || "*",
-  },
 ];
 
 const nextConfig: NextConfig = {
