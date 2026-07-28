@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 
@@ -15,6 +16,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
+  const pathname = usePathname();
+  const isHome = pathname === '/';
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[#F0E0E0] bg-[#FFFAFA]/95 backdrop-blur-sm">
@@ -29,13 +32,19 @@ export default function Navbar() {
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]"
-          >
-            Emily&#39;s Flowers
-          </Link>
+          {/* Logo — H1 on homepage for SEO, Link on other pages */}
+          {isHome ? (
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]">
+              <Link href="/">Emily&#39;s Flowers</Link>
+            </h1>
+          ) : (
+            <Link
+              href="/"
+              className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]"
+            >
+              Emily&#39;s Flowers
+            </Link>
+          )}
 
           {/* Desktop Nav — centered relative to the full row width */}
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
