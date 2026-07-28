@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     mode: 'payment',
     line_items: items.map((item: { name: string; price: number; quantity: number }) => ({
       price_data: {
-        currency: 'usd',
+        currency: 'cad',
         product_data: { name: item.name },
         unit_amount: item.price,  // integer cents — Stripe convention
       },
@@ -133,7 +133,7 @@ See Stripe's Apple Pay and Express Checkout Element docs for the iframe
 
 ## Prices are integer cents
 
-Stripe requires `unit_amount` in the smallest currency unit (cents for USD).
+Stripe requires `unit_amount` in the smallest currency unit (cents for CAD).
 This project stores all prices as integer cents throughout (`2499` = $24.99),
 so `item.price` can be passed directly to `unit_amount`. **Do not divide by 100
 before sending to Stripe.** See `AGENTS.md` → "Data & state" for the full cents
