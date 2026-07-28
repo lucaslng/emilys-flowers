@@ -2,7 +2,14 @@
 
 import { Stripe } from 'stripe';
 
-const stripe =  new Stripe('sk_test_51TvqVqAOFHl3whPFxx52hn62SDFF2se9S0JjFr7XXW1XR6AO23naE7aXNWrLoc88v6Da5fS6Sfxb5MMJxzQE7GAP00LO4NpHGG');
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  throw new Error(
+    'STRIPE_SECRET_KEY is not set. Provide it before running, e.g. `STRIPE_SECRET_KEY=<your-key> bun run scripts/create_flower_products.ts`.',
+  );
+}
+
+const stripe = new Stripe(stripeSecretKey);
 
 const FLOWERS = {
 	'Rose': 4.99,
