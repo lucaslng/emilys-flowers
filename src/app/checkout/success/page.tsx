@@ -17,8 +17,8 @@
 
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import ProductImage from '@/components/shop/ProductImage';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import { decodeOrderItems, computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
@@ -175,10 +175,9 @@ function CheckoutSuccessContent() {
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-[#F0E0E0] bg-[#F9E4E4]/40">
                     {product ? (
-                      <Image
-                        src={product.images[0]}
+                      <ProductImage
+                        product={product}
                         alt={item.name}
-                        fill
                         sizes="64px"
                         className="object-cover"
                       />

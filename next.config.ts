@@ -66,12 +66,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "picsum.photos",
-      },
-    ],
+    remotePatterns: [],
   },
   experimental: {
     inlineCss: true, // Inlines critical CSS into the HTML payload

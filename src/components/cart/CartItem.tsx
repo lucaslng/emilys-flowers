@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { CartItem as CartItemType } from '@/types';
+import ProductImage from '@/components/shop/ProductImage';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
@@ -114,10 +114,8 @@ export default function CartItem({ item }: CartItemProps) {
     >
       {/* Image — sharp corners, surface backdrop */}
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden bg-[#FFF5F5] sm:h-28 sm:w-28">
-        <Image
-          src={product.images[0]}
-          alt={product.name}
-          fill
+        <ProductImage
+          product={product}
           sizes="112px"
           className="object-cover"
         />

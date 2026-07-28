@@ -157,17 +157,18 @@ import type { NextConfig } from 'next'
 
 const config: NextConfig = {
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
-    ],
+    remotePatterns: [],
   },
 }
 
 export default config
 ```
 
-`remotePatterns` whitelists `picsum.photos` (placeholder product images). If you
-add a new image host, add it here.
+Product images are local per-category SVG placeholders served from
+`public/placeholders/` (`/placeholders/flower.svg` for flowers,
+`/placeholders/bouquet.svg` for bouquets), rendered through the
+`ProductImage` component. `remotePatterns` is empty — real product photos
+(and their remote host) will be added later.
 
 ---
 

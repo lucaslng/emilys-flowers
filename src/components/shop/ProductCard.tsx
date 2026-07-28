@@ -1,10 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
+import ProductImage from '@/components/shop/ProductImage';
 import { firePetalBurst } from '@/lib/petal-burst';
 
 interface ProductCardProps {
@@ -32,10 +32,8 @@ export default function ProductCard({
     >
       {/* Image — edge-to-edge, sharp corners */}
       <div className="relative aspect-square overflow-hidden bg-[#F9E4E4]/40">
-        <Image
-          src={product.images[0]}
-          alt={product.name}
-          fill
+        <ProductImage
+          product={product}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover"
         />
