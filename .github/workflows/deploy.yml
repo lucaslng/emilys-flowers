@@ -52,10 +52,11 @@ jobs:
             BASE="${{ github.event.before }}"
           fi
 
-          # New branch / first push: before is all-zeros → treat all as changed.
+          # New branch / first push: before is all-zeros → diff against the
+          # default branch (origin/main) instead of guessing. The fail-safe
+          # below covers the case where that diff can't be computed either.
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-            exit 0
+            BASE="origin/main"
           fi
 
           # Fail safe: if the diff can't be computed, run E2E.
