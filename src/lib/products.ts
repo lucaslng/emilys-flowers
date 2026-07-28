@@ -10,7 +10,7 @@ export const products: Product[] = [
     description:
       'A single handcrafted ribbon rose with delicate layered petals. Each rose is meticulously shaped from premium satin ribbon to create a lifelike bloom that never wilts.',
     price: 2499,
-    images: ['https://picsum.photos/seed/ribbon-rose/600/600'],
+    images: ['/placeholders/flower.svg'],
     category: 'flower',
     tags: ['rose', 'classic', 'romantic'],
     inStock: true,
@@ -21,7 +21,7 @@ export const products: Product[] = [
     description:
       'Lush and romantic ribbon peony with voluminous petals. This stunning bloom captures the soft, ruffled beauty of a garden peony in full splendor.',
     price: 2999,
-    images: ['https://picsum.photos/seed/ribbon-peony/600/600'],
+    images: ['/placeholders/flower.svg'],
     category: 'flower',
     tags: ['peony', 'romantic', 'garden'],
     inStock: true,
@@ -32,7 +32,7 @@ export const products: Product[] = [
     description:
       'Geometric ribbon dahlia with precisely folded petals. Each layer is carefully arranged to create the distinctive spiral pattern dahlias are known for.',
     price: 2799,
-    images: ['https://picsum.photos/seed/ribbon-dahlia/600/600'],
+    images: ['/placeholders/flower.svg'],
     category: 'flower',
     tags: ['dahlia', 'geometric', 'bold'],
     inStock: true,
@@ -43,7 +43,7 @@ export const products: Product[] = [
     description:
       'Delicate ribbon ranunculus with paper-thin layered petals. This charming flower features the tightly packed, multi-layered blooms that make ranunculus so beloved.',
     price: 2699,
-    images: ['https://picsum.photos/seed/ribbon-ranunculus/600/600'],
+    images: ['/placeholders/flower.svg'],
     category: 'flower',
     tags: ['ranunculus', 'delicate', 'layered'],
     inStock: true,
@@ -54,7 +54,7 @@ export const products: Product[] = [
     description:
       'A charming single stem featuring a mix of miniature ribbon wildflowers. Perfect as a delicate accent or combined with other stems for a custom arrangement.',
     price: 2199,
-    images: ['https://picsum.photos/seed/ribbon-wildflower/600/600'],
+    images: ['/placeholders/flower.svg'],
     category: 'flower',
     tags: ['wildflower', 'mixed', 'rustic'],
     inStock: true,
@@ -71,7 +71,7 @@ export const products: Product[] = [
     description:
       'A romantic arrangement of pink and white ribbon roses, accented with delicate lavender ribbon and soft pearl embellishments. Perfect for weddings or anniversaries.',
     price: 8999,
-    images: ['https://picsum.photos/seed/blush-romance/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['roses', 'pink', 'white', 'romantic'],
     featured: true,
@@ -83,7 +83,7 @@ export const products: Product[] = [
     description:
       'An enchanting bouquet featuring purple and lilac ribbon flowers with subtle silver ribbon accents. A dreamy arrangement that evokes peaceful lavender fields.',
     price: 7999,
-    images: ['https://picsum.photos/seed/lavender-dreams/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['lavender', 'purple', 'dreamy'],
     featured: true,
@@ -95,7 +95,7 @@ export const products: Product[] = [
     description:
       'A joyful mix of pastel ribbon wildflowers in pink, yellow, and soft blue hues. This cheerful arrangement brings the freshness of a spring meadow indoors.',
     price: 9999,
-    images: ['https://picsum.photos/seed/spring-meadow/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['wildflower', 'pastel', 'spring', 'mixed'],
     featured: true,
@@ -109,7 +109,7 @@ export const products: Product[] = [
     description:
       'An exquisite cascade of white ribbon roses and peonies with crystal bead accents. Designed as the perfect bridal bouquet for your special day.',
     price: 14999,
-    images: ['https://picsum.photos/seed/bridal-elegance/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['wedding', 'bridal', 'white', 'elegant'],
     inStock: true,
@@ -120,7 +120,7 @@ export const products: Product[] = [
     description:
       'A countryside-inspired bouquet with warm-toned ribbon flowers, burlap wrappings, and delicate baby\'s breath accents. Perfect for rustic or barn weddings.',
     price: 9999,
-    images: ['https://picsum.photos/seed/rustic-charm/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['wedding', 'rustic', 'warm', 'boho'],
     inStock: true,
@@ -133,7 +133,7 @@ export const products: Product[] = [
     description:
       'A warm and inviting arrangement in sunset hues of orange, gold, and coral. Designed to brighten any room and bring a touch of sunshine to your home.',
     price: 6999,
-    images: ['https://picsum.photos/seed/sunrise-window/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['home', 'warm', 'sunrise', 'decor'],
     inStock: true,
@@ -144,7 +144,7 @@ export const products: Product[] = [
     description:
       'A serene blue and white ribbon flower arrangement inspired by tranquil waters. Perfect as a dining table centerpiece or bathroom accent.',
     price: 7499,
-    images: ['https://picsum.photos/seed/calm-waters/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['home', 'blue', 'white', 'centerpiece'],
     inStock: true,
@@ -157,7 +157,7 @@ export const products: Product[] = [
     description:
       'A thoughtful gift bouquet of cheerful ribbon flowers in bright, uplifting colors. The perfect way to show gratitude and brighten someone\'s day.',
     price: 5999,
-    images: ['https://picsum.photos/seed/thank-you-bloom/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['gift', 'cheerful', 'bright', 'thank-you'],
     inStock: true,
@@ -168,7 +168,7 @@ export const products: Product[] = [
     description:
       'A gentle, understated arrangement in soft whites and creams with subtle lavender accents. Created with care to express condolences and honor a loved one.',
     price: 8499,
-    images: ['https://picsum.photos/seed/sympathy-tribute/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['gift', 'sympathy', 'white', 'gentle'],
     inStock: true,
@@ -181,7 +181,7 @@ export const products: Product[] = [
     description:
       'A rich and warm seasonal arrangement featuring ribbon flowers in deep burgundy, burnt orange, and gold. Captures the cozy essence of fall.',
     price: 7999,
-    images: ['https://picsum.photos/seed/autumn-harvest/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['seasonal', 'autumn', 'warm', 'harvest'],
     featured: false,
@@ -193,7 +193,7 @@ export const products: Product[] = [
     description:
       'A sparkling winter arrangement of white and silver ribbon flowers with frosted accents. Brings the magic of a snowy winter landscape indoors.',
     price: 8999,
-    images: ['https://picsum.photos/seed/winter-wonderland/600/600'],
+    images: ['/placeholders/bouquet.svg'],
     category: 'bouquet',
     tags: ['seasonal', 'winter', 'white', 'silver'],
     inStock: true,

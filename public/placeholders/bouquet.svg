@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <rect width="600" height="600" fill="#FFFAFA"/>
+  <defs>
+    <g id="bloom">
+      <g stroke="#D4A5A5" stroke-width="2" fill="#F9E4E4">
+        <ellipse cx="0" cy="-48" rx="30" ry="52"/>
+        <ellipse cx="0" cy="-48" rx="30" ry="52" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-48" rx="30" ry="52" transform="rotate(144)"/>
+        <ellipse cx="0" cy="-48" rx="30" ry="52" transform="rotate(216)"/>
+        <ellipse cx="0" cy="-48" rx="30" ry="52" transform="rotate(288)"/>
+      </g>
+      <circle cx="0" cy="0" r="20" fill="#D4A5A5"/>
+    </g>
+  </defs>
+  <g stroke="#8B7B7B" stroke-width="3" fill="none" stroke-linecap="round">
+    <line x1="300" y1="210" x2="300" y2="495"/>
+    <line x1="205" y1="285" x2="300" y2="495"/>
+    <line x1="395" y1="285" x2="300" y2="495"/>
+  </g>
+  <use href="#bloom" x="300" y="210"/>
+  <use href="#bloom" x="205" y="285"/>
+  <use href="#bloom" x="395" y="285"/>
+  <g fill="#D4A5A5">
+    <rect x="284" y="482" width="32" height="16" rx="2"/>
+  </g>
+</svg>
