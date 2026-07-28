@@ -1,3 +1,5 @@
+// Navbar.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -30,11 +32,10 @@ export default function Navbar() {
       <Container>
         <div className="relative flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link
-            href="/"
-            className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]"
-          >
-            Emily&#39;s Flowers
+          <Link href="/">
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]">
+              Emily&#39;s Flowers
+            </h1>
           </Link>
 
           {/* Desktop Nav — centered relative to the full row width */}
