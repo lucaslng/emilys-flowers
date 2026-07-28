@@ -196,7 +196,7 @@ function CheckoutSuccessContent() {
                     </p>
                   </div>
                   <span className="font-sans text-sm font-medium tabular-nums text-[#4A3B3B]">
-                    {`$${formatPrice(item.price * item.quantity)}`}
+                    {formatPrice(item.price * item.quantity)}
                   </span>
                 </div>
               );
@@ -211,7 +211,7 @@ function CheckoutSuccessContent() {
               <span>
                 Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})
               </span>
-              <span>{`$${formatPrice(subtotal)}`}</span>
+              <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
               <span>Shipping</span>
@@ -219,13 +219,13 @@ function CheckoutSuccessContent() {
                 {shipping === 0 ? (
                   <span className="text-green-700">Free</span>
                 ) : (
-                  `$${formatPrice(shipping)}`
+                  {formatPrice(shipping)}
                 )}
               </span>
             </div>
             <div className="flex justify-between border-t border-[#F0E0E0] pt-2 font-serif text-lg font-bold text-[#4A3B3B]">
               <span>Total</span>
-              <span>{`$${formatPrice(total)}`}</span>
+              <span>{formatPrice(total)}</span>
             </div>
           </div>
         </div>

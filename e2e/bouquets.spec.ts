@@ -14,7 +14,7 @@ test.describe("Bouquets page", () => {
     expect(count).toBe(11);
     for (let i = 0; i < count; i++) {
       const priceText = await priceElements.nth(i).textContent();
-      expect(priceText).toMatch(/^\$\d+\.\d{2}$/);
+      expect(priceText).toMatch(/^CA\$\d+\.\d{2}$/);
     }
   });
 });

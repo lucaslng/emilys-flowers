@@ -129,7 +129,7 @@ export default function CartItem({ item }: CartItemProps) {
               {product.name}
             </h3>
             <p className="mt-0.5 font-sans text-sm text-[#8B7B7B]">
-              ${formatPrice(product.price)} each
+              {formatPrice(product.price)} each
             </p>
           </div>
           <button
@@ -213,7 +213,7 @@ export default function CartItem({ item }: CartItemProps) {
             ref={totalRef}
             className="font-serif text-lg font-bold tabular-nums text-[#4A3B3B]"
           >
-            ${formatPrice(product.price * quantity)}
+            {formatPrice(product.price * quantity)}
           </span>
         </div>
       </div>

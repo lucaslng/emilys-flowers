@@ -63,7 +63,7 @@ export default function CartSummary() {
             <span>
               Items ({itemCount})
             </span>
-            <span className="tabular-nums">${formatPrice(subtotal)}</span>
+            <span className="tabular-nums">{formatPrice(subtotal)}</span>
           </div>
           <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
             <span>Shipping</span>
@@ -71,19 +71,19 @@ export default function CartSummary() {
               {shipping === 0 ? (
                 <span className="text-green-700">Free</span>
               ) : (
-                `$${formatPrice(shipping)}`
+                {formatPrice(shipping)}
               )}
             </span>
           </div>
           {shipping > 0 && (
             <p className="font-sans text-xs text-[#8B7B7B]">
-              Free shipping on orders over $50.00
+              Free shipping on orders over CA$50.00
             </p>
           )}
           <div className="plaque-divider pt-3">
             <div className="flex justify-between font-serif text-lg font-bold text-[#4A3B3B]">
               <span>Total</span>
-              <span ref={totalRef} className="tabular-nums">${formatPrice(total)}</span>
+              <span ref={totalRef} className="tabular-nums">{formatPrice(total)}</span>
             </div>
           </div>
         </div>

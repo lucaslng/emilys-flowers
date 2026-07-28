@@ -102,7 +102,7 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                   <span className="font-sans text-sm font-medium text-[#4A3B3B]">
-                    ${formatPrice(item.product.price * item.quantity)}
+                    {formatPrice(item.product.price * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
                   Subtotal ({getItemCount()} item
                   {getItemCount() !== 1 ? 's' : ''})
                 </span>
-                <span>${formatPrice(subtotal)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
                 <span>Shipping</span>
@@ -122,13 +122,13 @@ export default function CheckoutPage() {
                   {shipping === 0 ? (
                     <span className="text-green-700">Free</span>
                   ) : (
-                    `$${formatPrice(shipping)}`
+                    {formatPrice(shipping)}
                   )}
                 </span>
               </div>
               <div className="flex justify-between border-t border-[#F0E0E0] pt-2 font-serif text-lg font-bold text-[#4A3B3B]">
                 <span>Total</span>
-                <span>${formatPrice(total)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
             </div>
           </div>

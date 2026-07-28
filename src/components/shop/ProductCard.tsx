@@ -70,7 +70,7 @@ export default function ProductCard({
 
         <div className="mt-auto flex items-center justify-between pt-4">
           <span className="font-serif text-xl font-bold tabular-nums text-[#4A3B3B]">
-            ${formatPrice(product.price)}
+            {formatPrice(product.price)}
           </span>
           <Button
             variant="primary"
