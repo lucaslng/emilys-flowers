@@ -2,7 +2,8 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { useCart, computeShipping } from '@/lib/cart-context';
+import { useCart } from '@/lib/cart-context';
+import { computeShipping } from '@/lib/order';
 import { formatPrice } from '@/lib/format';
 import { gsap, useGSAP } from '@/lib/gsap';
 import Button from '@/components/ui/Button';

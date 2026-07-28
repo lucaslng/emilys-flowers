@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { validateLineItems } from "@/lib/checkout";
+import { validateLineItems } from "@/lib/order";
 
 describe("validateLineItems", () => {
   test("empty array -> 'No items provided'", () => {

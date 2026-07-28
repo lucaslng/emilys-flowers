@@ -14,7 +14,7 @@ import CartSummary from '@/components/cart/CartSummary';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 export default function CartPage() {
-  const { items, clearCart } = useCart();
+  const { items, clearCart, getItemCount } = useCart();
   const itemsContainerRef = useRef<HTMLDivElement>(null);
   // Holds the in-flight clear timeline so we can kill it on unmount and
   // avoid a stale `onComplete` firing `clearCart` after the user navigates
@@ -88,7 +88,7 @@ export default function CartPage() {
     });
   };
 
-  const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalQuantity = getItemCount();
 
   return (
     <div className="py-12 sm:py-16">

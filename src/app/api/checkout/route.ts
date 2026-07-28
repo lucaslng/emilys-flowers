@@ -2,8 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { validateLineItems, type LineItem } from '@/lib/checkout';
-import { encodeOrderItems, generateOrderNumber } from '@/lib/order';
+import { validateLineItems, encodeOrderItems, generateOrderNumber, type LineItem } from '@/lib/order';
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
