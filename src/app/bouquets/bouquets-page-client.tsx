@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getProductsByCategory } from '@/lib/products';
-import { Product } from '@/types';
+import { getProductsByCategory, getPriceRange } from '@/lib/products';
 import Container from '@/components/ui/Container';
 import ProductGrid from '@/components/shop/ProductGrid';
 import FilterBar from '@/components/shop/FilterBar';
@@ -23,11 +22,6 @@ const sortOptions = [
   { label: 'Name: A-Z', value: 'name-asc' },
   { label: 'Name: Z-A', value: 'name-desc' },
 ];
-
-function getPriceRange(products: Product[]): [number, number] {
-  const prices = products.map((p) => p.price);
-  return [Math.min(...prices), Math.max(...prices)];
-}
 
 export default function BouquetsPageClient() {
   const [selectedCategory, setSelectedCategory] = useState('all');
