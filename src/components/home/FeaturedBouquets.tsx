@@ -39,6 +39,8 @@ export default function FeaturedBouquets() {
                 key={product.id}
                 product={product}
                 emphasized={isCenter}
+                // Center card is the LCP — preload it instead of lazy-loading.
+                priority={isCenter}
                 // Mobile: natural stack (center is index 1, between the sides).
                 // Tablet (2-col): center spans both columns and leads on top.
                 // Desktop (3-col): center track is wider; lift it slightly.
