@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
+import Button from '@/components/ui/Button';
 import Container from '@/components/ui/Container';
 
 /**
@@ -224,20 +225,15 @@ export default function NotFound() {
             Let&rsquo;s find your way back.
           </p>
 
-          {/* CTAs — Link styled as button (established pattern in this codebase) */}
+          {/* CTAs — Button renders a next/link via its polymorphic `as` prop,
+              keeping variant/size styles owned by Button (one source of truth). */}
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#F9E4E4] px-8 py-4 text-base font-sans font-medium text-[#4A3B3B] transition-all duration-200 hover:scale-[1.02] hover:bg-[#F0D4D4] active:scale-[0.98] active:shadow-[0_0_15px_rgba(212,165,165,0.5)]"
-            >
+            <Button as={Link} href="/" variant="primary" size="lg">
               Return home
-            </Link>
-            <Link
-              href="/flowers"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D4A5A5] bg-transparent px-6 py-3 text-sm font-sans font-medium text-[#4A3B3B] transition-all duration-200 hover:scale-[1.02] hover:bg-[#FFF5F5] active:scale-[0.98]"
-            >
+            </Button>
+            <Button as={Link} href="/flowers" variant="secondary" size="md">
               Browse the garden
-            </Link>
+            </Button>
           </div>
         </div>
       </Container>
