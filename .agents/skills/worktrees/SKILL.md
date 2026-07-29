@@ -86,6 +86,24 @@ Before merging a lane back:
 4. Perform the approved integration (merge, cherry-pick, or PR) from the
    `main/` worktree or a user-approved checkout.
 
+5. When creating a PR with `gh pr create`, use `--body-file` with a heredoc
+   instead of `--body` to avoid shell interpretation of markdown paths like
+   `/flowers` in table cells:
+
+   ```bash
+   gh pr create \
+     --base main \
+     --head <prefix>/<slug> \
+     --title "..." \
+     --body-file <(cat <<'EOF'
+   ## Summary
+
+   ...
+   Closes #NN
+   EOF
+   )
+   ```
+
 ## Cleanup
 
 1. Ensure all changes are safely merged or archived.

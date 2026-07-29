@@ -4,6 +4,10 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+<!-- BEGIN:worktree-skill -->
+This repo uses a **bare-repo + sibling-worktree** layout — not `.slim/worktrees/`. When starting worktree operations, load the project skill from `.agents/skills/worktrees/SKILL.md`; the global worktrees skill describes a different convention.
+<!-- END:worktree-skill -->
+
 # Emily's Flowers
 
 Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScript (strict), Tailwind v4, GSAP animations, Stripe. Single package, no monorepo.
