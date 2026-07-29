@@ -7,15 +7,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '',
     '/flowers',
     '/bouquets',
-    '/cart',
-    '/checkout',
-    '/checkout/success',
   ];
 
   return staticRoutes.map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
-    changeFrequency: route === '' ? 'weekly' : 'monthly',
+    changeFrequency: (route === '' ? 'weekly' : 'monthly') as const,
     priority: route === '' ? 1 : route === '/flowers' || route === '/bouquets' ? 0.8 : 0.5,
   }));
 }
