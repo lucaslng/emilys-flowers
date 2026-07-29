@@ -33,6 +33,10 @@ export const metadata: Metadata = {
     "gift for her",
     "home decor",
   ],
+  metadataBase: new URL('https://emilysflowers.ca'),
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
