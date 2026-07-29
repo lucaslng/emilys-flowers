@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const baseUrl = 'https://emilys-flowers.com';
+const baseUrl = 'https://emilysflowers.ca';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
