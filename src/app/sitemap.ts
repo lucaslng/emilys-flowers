@@ -7,9 +7,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '',
     '/flowers',
     '/bouquets',
-    '/cart',
-    '/checkout',
-    '/checkout/success',
   ];
 
   return staticRoutes.map((route) => ({
