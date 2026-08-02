@@ -149,6 +149,7 @@ jobs:
       - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
+          UNDER_CONSTRUCTION: "true"
         run: bunx opennextjs-cloudflare build
 
       # `--keep-vars` preserves dashboard-set runtime secrets (STRIPE_SECRET_KEY)
