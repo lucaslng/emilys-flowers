@@ -4,6 +4,7 @@ import type { CartItem, Product } from "@/types";
 
 const rose: Product = {
   id: "ribbon-rose",
+  slug: "ribbon-rose",
   name: "Ribbon Rose",
   description: "A rose",
   price: 2499,
@@ -15,6 +16,7 @@ const rose: Product = {
 
 const peony: Product = {
   id: "ribbon-peony",
+  slug: "ribbon-peony",
   name: "Ribbon Peony",
   description: "A peony",
   price: 2999,

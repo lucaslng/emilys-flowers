@@ -4,6 +4,7 @@ import type { CartItem, Product } from "@/types";
 
 const rose: Product = {
   id: "ribbon-rose",
+  slug: "ribbon-rose",
   name: "Ribbon Rose",
   description: "",
   price: 2499,
@@ -15,6 +16,7 @@ const rose: Product = {
 
 const peony: Product = {
   id: "ribbon-peony",
+  slug: "ribbon-peony",
   name: "Ribbon Peony",
   description: "",
   price: 2999,
@@ -32,7 +34,13 @@ describe("toLineItems", () => {
   test("flattens a single CartItem to the LineItem shape", () => {
     const items: CartItem[] = [{ product: rose, quantity: 2 }];
     expect(toLineItems(items)).toEqual([
-      { id: "ribbon-rose", name: "Ribbon Rose", price: 2499, quantity: 2 },
+      {
+        id: "ribbon-rose",
+        name: "Ribbon Rose",
+        price: 2499,
+        quantity: 2,
+        category: "flower",
+      },
     ]);
   });
 
@@ -42,8 +50,20 @@ describe("toLineItems", () => {
       { product: peony, quantity: 3 },
     ];
     expect(toLineItems(items)).toEqual([
-      { id: "ribbon-rose", name: "Ribbon Rose", price: 2499, quantity: 1 },
-      { id: "ribbon-peony", name: "Ribbon Peony", price: 2999, quantity: 3 },
+      {
+        id: "ribbon-rose",
+        name: "Ribbon Rose",
+        price: 2499,
+        quantity: 1,
+        category: "flower",
+      },
+      {
+        id: "ribbon-peony",
+        name: "Ribbon Peony",
+        price: 2999,
+        quantity: 3,
+        category: "flower",
+      },
     ]);
   });
 

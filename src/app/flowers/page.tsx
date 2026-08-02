@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getProductsByCategory } from '@/lib/stripe-catalog';
 import FlowersPageClient from './flowers-page-client';
 
 export const metadata: Metadata = {
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FlowersPage() {
-  return <FlowersPageClient />;
+export default async function FlowersPage() {
+  const products = await getProductsByCategory('flower');
+  return <FlowersPageClient products={products} />;
 }

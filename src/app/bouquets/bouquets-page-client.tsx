@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getProductsByCategory, getPriceRange } from '@/lib/products';
+import { Product } from '@/types';
+import { getPriceRange } from '@/lib/product-utils';
 import Container from '@/components/ui/Container';
 import ProductGrid from '@/components/shop/ProductGrid';
 import FilterBar from '@/components/shop/FilterBar';
 
-const products = getProductsByCategory('bouquet');
-
-const categoryOptions = [
-  { label: 'All', value: 'all' },
-  { label: 'Wedding', value: 'wedding' },
-  { label: 'Home Decor', value: 'home' },
-  { label: 'Gift', value: 'gift' },
-  { label: 'Seasonal', value: 'seasonal' },
-];
+const categoryOptions = [{ label: 'All', value: 'all' }];
 
 const sortOptions = [
   { label: 'Price: Low to High', value: 'price-asc' },
@@ -23,10 +16,16 @@ const sortOptions = [
   { label: 'Name: Z-A', value: 'name-desc' },
 ];
 
-export default function BouquetsPageClient() {
+interface BouquetsPageClientProps {
+  products: Product[];
+}
+
+export default function BouquetsPageClient({
+  products,
+}: BouquetsPageClientProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSort, setSelectedSort] = useState('price-asc');
-  const initialPriceRange = useMemo(() => getPriceRange(products), []);
+  const initialPriceRange = useMemo(() => getPriceRange(products), [products]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<[number, number]>(
     initialPriceRange
   );
@@ -34,7 +33,7 @@ export default function BouquetsPageClient() {
   const filtered = useMemo(() => {
     let result = [...products];
 
-    // Filter by tag/category
+    // Filter by category
     if (selectedCategory !== 'all') {
       result = result.filter((p) => p.tags.includes(selectedCategory));
     }
@@ -62,7 +61,7 @@ export default function BouquetsPageClient() {
     }
 
     return result;
-  }, [selectedCategory, selectedSort, selectedPriceRange]);
+  }, [selectedCategory, selectedSort, selectedPriceRange, products]);
 
   return (
     <div className="py-12 sm:py-16">

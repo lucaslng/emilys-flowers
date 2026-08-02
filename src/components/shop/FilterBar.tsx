@@ -10,6 +10,11 @@ interface FilterBarProps {
   priceRange: [number, number];
   selectedPriceRange: [number, number];
   onPriceRangeChange: (range: [number, number]) => void;
+  /** Optional secondary category group (e.g. flower color) shown as a second
+   *  row of pills below the primary category row. */
+  secondaryCategories?: { label: string; value: string }[];
+  selectedSecondaryCategory?: string;
+  onSecondaryCategoryChange?: (value: string) => void;
 }
 
 export default function FilterBar({
@@ -22,27 +27,54 @@ export default function FilterBar({
   priceRange,
   selectedPriceRange,
   onPriceRangeChange,
+  secondaryCategories,
+  selectedSecondaryCategory,
+  onSecondaryCategoryChange,
 }: FilterBarProps) {
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-[#F0E0E0] bg-[#FFF5F5] p-4 sm:flex-row sm:items-center sm:justify-between">
-      {/* Category Filter */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#8B7B7B]">
-          Category:
-        </span>
-        {categories.map((cat) => (
-          <button
-            key={cat.value}
-            onClick={() => onCategoryChange(cat.value)}
-            className={`rounded-lg px-3 py-1.5 font-sans text-sm font-medium transition-colors ${
-              selectedCategory === cat.value
-                ? 'bg-[#D4A5A5] text-white'
-                : 'bg-[#FFFAFA] text-[#4A3B3B] hover:bg-[#F9E4E4]'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      {/* Category Filters (primary + optional secondary) */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#8B7B7B]">
+            Category:
+          </span>
+          {categories.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => onCategoryChange(cat.value)}
+              className={`rounded-lg px-3 py-1.5 font-sans text-sm font-medium transition-colors ${
+                selectedCategory === cat.value
+                  ? 'bg-[#D4A5A5] text-white'
+                  : 'bg-[#FFFAFA] text-[#4A3B3B] hover:bg-[#F9E4E4]'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Secondary Category Filter (e.g. flower color) */}
+        {secondaryCategories && onSecondaryCategoryChange && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#8B7B7B]">
+              Color:
+            </span>
+            {secondaryCategories.map((cat) => (
+              <button
+                key={cat.value}
+                onClick={() => onSecondaryCategoryChange(cat.value)}
+                className={`rounded-lg px-3 py-1.5 font-sans text-sm font-medium transition-colors ${
+                  selectedSecondaryCategory === cat.value
+                    ? 'bg-[#D4A5A5] text-white'
+                    : 'bg-[#FFFAFA] text-[#4A3B3B] hover:bg-[#F9E4E4]'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Price Range */}

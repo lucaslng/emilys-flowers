@@ -4,6 +4,7 @@ import type { Product } from "@/types";
 
 const sampleProduct: Product = {
   id: "test-rose",
+  slug: "test-rose",
   name: "Test Rose",
   description: "A test rose",
   price: 2499,
@@ -15,6 +16,7 @@ const sampleProduct: Product = {
 
 const sampleProduct2: Product = {
   id: "test-peony",
+  slug: "test-peony",
   name: "Test Peony",
   description: "A test peony",
   price: 2999,

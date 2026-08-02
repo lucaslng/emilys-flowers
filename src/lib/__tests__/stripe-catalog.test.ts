@@ -1,0 +1,102 @@
+import { test, expect, describe } from "bun:test";
+import {
+  slugify,
+  mapStripeProduct,
+  PLACEHOLDER_DESCRIPTION,
+} from "@/lib/stripe-catalog";
+import type Stripe from "stripe";
+
+function makePrice(unitAmount: number): Stripe.Price {
+  return { unit_amount: unitAmount } as Stripe.Price;
+}
+
+function makeProduct(overrides: Partial<Stripe.Product> = {}): Stripe.Product {
+  return {
+    id: "prod_test123",
+    name: "Pink Rose",
+    description: null,
+    active: true,
+    metadata: { category: "flower", color: "pink", flower_type: "rose" },
+    ...overrides,
+  } as Stripe.Product;
+}
+
+describe("slugify", () => {
+  test("lowercases and hyphenates a product name", () => {
+    expect(slugify("Cream White Rose")).toBe("cream-white-rose");
+    expect(slugify("Pink Garden")).toBe("pink-garden");
+  });
+
+  test("collapses whitespace and strips non-alphanumerics", () => {
+    expect(slugify("  Eternal   Roses  ")).toBe("eternal-roses");
+    expect(slugify("Aurora Bloom!")).toBe("aurora-bloom");
+  });
+
+  test("handles empty / symbol-only names without crashing", () => {
+    expect(slugify("")).toBe("");
+    expect(slugify("!!!")).toBe("");
+  });
+});
+
+describe("mapStripeProduct", () => {
+  test("maps a flower with placeholder description and category image", () => {
+    const p = mapStripeProduct(makeProduct(), makePrice(399));
+    expect(p).toEqual({
+      id: "prod_test123",
+      slug: "pink-rose",
+      name: "Pink Rose",
+      description: PLACEHOLDER_DESCRIPTION,
+      price: 399,
+      images: ["/placeholders/flower.svg"],
+      category: "flower",
+      tags: ["rose", "pink"],
+      featured: false,
+      featuredOrder: undefined,
+      inStock: true,
+      flowerType: "rose",
+      color: "pink",
+    });
+  });
+
+  test("uses the Stripe description when present", () => {
+    const p = mapStripeProduct(
+      makeProduct({ description: "A lovely rose." }),
+      makePrice(399)
+    );
+    expect(p.description).toBe("A lovely rose.");
+  });
+
+  test("maps a featured bouquet with its rank", () => {
+    const p = mapStripeProduct(
+      makeProduct({
+        name: "Aurora Bloom",
+        metadata: { category: "bouquet", featured: "2" },
+      }),
+      makePrice(7999)
+    );
+    expect(p.category).toBe("bouquet");
+    expect(p.images).toEqual(["/placeholders/bouquet.svg"]);
+    expect(p.featured).toBe(true);
+    expect(p.featuredOrder).toBe(2);
+    expect(p.tags).toContain("featured");
+    expect(p.slug).toBe("aurora-bloom");
+  });
+
+  test("marks inactive products as out of stock", () => {
+    const p = mapStripeProduct(makeProduct({ active: false }), makePrice(399));
+    expect(p.inStock).toBe(false);
+  });
+
+  test("defaults to flower category when metadata.category is absent", () => {
+    const p = mapStripeProduct(
+      makeProduct({ metadata: { color: "blue" } }),
+      makePrice(399)
+    );
+    expect(p.category).toBe("flower");
+  });
+
+  test("uses the price unit_amount as integer cents", () => {
+    const p = mapStripeProduct(makeProduct(), makePrice(2499));
+    expect(p.price).toBe(2499);
+  });
+});

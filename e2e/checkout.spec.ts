@@ -60,17 +60,17 @@ test.describe("Checkout flow", () => {
 
   test("success page renders order summary with correct totals from the items param", async ({ page }) => {
     const items = [
-      { id: "blush-romance", name: "Blush Romance Bouquet", price: 8999, quantity: 2 },
+      { id: "aurora-bloom", name: "Aurora Bloom", price: 7999, quantity: 2 },
     ];
     const encoded = Buffer.from(JSON.stringify(items)).toString("base64url");
     await page.goto(`/checkout/success?success=true&order=EF-TEST&items=${encoded}`);
 
     await expect(page.locator("h1")).toContainText("Thank you for your order");
     await expect(page.locator("h2")).toContainText("Order Summary");
-    await expect(page.getByText("Blush Romance Bouquet")).toBeVisible();
-    // 2 x $89.99 = $179.98; free shipping at/above $50 → total $179.98.
+    await expect(page.getByText("Aurora Bloom")).toBeVisible();
+    // 2 x $79.99 = $159.98; free shipping at/above $50 → total $159.98.
     // The value appears in the line total, subtotal, and total rows.
-    await expect(page.getByText("$179.98")).toHaveCount(3);
+    await expect(page.getByText("$159.98")).toHaveCount(3);
     await expect(page.getByText("Free")).toBeVisible();
   });
 

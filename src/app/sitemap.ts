@@ -1,21 +1,41 @@
 // sitemap.ts
 
 import { MetadataRoute } from 'next';
+import { getAllProducts } from '@/lib/stripe-catalog';
 
 const baseUrl = 'https://emilysflowers.ca';
-const lastModified = new Date();
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = [
-    '',
-    '/flowers',
-    '/bouquets',
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const lastModified = new Date();
+  const products = await getAllProducts();
+
+  const staticRoutes: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/flowers`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/bouquets`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ];
 
-  return staticRoutes.map((route) => ({
-    url: `${baseUrl}${route}`,
+  const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
+    url: `${baseUrl}/products/${p.slug}`,
     lastModified,
-    changeFrequency: route === '' ? 'weekly' : 'monthly',
-    priority: route === '' ? 1 : route === '/flowers' || route === '/bouquets' ? 0.8 : 0.5,
+    changeFrequency: 'monthly',
+    priority: 0.6,
   }));
+
+  return [...staticRoutes, ...productRoutes];
 }

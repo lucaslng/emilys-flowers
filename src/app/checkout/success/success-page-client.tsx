@@ -18,12 +18,10 @@
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import ProductImage from '@/components/shop/ProductImage';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import { decodeOrderItems, computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
 import { formatPrice } from '@/lib/format';
-import { getProductById } from '@/lib/products';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -166,7 +164,6 @@ function CheckoutSuccessContent() {
 
           <div className="mt-4 divide-y divide-[#F0E0E0]">
             {items.map((item) => {
-              const product = getProductById(item.id);
               return (
                 <div
                   key={item.id}
@@ -174,18 +171,11 @@ function CheckoutSuccessContent() {
                   className="flex items-center gap-4 py-4"
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-[#F0E0E0] bg-[#F9E4E4]/40">
-                    {product ? (
-                      <ProductImage
-                        product={product}
-                        alt={item.name}
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center font-serif text-xl text-[#D4A5A5]">
-                        {item.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <img
+                      src={`/placeholders/${item.category ?? 'flower'}.svg`}
+                      alt={item.name}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-sans text-sm font-medium text-[#4A3B3B]">

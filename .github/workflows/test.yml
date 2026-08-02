@@ -95,9 +95,12 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # playwright.config.ts prefixes the webServer command with
-        # `STRIPE_SECRET_KEY=` so /api/checkout runs in simulated-success mode
-        # and never hits the real Stripe API.
+        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
+        # Stripe at build time); playwright.config.ts runs the served app with an
+        # empty key so /api/checkout stays in simulated-success mode and never
+        # hits the real Stripe API.
+        env:
+          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
         run: bun run test:e2e
 
       - name: Upload Playwright report

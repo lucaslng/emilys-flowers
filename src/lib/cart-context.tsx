@@ -100,6 +100,7 @@ export function toLineItems(items: CartItem[]): LineItem[] {
     name: item.product.name,
     price: item.product.price,
     quantity: item.quantity,
+    category: item.product.category,
   }));
 }
 

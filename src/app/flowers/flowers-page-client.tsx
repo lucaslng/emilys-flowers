@@ -1,21 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getProductsByCategory, getPriceRange } from '@/lib/products';
+import { Product } from '@/types';
+import {
+  getFlowerTypes,
+  getFlowerColors,
+  getPriceRange,
+} from '@/lib/product-utils';
 import Container from '@/components/ui/Container';
 import ProductGrid from '@/components/shop/ProductGrid';
 import FilterBar from '@/components/shop/FilterBar';
-
-const products = getProductsByCategory('flower');
-
-const categoryOptions = [
-  { label: 'All', value: 'all' },
-  { label: 'Roses', value: 'rose' },
-  { label: 'Peonies', value: 'peony' },
-  { label: 'Dahlias', value: 'dahlia' },
-  { label: 'Ranunculus', value: 'ranunculus' },
-  { label: 'Wildflowers', value: 'wildflower' },
-];
 
 const sortOptions = [
   { label: 'Price: Low to High', value: 'price-asc' },
@@ -24,20 +18,35 @@ const sortOptions = [
   { label: 'Name: Z-A', value: 'name-desc' },
 ];
 
-export default function FlowersPageClient() {
+interface FlowersPageClientProps {
+  products: Product[];
+}
+
+export default function FlowersPageClient({
+  products,
+}: FlowersPageClientProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedColor, setSelectedColor] = useState('all');
   const [selectedSort, setSelectedSort] = useState('price-asc');
-  const initialPriceRange = useMemo(() => getPriceRange(products), []);
+  const initialPriceRange = useMemo(() => getPriceRange(products), [products]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<[number, number]>(
     initialPriceRange
   );
 
+  const categoryOptions = useMemo(() => getFlowerTypes(products), [products]);
+  const colorOptions = useMemo(() => getFlowerColors(products), [products]);
+
   const filtered = useMemo(() => {
     let result = [...products];
 
-    // Filter by tag/category
+    // Filter by flower type
     if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.tags.includes(selectedCategory));
+      result = result.filter((p) => p.flowerType === selectedCategory);
+    }
+
+    // Filter by color
+    if (selectedColor !== 'all') {
+      result = result.filter((p) => p.color === selectedColor);
     }
 
     // Filter by price range
@@ -63,7 +72,7 @@ export default function FlowersPageClient() {
     }
 
     return result;
-  }, [selectedCategory, selectedSort, selectedPriceRange]);
+  }, [selectedCategory, selectedColor, selectedSort, selectedPriceRange, products]);
 
   return (
     <div className="py-12 sm:py-16">
@@ -84,6 +93,9 @@ export default function FlowersPageClient() {
             categories={categoryOptions}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
+            secondaryCategories={colorOptions}
+            selectedSecondaryCategory={selectedColor}
+            onSecondaryCategoryChange={setSelectedColor}
             sortOptions={sortOptions}
             selectedSort={selectedSort}
             onSortChange={setSelectedSort}
