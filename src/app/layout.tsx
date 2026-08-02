@@ -9,6 +9,8 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { isUnderConstruction } from "@/lib/under-construction";
 import UnderConstruction from "@/components/under-construction";
+import JsonLd from "@/components/JsonLd";
+import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
 import "./globals.css";
 
 const inter = Inter({
@@ -87,6 +89,8 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </CartProvider>
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={webSiteSchema()} />
       </body>
     </html>
   );
