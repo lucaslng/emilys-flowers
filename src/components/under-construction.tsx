@@ -1,3 +1,5 @@
+// under-construction.tsx
+
 /**
  * UnderConstruction — the full-page "coming soon" screen.
  *
@@ -124,7 +126,7 @@ export default function UnderConstruction() {
             style={{ animationDelay: '0.24s' }}
           >
             We&rsquo;re putting the finishing touches on our garden of
-            handcrafted ribbon flowers. Every petal is made by hand &mdash; the
+            handcrafted ribbon flowers. Every petal is made by hand. The
             shop will open very soon.
           </p>
 
@@ -139,12 +141,12 @@ export default function UnderConstruction() {
               <span className="h-px w-12 bg-rose/50" />
             </div>
             <p className="font-sans text-sm text-muted">
-              Until then, say hello at{' '}
+              Until then, contact us at{' '}
               <a
-                href="mailto:hello@emilysflowers.ca"
+                href="mailto:contact@emilysflowers.ca"
                 className="border-b border-rose/60 font-medium text-foreground transition-colors duration-300 hover:border-rose hover:text-rose"
               >
-                hello@emilysflowers.ca
+                contact@emilysflowers.ca
               </a>
             </p>
           </div>
@@ -154,7 +156,7 @@ export default function UnderConstruction() {
       {/* Brand caption, resting just above the bottom rail */}
       <div className="relative z-10 pb-8 pt-6 text-center">
         <p className="font-sans text-xs tracking-wide text-muted">
-          Emily&rsquo;s Flowers &mdash; handcrafted ribbon flowers &amp; bouquets
+          Emily&rsquo;s Flowers: handcrafted ribbon flowers &amp; bouquets
         </p>
       </div>
     </section>
