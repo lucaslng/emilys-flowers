@@ -23,8 +23,8 @@ test.describe("Cart functionality", () => {
     const removeButton = page.getByRole("button", { name: /Remove.*from cart/ }).first();
     await expect(removeButton).toBeVisible();
 
-    // Quantity shows "1" — use the quantity span inside the cart item
-    await expect(page.locator('[class*="flex h-8 w-10 items-center justify-center"]')).toContainText("1");
+    // Quantity shows "1" via the dedicated test id
+    await expect(page.getByTestId("cart-item-quantity")).toContainText("1");
 
     // Proceed to Checkout visible
     await expect(page.getByRole("link", { name: "Proceed to Checkout" })).toBeVisible();
@@ -36,7 +36,7 @@ test.describe("Cart functionality", () => {
     await page.goto("/cart");
 
     await page.getByRole("button", { name: "Increase quantity" }).click();
-    await expect(page.locator('[class*="flex h-8 w-10 items-center justify-center"]')).toContainText("2");
+    await expect(page.getByTestId("cart-item-quantity")).toContainText("2");
   });
 
   test("decrease quantity works", async ({ page }) => {
@@ -46,10 +46,10 @@ test.describe("Cart functionality", () => {
 
     // Increase to 2 first so decrease works
     await page.getByRole("button", { name: "Increase quantity" }).click();
-    await expect(page.locator('[class*="flex h-8 w-10 items-center justify-center"]')).toContainText("2");
+    await expect(page.getByTestId("cart-item-quantity")).toContainText("2");
 
     await page.getByRole("button", { name: "Decrease quantity" }).click();
-    await expect(page.locator('[class*="flex h-8 w-10 items-center justify-center"]')).toContainText("1");
+    await expect(page.getByTestId("cart-item-quantity")).toContainText("1");
   });
 
   test("remove item from cart", async ({ page }) => {
@@ -75,5 +75,21 @@ test.describe("Cart functionality", () => {
 
     // Cart badge should still show "1" (localStorage persistence)
     await expect(page.locator("#cart-icon span")).toContainText("1");
+  });
+
+  test("corrupted stored cart degrades to an empty cart instead of NaN totals", async ({ page }) => {
+    // Narrow edge case where seeding localStorage directly is clearer: a
+    // structurally invalid stored cart (missing product fields) previously
+    // hydrated as-is and produced $NaN totals. The sanitizer must drop it.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        "emilys-flowers-cart",
+        JSON.stringify([{ product: { id: "x", name: "Broken" }, quantity: 1 }])
+      );
+    });
+    await page.goto("/cart");
+    await expect(page.locator("h2")).toContainText("Your cart is empty", { timeout: 5_000 });
+    // And no ghost line items rendered
+    await expect(page.getByTestId("cart-item-quantity")).toHaveCount(0);
   });
 });

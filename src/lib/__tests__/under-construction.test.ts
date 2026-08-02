@@ -30,4 +30,21 @@ describe("isUnderConstruction", () => {
     process.env.UNDER_CONSTRUCTION = "1";
     expect(isUnderConstruction()).toBe(false);
   });
+
+  // Exact-match contract: the gate is armed only by the literal string
+  // "true". Whitespace or casing must not silently disarm or arm it.
+  test("false when UNDER_CONSTRUCTION has a leading space", () => {
+    process.env.UNDER_CONSTRUCTION = " true";
+    expect(isUnderConstruction()).toBe(false);
+  });
+
+  test("false when UNDER_CONSTRUCTION has a trailing space", () => {
+    process.env.UNDER_CONSTRUCTION = "true ";
+    expect(isUnderConstruction()).toBe(false);
+  });
+
+  test("false when UNDER_CONSTRUCTION is 'True' (case-sensitive)", () => {
+    process.env.UNDER_CONSTRUCTION = "True";
+    expect(isUnderConstruction()).toBe(false);
+  });
 });

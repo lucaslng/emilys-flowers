@@ -92,4 +92,76 @@ describe("validateLineItems", () => {
       error: "Invalid line item",
     });
   });
+
+  test("non-array items (object) -> 'No items provided'", () => {
+    expect(validateLineItems({ items: [] })).toEqual({
+      ok: false,
+      error: "No items provided",
+    });
+  });
+
+  test("non-array items (string) -> 'No items provided'", () => {
+    expect(validateLineItems("items")).toEqual({
+      ok: false,
+      error: "No items provided",
+    });
+  });
+
+  test("item that is a string -> 'Invalid line item'", () => {
+    expect(validateLineItems(["x"])).toEqual({
+      ok: false,
+      error: "Invalid line item",
+    });
+  });
+
+  test("item that is an array -> 'Invalid line item'", () => {
+    expect(validateLineItems([["x"]])).toEqual({
+      ok: false,
+      error: "Invalid line item",
+    });
+  });
+
+  test("item that is a number -> 'Invalid line item'", () => {
+    expect(validateLineItems([42])).toEqual({
+      ok: false,
+      error: "Invalid line item",
+    });
+  });
+
+  test("price NaN -> 'Invalid line item'", () => {
+    expect(
+      validateLineItems([{ id: "x", name: "Y", price: NaN, quantity: 1 }])
+    ).toEqual({ ok: false, error: "Invalid line item" });
+  });
+
+  test("price Infinity -> 'Invalid line item'", () => {
+    expect(
+      validateLineItems([{ id: "x", name: "Y", price: Infinity, quantity: 1 }])
+    ).toEqual({ ok: false, error: "Invalid line item" });
+  });
+
+  test("quantity NaN -> 'Invalid line item'", () => {
+    expect(
+      validateLineItems([{ id: "x", name: "Y", price: 2499, quantity: NaN }])
+    ).toEqual({ ok: false, error: "Invalid line item" });
+  });
+
+  test("quantity Infinity -> 'Invalid line item'", () => {
+    expect(
+      validateLineItems([{ id: "x", name: "Y", price: 2499, quantity: Infinity }])
+    ).toEqual({ ok: false, error: "Invalid line item" });
+  });
+
+  test("valid item with extra fields -> ok (lenient)", () => {
+    expect(
+      validateLineItems([
+        { id: "x", name: "Y", price: 2499, quantity: 1, color: "red", sku: "x-1" },
+      ])
+    ).toEqual({ ok: true });
+  });
+
+  test("duplicate valid items -> ok (dedup is client-side, not validation's job)", () => {
+    const item = { id: "x", name: "Y", price: 2499, quantity: 1 };
+    expect(validateLineItems([item, item])).toEqual({ ok: true });
+  });
 });

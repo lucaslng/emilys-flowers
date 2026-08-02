@@ -124,6 +124,74 @@ describe("cartReducer", () => {
     expect(state.items).toHaveLength(0);
   });
 
+  // Regression: quantities must stay positive integers (cart badge, order
+  // math, and the Stripe payload all assume integer counts). NaN and Infinity
+  // previously slipped through the `<= 0` guard and were serialized as `null`
+  // into localStorage.
+  test("UPDATE_QUANTITY with NaN removes the item", () => {
+    const stateWithItem = cartReducer(initialState, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    const state = cartReducer(stateWithItem, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "test-rose", quantity: NaN },
+    });
+    expect(state.items).toHaveLength(0);
+  });
+
+  test("UPDATE_QUANTITY with Infinity removes the item", () => {
+    const stateWithItem = cartReducer(initialState, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    const state = cartReducer(stateWithItem, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "test-rose", quantity: Infinity },
+    });
+    expect(state.items).toHaveLength(0);
+  });
+
+  test("UPDATE_QUANTITY with a fractional quantity removes the item", () => {
+    const stateWithItem = cartReducer(initialState, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    const state = cartReducer(stateWithItem, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "test-rose", quantity: 1.5 },
+    });
+    expect(state.items).toHaveLength(0);
+  });
+
+  test("UPDATE_QUANTITY with nonexistent id leaves state unchanged", () => {
+    const stateWithItem = cartReducer(initialState, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    const state = cartReducer(stateWithItem, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "nonexistent", quantity: 5 },
+    });
+    expect(state.items).toHaveLength(1);
+    expect(state.items[0].quantity).toBe(1);
+  });
+
+  test("UPDATE_QUANTITY leaves unrelated items untouched", () => {
+    const withBoth = cartReducer(
+      cartReducer(initialState, { type: "ADD_TO_CART", payload: sampleProduct }),
+      { type: "ADD_TO_CART", payload: sampleProduct2 }
+    );
+    const state = cartReducer(withBoth, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "test-rose", quantity: 4 },
+    });
+    expect(state.items).toHaveLength(2);
+    expect(state.items[0].quantity).toBe(4);
+    expect(state.items[1].product.id).toBe("test-peony");
+    expect(state.items[1].quantity).toBe(1);
+  });
+
   test("CLEAR_CART empties the items array", () => {
     const stateWithItem = cartReducer(initialState, {
       type: "ADD_TO_CART",

@@ -114,11 +114,20 @@ export function decodeOrderItems(encoded: string): LineItem[] {
 function isLineItem(v: unknown): v is LineItem {
   if (typeof v !== 'object' || v === null) return false;
   const o = v as Record<string, unknown>;
+  // Mirrors the semantic checks in validateLineItems so the success-page
+  // receipt can never surface items the checkout boundary would reject
+  // (empty ids/names, zero/negative/non-integer prices or quantities).
   return (
     typeof o.id === 'string' &&
+    o.id.trim() !== '' &&
     typeof o.name === 'string' &&
+    o.name.trim() !== '' &&
     typeof o.price === 'number' &&
-    typeof o.quantity === 'number'
+    Number.isInteger(o.price) &&
+    o.price > 0 &&
+    typeof o.quantity === 'number' &&
+    Number.isInteger(o.quantity) &&
+    o.quantity > 0
   );
 }
 

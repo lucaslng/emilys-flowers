@@ -80,6 +80,39 @@ describe('encodeOrderItems / decodeOrderItems', () => {
     expect(decoded).toHaveLength(1);
     expect(decoded[0].id).toBe('ok');
   });
+
+  // Regression: the decode schema must mirror validateLineItems' semantic
+  // checks so a crafted `items` URL param can never surface negative,
+  // fractional, zero, or blank line items in the success-page receipt.
+  const invalidItems: Array<[string, unknown]> = [
+    ['negative price', { id: 'x', name: 'X', price: -500, quantity: 1 }],
+    ['zero price', { id: 'x', name: 'X', price: 0, quantity: 1 }],
+    ['non-integer price', { id: 'x', name: 'X', price: 24.99, quantity: 1 }],
+    ['negative quantity', { id: 'x', name: 'X', price: 100, quantity: -3 }],
+    ['zero quantity', { id: 'x', name: 'X', price: 100, quantity: 0 }],
+    ['non-integer quantity', { id: 'x', name: 'X', price: 100, quantity: 1.5 }],
+    ['empty id', { id: '', name: 'X', price: 100, quantity: 1 }],
+    ['whitespace id', { id: '  ', name: 'X', price: 100, quantity: 1 }],
+    ['empty name', { id: 'x', name: '', price: 100, quantity: 1 }],
+    ['whitespace name', { id: 'x', name: '   ', price: 100, quantity: 1 }],
+  ];
+  for (const [label, item] of invalidItems) {
+    test(`drops item with ${label}`, () => {
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify([item]))));
+      expect(decodeOrderItems(b64)).toEqual([]);
+    });
+  }
+
+  test('keeps only valid items when a payload mixes valid and lax ones', () => {
+    const payload = JSON.stringify([
+      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
+      { id: 'bad', name: 'Bad', price: -1, quantity: 1 },
+    ]);
+    const b64 = btoa(unescape(encodeURIComponent(payload)));
+    expect(decodeOrderItems(b64)).toEqual([
+      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
+    ]);
+  });
 });
 
 describe('generateOrderNumber', () => {
