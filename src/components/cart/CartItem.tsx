@@ -181,6 +181,7 @@ export default function CartItem({ item }: CartItemProps) {
             </button>
             <span
               ref={qtyRef}
+              data-testid="cart-item-quantity"
               className="flex h-8 w-10 items-center justify-center font-sans text-sm font-medium tabular-nums text-[#4A3B3B]"
             >
               {quantity}

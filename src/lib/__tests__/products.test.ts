@@ -4,6 +4,7 @@ import {
   getProductById,
   getFeaturedProducts,
   getProductsByCategory,
+  getPriceRange,
 } from "@/lib/products";
 
 describe("products data", () => {
@@ -89,5 +90,27 @@ describe("getProductsByCategory", () => {
     for (const product of getProductsByCategory("bouquet")) {
       expect(product.category).toBe("bouquet");
     }
+  });
+});
+
+describe("getPriceRange", () => {
+  test("returns [min, max] in cents for the catalog", () => {
+    expect(getPriceRange(products)).toEqual([2199, 14999]);
+  });
+
+  test("returns [p, p] for a single product", () => {
+    expect(getPriceRange([products[0]])).toEqual([2499, 2499]);
+  });
+
+  // Regression: an empty list previously produced [Infinity, -Infinity],
+  // which would feed an invalid min/max into the price-range slider.
+  test("returns [0, 0] for an empty list", () => {
+    expect(getPriceRange([])).toEqual([0, 0]);
+  });
+
+  test("ignores order: same set, different arrangement -> same range", () => {
+    const a = products.slice(0, 3);
+    const b = [a[2], a[0], a[1]];
+    expect(getPriceRange(b)).toEqual(getPriceRange(a));
   });
 });

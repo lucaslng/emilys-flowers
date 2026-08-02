@@ -212,7 +212,13 @@ export function getProductsByCategory(category: 'flower' | 'bouquet'): Product[]
   return products.filter((p) => p.category === category);
 }
 
+/**
+ * Min–max price in cents across the given products, as `[min, max]`.
+ * Returns `[0, 0]` for an empty list so callers never feed `Infinity`
+ * into `min`/`max` attributes.
+ */
 export function getPriceRange(products: Product[]): [number, number] {
+  if (products.length === 0) return [0, 0];
   const prices = products.map((p) => p.price);
   return [Math.min(...prices), Math.max(...prices)];
 }

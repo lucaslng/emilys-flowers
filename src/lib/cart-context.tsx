@@ -54,19 +54,23 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       };
 
     case 'UPDATE_QUANTITY': {
-      if (action.payload.quantity <= 0) {
+      const { id, quantity } = action.payload;
+      // Only positive integers are valid quantities (the cart badge, order
+      // math, and Stripe payload all assume integer counts). Anything else —
+      // 0, negatives, NaN, Infinity, fractions — removes the line.
+      if (quantity <= 0 || !Number.isInteger(quantity)) {
         return {
           ...state,
           items: state.items.filter(
-            (item) => item.product.id !== action.payload.id
+            (item) => item.product.id !== id
           ),
         };
       }
       return {
         ...state,
         items: state.items.map((item) =>
-          item.product.id === action.payload.id
-            ? { ...item, quantity: action.payload.quantity }
+          item.product.id === id
+            ? { ...item, quantity }
             : item
         ),
       };
@@ -99,6 +103,45 @@ export function toLineItems(items: CartItem[]): LineItem[] {
   }));
 }
 
+/**
+ * Keep only structurally valid `CartItem`s from an untrusted stored cart
+ * (localStorage is user-editable and can be corrupted). Anything that lacks
+ * the full `Product` shape or a positive-integer quantity is dropped so a bad
+ * store degrades to an empty (or trimmed) cart instead of poisoning totals
+ * with `NaN` or crashing on missing product fields.
+ */
+export function sanitizeStoredCart(parsed: unknown): CartItem[] {
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter(isCartItem);
+}
+
+function isCartItem(v: unknown): v is CartItem {
+  if (typeof v !== 'object' || v === null) return false;
+  const item = v as Record<string, unknown>;
+  if (
+    typeof item.quantity !== 'number' ||
+    !Number.isInteger(item.quantity) ||
+    item.quantity <= 0
+  ) {
+    return false;
+  }
+  const p = item.product as Record<string, unknown> | undefined;
+  if (typeof p !== 'object' || p === null) return false;
+  return (
+    typeof p.id === 'string' &&
+    p.id.trim() !== '' &&
+    typeof p.name === 'string' &&
+    typeof p.description === 'string' &&
+    typeof p.price === 'number' &&
+    Number.isInteger(p.price) &&
+    p.price > 0 &&
+    Array.isArray(p.images) &&
+    (p.category === 'flower' || p.category === 'bouquet') &&
+    Array.isArray(p.tags) &&
+    typeof p.inStock === 'boolean'
+  );
+}
+
 // --- Context ---
 
 interface CartContextType {
@@ -125,10 +168,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed: CartItem[] = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          dispatch({ type: 'HYDRATE', payload: parsed });
-        }
+        const parsed: unknown = JSON.parse(stored);
+        // Sanitize: a corrupted/hand-edited store must not poison the cart.
+        dispatch({ type: 'HYDRATE', payload: sanitizeStoredCart(parsed) });
       }
     } catch {
       // Ignore parse errors
