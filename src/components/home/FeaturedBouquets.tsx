@@ -1,11 +1,11 @@
-import { getFeaturedProducts } from '@/lib/products';
+import { getFeaturedProducts } from '@/lib/stripe-catalog';
 import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';
 import SquiggleUnderline from '@/components/ui/SquiggleUnderline';
 
-export default function FeaturedBouquets() {
-  const featured = getFeaturedProducts();
+export default async function FeaturedBouquets() {
+  const featured = await getFeaturedProducts();
 
   return (
     <section className="flex min-h-[calc(100vh-4rem)] flex-col justify-center bg-[#FFFAFA] py-8 sm:py-12">

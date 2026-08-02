@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { Product } from '@/types';
@@ -34,7 +35,11 @@ export default function ProductCard({
       } ${className}`.trim()}
     >
       {/* Image — edge-to-edge, sharp corners */}
-      <div className="relative aspect-square overflow-hidden bg-[#F9E4E4]/40">
+      <Link
+        href={`/products/${product.slug}`}
+        className="relative block aspect-square overflow-hidden bg-[#F9E4E4]/40"
+        aria-label={product.name}
+      >
         <ProductImage
           product={product}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -56,13 +61,13 @@ export default function ProductCard({
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Specimen label */}
       <div className="flex flex-1 flex-col p-5">
         <div className="plaque-divider -mx-5 mb-4" />
         <h3 className="plaque-name font-serif text-lg font-semibold text-[#4A3B3B]">
-          {product.name}
+          <Link href={`/products/${product.slug}`}>{product.name}</Link>
         </h3>
         <p className="mt-1 line-clamp-2 font-sans text-sm text-[#8B7B7B]">
           {product.description}

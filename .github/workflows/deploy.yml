@@ -111,9 +111,12 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # playwright.config.ts prefixes the webServer command with
-        # `STRIPE_SECRET_KEY=` so /api/checkout runs in simulated-success mode
-        # and never hits the real Stripe API.
+        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
+        # Stripe at build time); playwright.config.ts runs the served app with an
+        # empty key so /api/checkout stays in simulated-success mode and never
+        # hits the real Stripe API.
+        env:
+          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
         run: bun run test:e2e
 
       - name: Upload Playwright report
@@ -145,10 +148,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       # NEXT_PUBLIC_* is inlined by Next.js at build time, so the publishable
-      # key must be present during the OpenNext build.
+      # key must be present during the OpenNext build. STRIPE_SECRET_KEY is also
+      # needed at build time now that the product catalog is fetched from Stripe
+      # during static generation (live key for the production build).
       - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_LIVE }}
           UNDER_CONSTRUCTION: "true"
         run: bunx opennextjs-cloudflare build
 
@@ -189,6 +195,7 @@ jobs:
       - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
         run: bunx opennextjs-cloudflare build
 
       # Use `upload` (wrangler versions upload) instead of `deploy` so each

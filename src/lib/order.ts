@@ -21,6 +21,8 @@ export interface LineItem {
   name: string;
   price: number; // integer cents (Stripe convention)
   quantity: number;
+  /** Category carried through so the success page can render the right placeholder image. */
+  category?: 'flower' | 'bouquet';
 }
 
 export type LineItemsValidation =
@@ -74,7 +76,10 @@ export function validateLineItems(items: unknown): LineItemsValidation {
       !("quantity" in item) ||
       typeof item.quantity !== "number" ||
       !Number.isInteger(item.quantity) ||
-      item.quantity <= 0
+      item.quantity <= 0 ||
+      ("category" in item &&
+        item.category !== "flower" &&
+        item.category !== "bouquet")
     ) {
       return { ok: false, error: "Invalid line item" };
     }
@@ -117,6 +122,10 @@ function isLineItem(v: unknown): v is LineItem {
   // Mirrors the semantic checks in validateLineItems so the success-page
   // receipt can never surface items the checkout boundary would reject
   // (empty ids/names, zero/negative/non-integer prices or quantities).
+  const categoryOk =
+    o.category === undefined ||
+    o.category === 'flower' ||
+    o.category === 'bouquet';
   return (
     typeof o.id === 'string' &&
     o.id.trim() !== '' &&
@@ -127,7 +136,8 @@ function isLineItem(v: unknown): v is LineItem {
     o.price > 0 &&
     typeof o.quantity === 'number' &&
     Number.isInteger(o.quantity) &&
-    o.quantity > 0
+    o.quantity > 0 &&
+    categoryOk
   );
 }
 

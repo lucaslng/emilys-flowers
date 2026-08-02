@@ -1,15 +1,17 @@
 import type { Metadata } from 'next';
+import { getProductsByCategory } from '@/lib/stripe-catalog';
 import BouquetsPageClient from './bouquets-page-client';
 
 export const metadata: Metadata = {
-  title: 'Ribbon Flower Bouquets',
+  title: 'Handcrafted Ribbon Bouquets',
   description:
-    'Explore our curated collections of handcrafted ribbon flower bouquets for weddings, home decor, and gifts. Forever-blooming arrangements made with love and care.',
+    'Browse our collection of handcrafted ribbon bouquets — romantic, rustic, seasonal, and more. Forever-blooming arrangements handcrafted with love, ready to ship.',
   alternates: {
     canonical: '/bouquets',
   },
 };
 
-export default function BouquetsPage() {
-  return <BouquetsPageClient />;
+export default async function BouquetsPage() {
+  const products = await getProductsByCategory('bouquet');
+  return <BouquetsPageClient products={products} />;
 }
