@@ -5,6 +5,8 @@ import { CartProvider } from "@/lib/cart-context";
 import { PetalBurstProvider } from "@/lib/petal-burst";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { isUnderConstruction } from "@/lib/under-construction";
+import UnderConstruction from "@/components/under-construction";
 import "./globals.css";
 
 const inter = Inter({
@@ -59,6 +61,18 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  if (isUnderConstruction()) {
+    return (
+      <html
+        lang="en"
+        className={`${inter.variable} ${playfair.variable} h-full antialiased`}
+      >
+        <body className="flex min-h-full flex-col bg-[#FFFAFA] font-sans text-[#4A3B3B]">
+          <UnderConstruction />
+        </body>
+      </html>
+    );
+  }
   return (
     <html
       lang="en"

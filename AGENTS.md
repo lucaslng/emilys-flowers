@@ -42,6 +42,42 @@ Cloudflare Workers has no built-in per-project Preview/Production env-var toggle
 - `env.production` → Worker `emilys-flowers-production` (live Stripe keys)
 - `env.preview` → Worker `emilys-flowers-preview` (test Stripe keys)
 
+### Under-construction gate (production only)
+
+The site can be put "under construction" so nothing is browsable or purchasable in
+production while the storefront is being prepared. This is driven by a single
+`UNDER_CONSTRUCTION` env flag that is `"true"` **only** for production and unset
+everywhere else (dev, preview, E2E).
+
+Because most pages are statically prerendered at build time (served as Cloudflare
+assets, never running worker code per request), the flag must be set in **two
+places** for full coverage:
+
+1. **`deploy.yml` `deploy-production` → `Build (OpenNext)` step env** sets
+   `UNDER_CONSTRUCTION: "true"`. Static pages baked by that build render the
+   construction screen; the preview build (no flag) bakes the normal site.
+2. **`wrangler.jsonc` → `env.production.vars.UNDER_CONSTRUCTION = "true"`**.
+   Request-time code on the production Worker sees it via `process.env`, so the
+   `POST /api/checkout` route returns `503` even on a direct API call. Preview
+   inherits the top-level config (no flag) → checkout works there.
+
+The gate itself is `isUnderConstruction()` in `src/lib/under-construction.ts`
+(`process.env.UNDER_CONSTRUCTION === "true"` — plain env, no Cloudflare
+context needed, unit-tested). When it's on, `src/app/layout.tsx` renders the
+standalone `UnderConstruction` component (`src/components/under-construction.tsx`)
+instead of the app tree (no Navbar/Footer/cart/providers).
+
+`src/app/robots.ts` handles robots.txt. While construction is on it returns
+`disallow: '/'` (blocks all crawling so the construction page isn't indexed,
+while still advertising the sitemap); otherwise it returns the normal rules
+(`allow: '/'`, `disallow: ['/cart', '/checkout', '/api/']`). Note: this branch
+also introduces `robots.ts` itself — the committed base had no robots file.
+
+**To open the store later:** remove the `UNDER_CONSTRUCTION: "true"` line from
+the `deploy.yml` production build step and flip/remove
+`env.production.vars.UNDER_CONSTRUCTION`, then redeploy. (The API gate would
+still be armed by the wrangler var alone, so flip both together.)
+
 **Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
 
 ### CI/CD — GitHub Actions
@@ -98,7 +134,7 @@ echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
 
 - App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/cart`, `/checkout`, and `POST /api/checkout`.
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not for state that must persist across navigations.
-- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`.
+- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`. When the `UNDER_CONSTRUCTION` flag is on (see Deployment), it instead renders only the standalone `UnderConstruction` component — no providers, no nav, no footer.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 
 ## Data & state

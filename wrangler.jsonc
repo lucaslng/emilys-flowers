@@ -41,7 +41,10 @@
       "observability": {
         "enabled": true
       },
-      "routes": [{ "pattern": "emilysflowers.ca", "custom_domain": true }]
+      "routes": [{ "pattern": "emilysflowers.ca", "custom_domain": true }],
+      "vars": {
+        "UNDER_CONSTRUCTION": "true"
+      }
     },
     "preview": {
       "name": "emilys-flowers-preview",

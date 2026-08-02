@@ -212,3 +212,18 @@ body {
   stroke-dashoffset: var(--dash, 1000);
   animation: draw-stroke 1.5s ease-out forwards;
 }
+
+/* ─── Under-construction screen: staggered entrance ─────────────── */
+/* The under-construction page replaces the whole site, so template.tsx's
+   `.page-enter` never wraps it — it needs its own settle-in. Content elements
+   opt in with `.uc-enter` and stagger via inline `animation-delay`. The
+   animation is declared ONLY under `(prefers-reduced-motion: no-preference)`,
+   so reduced-motion users get the fully-visible static composition instantly
+   with no animation-delay gap (the global guard can't cancel delays, so we
+   never set them in the first place). Reuses the existing `fade-up` keyframes
+   (16px rise + fade). */
+@media (prefers-reduced-motion: no-preference) {
+  .uc-enter {
+    animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
