@@ -1,3 +1,5 @@
+// layout.tsx
+
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
@@ -21,7 +23,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: "Emily's Flowers — Handcrafted Ribbon Flowers & Bouquets",
+    default: "Emily's Flowers: Handcrafted Ribbon Flowers & Bouquets",
     template: "%s | Emily's Flowers",
   },
   description:
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "Emily's Flowers — Handcrafted Ribbon Flowers & Bouquets",
+    title: "Emily's Flowers: Handcrafted Ribbon Flowers & Bouquets",
     description:
       "Exquisite handcrafted ribbon flowers and bouquets made with love. Forever-blooming beauty for your home.",
     type: "website",
