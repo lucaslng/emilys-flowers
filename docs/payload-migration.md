@@ -1,7 +1,9 @@
 # Payload CMS Migration Plan (handoff for implementing agents)
 
-Status: **Plan — not started.** Research complete as of Aug 2026. A future agent can pick
-this up and execute Phase 1 without needing the original conversation.
+Status: **Plan — Phase 0 complete (verified 2026-08-03).** See "Phase 0 results" below for
+the verdicts, the Payload version pin, and two plan corrections (queue requirement, and
+on-demand-only ISR). A future agent can execute Phase 1 without needing the original
+conversation.
 
 ## Purpose & how to use this doc
 
@@ -85,6 +87,39 @@ Rules:
 3. **Paid Workers plan** confirmed on the account (hard requirement for the single-Worker
    path — bundle ~19-21 MiB vs 3 MiB free limit).
 4. Create `feature/payload-cms` worktree; keep `main` green.
+
+#### Phase 0 results (verified 2026-08-03, PR #108)
+
+1. **Next 16 compat — PASS (pin Payload ≥3.85).** `@payloadcms/next` peer-deps accept
+   `next >=16.2.2 <17.0.0` from Payload 3.82.0 onward, and the Payload docs list
+   `16.2.6+` as the supported floor — so use the current 3.x line (3.85+, latest 3.87.0),
+   **not** the template's 3.82.1. Classic ISR (`export const revalidate`,
+   `generateStaticParams`, `dynamicParams`) is fully supported and un-deprecated in
+   16.2.12 (installed docs verified). **`revalidateTag(tag)` single-arg is deprecated
+   (TypeScript error) — the two-arg `revalidateTag(tag, 'max')` form is required.**
+   Caveats carried into the plan: the `with-cloudflare-d1` template is still Next 15 +
+   Payload 3.82.1 (untested on Next 16 — re-verify `withPayload`'s injected webpack
+   config under Turbopack on 16.2.12); replace the pino-pretty logger with the template's
+   console logger; **do not enable Hyperdrive on the D1 binding** (it's the #14656 admin-
+   auth trigger).
+2. **OpenNext ISR — on-demand revalidation is the path; time-based ISR is risky on
+   1.20.2.** Issue **#1281 (spurious STALE) is still OPEN and unfixed** (fix PR #1303 is a
+   draft). The SWR stale-window guard exists in the installed 1.20.2 tag caches, but the
+   regional-cache `shouldLazilyUpdateOnCacheHit` bug remains — **avoid
+   `withRegionalCache`**. **Plan correction: go on-demand-only** (`revalidateTag`
+   webhook + Payload hooks, no `export const revalidate` TTL) until #1303 lands. Also
+   monitor **#1295** (`bypassTagCacheOnCacheHit` can serve stale entries after an on-demand
+   `revalidateTag`) and #1284 (R2 populate flakiness). Import paths, `populate-cache
+   remote`, and `--keep-vars`/`--preview-alias` forwarding are all confirmed against the
+   installed package (see "ISR wiring (exact)").
+3. **Paid Workers plan — CONFIRMED** on the account (bundle ~19-21 MiB vs 3 MiB free).
+4. **Worktree `feature/payload-cms` — exists**, clean tree, `main` green.
+
+Open at Phase 1: the empirical deploy spike (minimal ISR page + `populate-cache remote`,
+assert `revalidateTag('products','max')` busts a cached page on the deployed Worker) was
+deferred out of Phase 0 — the research above already answers the architecture questions it
+was meant to settle. Run it as a Phase 1 gate before wiring real collections if any doubt
+remains about #1295 behavior.
 
 ### Phase 1 — Stand up Payload
 
@@ -175,7 +210,14 @@ import r2IncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cac
 export default defineCloudflareConfig({
   incrementalCache: r2IncrementalCache,
   tagCache: d1NextTagCache,
-  // queue: doQueue — NOT needed for on-demand-only (time-based ISR only)
+  // Queue: NOT required for on-demand-only to update content — without an override the
+  // dummy queue makes stale requests fall back to a BLOCKING re-render (fresh content on
+  // next visit, but no stale-serve + background-regenerate, no dedupe/retry). Verified
+  // in installed 1.20.2 (cacheInterceptor falls back to `return event` when
+  // queue.send throws). Add `memory-queue` (per-isolate, needs WORKER_SELF_REFERENCE,
+  // no DO migration) or `doQueue` (durable; adds durable_objects + migrations to all
+  // three wrangler stanzas) if stale-while-revalidate serving is wanted. Start without
+  // one; revisit if admin-generated pages feel slow.
 });
 ```
 
@@ -234,7 +276,7 @@ Payload itself needs (`D1`, `R2`).
 | Paid plan requirement | Bundle ~19-21 MiB > 3 MiB free limit | Confirm paid plan in Phase 0 |
 | Build-time D1 empty | Static prerender at build bakes `null` from unseeded D1 | Runtime-only first-request generation; seed before build only if build-time data is required |
 | `UNDER_CONSTRUCTION` semantics change | Today baked at build; under ISR, regenerated pages read the **live worker env** (more correct, but cached HTML can hold stale construction state until revalidated) | Note behavior change; construction flips need a cache purge or full revalidation |
-| OpenNext ISR stability | **#1281** spurious STALE after 1.19.2; **#754** historical revalidate-ignored-on-dynamic | Verify on 1.20.2 in Phase 0 |
+| OpenNext ISR stability | **#1281** spurious STALE after 1.19.2 — **still open/unfixed on 1.20.2** (fix PR #1303 draft); affects time-based ISR + regional cache; **#754** historical revalidate-ignored-on-dynamic (nominally closed, fix version never stated); **#1295** `bypassTagCacheOnCacheHit` can serve stale after on-demand `revalidateTag`; **#1284** `populate-cache remote` flakiness | Go **on-demand-only** (no `export const revalidate` TTL) on 1.20.2; avoid `withRegionalCache`; verify webhook revalidation in the Phase 1 spike; re-check #1295 before relying on cached admin edits |
 | Next images on Workers | **#15502** open/verified — `/api/media` served via static assets breaks Next image optimization | `images.unoptimized: true` or absolute media URLs |
 | Cache Components | OpenNext bugs #1130, #1225, #1223; PPR+interception broken | Stay on classic ISR; treat `use cache` as a later migration |
 | Next 16 template gap | Official template is Next 15 | Phase 0 verification |
@@ -244,15 +286,19 @@ Payload itself needs (`D1`, `R2`).
 
 ## Open questions for the implementing agent
 
-- Exact import paths for `r2IncrementalCache` / `d1NextTagCache` / `doShardedTagCache`
-  in the installed `@opennextjs/cloudflare` 1.20.2 (research listed names; confirm against
-  the package).
-- Whether `populate-cache remote` is still the correct command name in 1.20.2 (not in the
-  docs' prose as of the research; verify in `packages/cloudflare/src/cli/commands/`).
-- Decide the `revalidate` TTL value and whether `products` needs time-based ISR at all
-  (on-demand-only avoids the DO queue entirely).
+- ~~Exact import paths for `r2IncrementalCache` / `d1NextTagCache` / `doShardedTagCache`
+  in the installed `@opennextjs/cloudflare` 1.20.2~~ — **answered (Phase 0):** the package
+  `"./*"` export map resolves them (see "ISR wiring (exact)").
+- ~~Whether `populate-cache remote` is still the correct command name in 1.20.2~~ —
+  **answered (Phase 0):** `populate-cache {local,remote}` exists, and `deploy`/`upload`
+  auto-run `populate-cache remote`; it also creates the D1 `revalidations` table.
+- ~~Decide the `revalidate` TTL value and whether `products` needs time-based ISR at all~~ —
+  **decided (Phase 0):** no time-based TTL on 1.20.2 (#1281 open); on-demand-only via
+  webhook + hooks. Revisit when #1303 lands.
 - Stripe product ids (`Product.id`) — keep as-is or switch to Payload ids; affects stale
   carts only cosmetically.
+- With `withRegionalCache` ruled out, is a regional/edge cache desired later (queue +
+  Cache API) — out of scope until #1281/#1303 resolve.
 
 ## Suggested skills for future agents
 
