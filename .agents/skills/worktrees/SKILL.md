@@ -64,6 +64,42 @@ git worktree add -b docs/worktree-convention docs/worktree-convention main
 
 This creates the directory `<prefix>/<slug>/` checked out on the new branch.
 
+## Moving uncommitted changes into a lane
+
+When work starts in one worktree (e.g., `main/`) but belongs in a new lane,
+move the uncommitted changes with a stash. The stash lives in the shared bare
+repo (`.bare/`), so any worktree can pop it — no file copying or re-editing.
+
+```bash
+# 1. In the source worktree, stash working-tree changes INCLUDING untracked files:
+git stash push -u -m "move to <prefix>/<slug>"
+
+# 2. Confirm the source is clean (output should be empty):
+git status --short
+
+# 3. Create the lane as usual (from the repo root):
+git worktree add -b <prefix>/<slug> <prefix>/<slug> <base>
+
+# 4. In the new worktree, apply the stash:
+git -C <prefix>/<slug> stash pop
+
+# 5. Verify the changes landed:
+git -C <prefix>/<slug> status --short
+```
+
+Gotchas:
+
+- `-u` is required: plain `git stash push` skips untracked files, and new files
+  (e.g., a freshly written doc) are untracked until staged.
+- Create the lane from the same base the stash was taken against (usually
+  `main`). If the base has diverged, `stash pop` may conflict — but the stash is
+  only dropped on success, so the changes stay recoverable at `refs/stash`
+  (fall back to `git stash show -p | git apply`, or copy the files).
+- This moves working-tree changes only. Already-committed changes move via
+  cherry-pick, or by creating the lane from the branch that contains them.
+- After a successful pop the source worktree is clean and the stash is dropped
+  automatically.
+
 ## Working in a lane
 
 - Run all edits, builds, and tests inside the worktree directory
