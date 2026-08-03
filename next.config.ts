@@ -1,6 +1,9 @@
 // next.config.ts
 
 import type { NextConfig } from "next";
+import { withPayload } from '@payloadcms/next/withPayload';
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();
 
 const csp = [
   "default-src 'self'",
@@ -62,7 +65,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
-
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+export default withPayload(nextConfig);

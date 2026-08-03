@@ -1,3 +1,5 @@
+// checkout-page-client.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -30,7 +32,7 @@ export default function CheckoutPageClient() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create checkout session');

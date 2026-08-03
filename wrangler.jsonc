@@ -22,6 +22,11 @@
   "observability": {
     "enabled": true
   },
+  "d1_databases": [
+    {
+      "binding": "D1"
+    }
+  ],
   "env": {
     "production": {
       "name": "emilys-flowers-production",
@@ -44,7 +49,14 @@
       "routes": [{ "pattern": "emilysflowers.ca", "custom_domain": true }],
       "vars": {
         "UNDER_CONSTRUCTION": "true"
-      }
+      },
+      "d1_databases": [
+        {
+          "binding": "D1",
+          "database_name": "emilysflowers-live",
+          "database_id": "b54e9d99-eea8-4d81-991e-b361b07681b9"
+        }
+      ]
     },
     "preview": {
       "name": "emilys-flowers-preview",
@@ -63,7 +75,14 @@
       },
       "observability": {
         "enabled": true
-      }
+      },
+      "d1_databases": [
+        {
+          "binding": "D1",
+          "database_name": "emilysflowers-test",
+          "database_id": "c5ec1eb0-d35c-404f-b7ac-d1b575ce0c01"
+        }
+      ]
     }
   }
 }
