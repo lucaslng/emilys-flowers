@@ -39,6 +39,7 @@ writing code that touches any of these areas.
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the museum-plaque card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
 | [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts` or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) |
+| [payload-migration.md](./payload-migration.md) | Before implementing the Payload CMS migration (product catalog source, on-demand revalidation/ISR rendering model). Status: plan, not started. |
 
 ## Quick orientation
 
@@ -49,7 +50,9 @@ writing code that touches any of these areas.
   typecheck: `bunx tsc --noEmit`.
 - **Path alias:** `@/*` → `./src/*`.
 - **TypeScript:** `strict`, `noEmit`, `moduleResolution: bundler`.
-- **Products** are hardcoded in `src/lib/products.ts` — no DB/CMS.
+- **Products** are fetched from the Stripe catalog at build time via
+  `src/lib/stripe-catalog.ts` — no DB/CMS today (see
+  [payload-migration.md](./payload-migration.md) for the planned CMS swap).
 - **Prices** are integer cents everywhere (`2499` = $24.99).
 - **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`,
   persisted to `localStorage` key `emilys-flowers-cart`.
