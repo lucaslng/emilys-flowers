@@ -2,8 +2,7 @@
 
 import { MetadataRoute } from 'next';
 import { getAllProducts } from '@/lib/stripe-catalog';
-
-const baseUrl = 'https://emilysflowers.ca';
+import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
@@ -11,19 +10,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${baseUrl}`,
+      url: SITE_URL,
       lastModified,
       changeFrequency: 'weekly',
       priority: 1,
     },
     {
-      url: `${baseUrl}/flowers`,
+      url: `${SITE_URL}/flowers`,
       lastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/bouquets`,
+      url: `${SITE_URL}/bouquets`,
       lastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
@@ -31,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
-    url: `${baseUrl}/products/${p.slug}`,
+    url: `${SITE_URL}/products/${p.slug}`,
     lastModified,
     changeFrequency: 'monthly',
     priority: 0.6,

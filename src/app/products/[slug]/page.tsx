@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllProducts, getProductBySlug } from '@/lib/stripe-catalog';
+import JsonLd from '@/components/JsonLd';
+import { productSchema, breadcrumbSchema } from '@/lib/json-ld';
+import { SITE_URL } from '@/lib/site';
 import ProductDetail from '@/components/shop/ProductDetail';
 
 type ProductPageProps = {
@@ -29,5 +32,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  return <ProductDetail product={product} />;
+  return (
+    <>
+      <JsonLd data={productSchema(product)} />
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: 'Home', url: SITE_URL },
+          {
+            name: product.category === 'flower' ? 'Flowers' : 'Bouquets',
+            url: `${SITE_URL}/${product.category}s`,
+          },
+          { name: product.name, url: `${SITE_URL}/products/${product.slug}` },
+        ])}
+      />
+      <ProductDetail product={product} />
+    </>
+  );
 }
