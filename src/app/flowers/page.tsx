@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { getProductsByCategory } from '@/lib/stripe-catalog';
 import JsonLd from '@/components/JsonLd';
-import { itemListSchema, breadcrumbSchema, SITE_URL } from '@/lib/json-ld';
+import { itemListSchema, breadcrumbSchema } from '@/lib/json-ld';
+import { SITE_URL } from '@/lib/site';
 import FlowersPageClient from './flowers-page-client';
 
 export const metadata: Metadata = {

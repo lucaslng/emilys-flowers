@@ -11,6 +11,7 @@ import { isUnderConstruction } from "@/lib/under-construction";
 import UnderConstruction from "@/components/under-construction";
 import JsonLd from "@/components/JsonLd";
 import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
     "gift for her",
     "home decor",
   ],
-  metadataBase: new URL('https://emilysflowers.ca'),
+  metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
   },

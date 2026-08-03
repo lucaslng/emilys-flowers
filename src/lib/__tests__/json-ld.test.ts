@@ -1,12 +1,12 @@
 import { test, expect, describe } from "bun:test";
 import {
-  SITE_URL,
   organizationSchema,
   webSiteSchema,
   itemListSchema,
   productSchema,
   breadcrumbSchema,
 } from "@/lib/json-ld";
+import { SITE_URL } from "@/lib/site";
 import type { Product } from "@/types";
 
 function product(overrides: Partial<Product>): Product {
@@ -32,22 +32,18 @@ describe("organizationSchema", () => {
     expect(schema["@type"]).toContain("Store");
     expect(schema.name).toBe("Emily's Flowers");
     expect(schema.url).toBe(SITE_URL);
+    expect(schema.logo).toBe(`${SITE_URL}/apple-touch-icon.png`);
     expect(schema.priceRange).toBe("$$");
   });
 });
 
 describe("webSiteSchema", () => {
-  test("includes SearchAction potentialAction with correct target", () => {
+  test("includes context, type, name, and url", () => {
     const schema = webSiteSchema();
     expect(schema["@context"]).toBe("https://schema.org");
     expect(schema["@type"]).toBe("WebSite");
     expect(schema.name).toBe("Emily's Flowers");
     expect(schema.url).toBe(SITE_URL);
-    expect(schema.potentialAction).toEqual({
-      "@type": "SearchAction",
-      target: `${SITE_URL}/?s={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    });
   });
 });
 

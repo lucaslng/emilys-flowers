@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllProducts, getProductBySlug } from '@/lib/stripe-catalog';
 import JsonLd from '@/components/JsonLd';
-import { productSchema, breadcrumbSchema, SITE_URL } from '@/lib/json-ld';
+import { productSchema, breadcrumbSchema } from '@/lib/json-ld';
+import { SITE_URL } from '@/lib/site';
 import ProductDetail from '@/components/shop/ProductDetail';
 
 type ProductPageProps = {

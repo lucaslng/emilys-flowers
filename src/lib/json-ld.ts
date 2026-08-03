@@ -1,6 +1,6 @@
 import type { Product } from '@/types';
-
-export const SITE_URL = 'https://emilysflowers.ca';
+import { SITE_URL } from '@/lib/site';
+import { formatPrice } from '@/lib/format';
 
 export function organizationSchema() {
   return {
@@ -8,7 +8,7 @@ export function organizationSchema() {
     '@type': ['Organization', 'Store'],
     name: "Emily's Flowers",
     url: SITE_URL,
-    logo: `${SITE_URL}/favicon-32x32.png`,
+    logo: `${SITE_URL}/apple-touch-icon.png`,
     priceRange: '$$',
   };
 }
@@ -19,11 +19,6 @@ export function webSiteSchema() {
     '@type': 'WebSite',
     name: "Emily's Flowers",
     url: SITE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SITE_URL}/?s={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 }
 
@@ -55,7 +50,7 @@ export function productSchema(product: Product) {
     offers: {
       '@type': 'Offer',
       priceCurrency: 'CAD',
-      price: (product.price / 100).toFixed(2),
+      price: formatPrice(product.price),
       availability: product.inStock
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
