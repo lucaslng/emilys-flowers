@@ -23,12 +23,12 @@
     {
       "binding": "D1",
       "database_name": "emilys-flowers-payload",
-      "database_id": "4ad2e137-1cd8-4bf1-aba8-99b6eb97adc3"
+      "database_id": "REPLACE_WITH_DATABASE_ID"
     },
     {
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "emilys-flowers-tag-cache",
-      "database_id": "46420e8a-7a18-475c-9417-aed61d0804e5"
+      "database_id": "REPLACE_WITH_DATABASE_ID"
     }
   ],
   "r2_buckets": [
@@ -64,12 +64,12 @@
         {
           "binding": "D1",
           "database_name": "emilys-flowers-payload",
-          "database_id": "4ad2e137-1cd8-4bf1-aba8-99b6eb97adc3"
+          "database_id": "REPLACE_WITH_DATABASE_ID"
         },
         {
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
-          "database_id": "46420e8a-7a18-475c-9417-aed61d0804e5"
+          "database_id": "REPLACE_WITH_DATABASE_ID"
         }
       ],
       "r2_buckets": [
@@ -109,12 +109,12 @@
         {
           "binding": "D1",
           "database_name": "emilys-flowers-payload",
-          "database_id": "4ad2e137-1cd8-4bf1-aba8-99b6eb97adc3"
+          "database_id": "REPLACE_WITH_DATABASE_ID"
         },
         {
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
-          "database_id": "46420e8a-7a18-475c-9417-aed61d0804e5"
+          "database_id": "REPLACE_WITH_DATABASE_ID"
         }
       ],
       "r2_buckets": [
