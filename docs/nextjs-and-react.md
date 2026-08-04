@@ -109,7 +109,7 @@ A file must be a Client Component if it uses:
 |---|---|
 | `template.tsx`, `flowers/page.tsx`, `bouquets/page.tsx`, `cart/page.tsx`, `checkout/page.tsx` | `layout.tsx`, `page.tsx` (home), `loading.tsx` |
 | `Navbar`, `ProductCard`, `FilterBar`, `CartItem`, `CartSummary` | `Footer`, `ProductGrid`, `FeaturedBouquets`, `WhyChooseUs` |
-| `Reveal`, `BloomSpinner`, `StemGrowth`, `SquiggleUnderline`, `PetalBurst` | `Button`, `Container` |
+| `Reveal`, `BloomSpinner`, `SquiggleUnderline`, `PetalBurst` | `Button`, `Container` |
 | `cart-context.tsx`, `gsap.ts`, `petal-burst.tsx` | `products.ts`, `types/index.ts` |
 
 ## Route Handlers

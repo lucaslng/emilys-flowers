@@ -124,7 +124,6 @@ component unmounts. This is the canonical GSAP pattern.
 
 - `Reveal` — scroll-triggered fade-up, respects reduced motion
 - `BloomSpinner` — blooming flower loader, respects reduced motion
-- `StemGrowth` — scroll-scrubbed stem drawing, respects reduced motion
 - `SquiggleUnderline` — self-drawing underline, respects reduced motion
 - `PetalBurst` — no-ops under reduced motion
 
@@ -206,7 +205,6 @@ function handleAddToCart(e: React.MouseEvent) {
 |---|---|---|
 | `Reveal` | `src/components/ui/Reveal.tsx` | Scroll-triggered fade-up with optional stagger. The canonical pattern to copy for new scroll animations. |
 | `BloomSpinner` | `src/components/ui/BloomSpinner.tsx` | 6-petal SVG flower that blooms + rotates. Loading indicator. |
-| `StemGrowth` | `src/components/ui/StemGrowth.tsx` | SVG stem that "grows" on scroll via ScrollTrigger scrub. |
 | `SquiggleUnderline` | `src/components/ui/SquiggleUnderline.tsx` | Hand-drawn squiggle SVG that draws in on mount. |
 | `PetalBurst` | `src/components/ui/PetalBurst.tsx` | Fixed overlay animating petals from→to. Used by the singleton. |
 
