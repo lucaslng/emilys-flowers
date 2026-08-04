@@ -18,9 +18,8 @@
   ],
   "vars": {
     "PAYLOAD_SECRET": "dev-payload-secret-change-me",
-    "B2_REGION": "REPLACE_WITH_B2_CLUSTER_CODE",
-    "B2_MEDIA_BUCKET": "REPLACE_WITH_B2_MEDIA_BUCKET",
-    "B2_CACHE_BUCKET": "REPLACE_WITH_B2_CACHE_BUCKET"
+    "B2_REGION": "ca-east-006",
+    "B2_CACHE_BUCKET": "emilys-flowers-incremental-cache"
   },
   "d1_databases": [
     {

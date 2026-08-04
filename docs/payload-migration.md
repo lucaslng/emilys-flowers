@@ -30,7 +30,7 @@ migration. If you are an agent about to implement this:
 | Revalidation trigger | **Dedicated webhook route with shared-secret auth** (`src/app/api/revalidate/route.ts`) calling `revalidateTag('products', 'max')`, plus in-process `afterChange`/`afterDelete` Payload hooks | Webhook route is independent of the admin-request context (which has an open auth bug) and survives a future split-hosting move |
 | Data layer | New `src/lib/payload-catalog.ts` exposing the **same 4-query API**, delete `src/lib/stripe-catalog.ts` | All consumers stay untouched — this seam is the whole strategy |
 | Stripe | Stays as payment processor only (checkout route uses inline `price_data`, decoupled from catalog). Optional `@payloadcms/plugin-stripe` for two-way product sync (Phase 5) | Zero changes to cart/checkout required |
-| Storage | **Backblaze B2** (S3-compatible) for Payload media **and** the ISR incremental cache — replaces Cloudflare R2 | `@payloadcms/storage-s3` speaks B2's S3 API directly; the incremental cache is a small custom OpenNext override (aws4fetch → B2); R2 buckets/bindings dropped |
+| Storage | Media: **UploadThing** (`@payloadcms/storage-uploadthing`, `utfs.io` CDN). ISR incremental cache: **Backblaze B2** (custom OpenNext override) | Official Payload adapter for media; B2 custom cache override stays; R2 dropped |
 
 ## Current architecture (before)
 
@@ -126,9 +126,9 @@ remains about #1295 behavior.
 ### Phase 1 — Stand up Payload
 
 1. Add deps: `payload`, `@payloadcms/next`, `@payloadcms/db-d1-sqlite`,
-   `@payloadcms/storage-s3` (Backblaze B2 media), `aws4fetch` (custom B2 incremental-cache
-   override — see "ISR wiring (exact)"). (Add `@payloadcms/plugin-stripe` only in Phase 5.)
-   Lockfile is `bun.lock` — use `bun add`.
+   `@payloadcms/storage-uploadthing` (UploadThing media), `aws4fetch` (custom B2
+   incremental-cache override — see "ISR wiring (exact)"). (Add
+   `@payloadcms/plugin-stripe` only in Phase 5.) Lockfile is `bun.lock` — use `bun add`.
 2. `src/payload.config.ts`: collections `products` (fields mirroring the `Product` shape:
    name, slug, description, priceCents, category, tags, featured/featuredOrder, inStock,
    flowerType, color, media), `media`, auth `users` for admin.
@@ -140,32 +140,34 @@ remains about #1295 behavior.
 5. Replace the pino logger (Node-only, breaks Workers) with a console logger.
 6. **Seed script** replacing `scripts/create_flower_products.ts`: recreate **36 flowers /
    3 bouquets** so E2E count assertions stay valid. Make the 36/3 seed a documented contract.
-7. D1 binding + Backblaze B2 wiring (details in "ISR wiring" below).
+7. D1 binding + Backblaze B2 cache + UploadThing media wiring (details in "ISR wiring" below).
 
 #### Phase 1 results (verified 2026-08-03, PR #108)
 
 All six Payload packages pinned to **3.87.0** (`payload`, `@payloadcms/next`,
-`@payloadcms/db-d1-sqlite`, `@payloadcms/storage-s3`, `@payloadcms/richtext-lexical`,
+`@payloadcms/db-d1-sqlite`, `@payloadcms/storage-uploadthing`, `@payloadcms/richtext-lexical`,
 `@payloadcms/ui`) + `aws4fetch`. Implemented: `src/payload.config.ts` (template's config incl. inline
-console JSON logger, `sqliteD1Adapter`, `s3Storage` pointed at Backblaze B2,
-`getCloudflareContextFromWrangler`);
+console JSON logger, `sqliteD1Adapter`, `uploadthingStorage` (server-side uploads, native
+admin widget), `getCloudflareContextFromWrangler`);
 collections `users`/`media`/`products` (`src/collections/`); admin route group
 `src/app/(payload)/` (layout, `admin/[[...segments]]`, `api/[...slug]` — **no GraphQL
 routes**, per workerd #5175); `tsconfig.json` gains `@payload-config` alias;
 `next.config.ts` wraps `withPayload(nextConfig, { devBundleServerPackages: false })` +
 `serverExternalPackages: ['jose', 'pg-cloudflare']` + `images.localPatterns`; D1
-bindings on all three wrangler stanzas (R2 buckets dropped in favor of B2 `B2_*` env
-vars); `open-next.config.ts` wires the custom `b2IncrementalCache` override
-(`b2-incremental-cache.ts`) + `d1NextTagCache`; 36/3 seed contract in
-`scripts/seed_payload.ts`; `example.env` documents `PAYLOAD_SECRET` + B2 vars.
+bindings on all three wrangler stanzas (no R2/B2 buckets — media is UploadThing, the
+cache is B2 via env vars); `open-next.config.ts` wires the custom `b2IncrementalCache`
+override (`b2-incremental-cache.ts`) + `d1NextTagCache`; 36/3 seed contract in
+`scripts/seed_payload.ts`; `example.env` documents `PAYLOAD_SECRET`, `UPLOADTHING_TOKEN` + B2 vars.
 
 **3.87.0 deviations from the Next-15 template (all verified against installed types):**
-1. `s3Storage` goes in `plugins: [...]` — the `storage:` config key does **not** exist in
-   3.87 (`storage` is the v4 shape). For B2: set `endpoint` to
-   `https://s3.<region>.backblazeb2.com`, `forcePathStyle: true`, do **not** set `acl`
-   (B2 has no object-level ACLs — make the bucket `allPublic` or use `signedDownloads`),
-   and set `requestChecksumCalculation: 'WHEN_REQUIRED'` (`@aws-sdk/client-s3` ≥ 3.66
-   sends CRC32 request checksums by default, which B2 rejects).
+1. `uploadthingStorage` goes in `plugins: [...]` — the `storage:` config key does **not**
+   exist in 3.87 (`storage` is the v4 shape). Config: `options: { token: process.env.UPLOADTHING_TOKEN }`
+   (code/types use `token`, not `apiKey`). Server-side uploads by default
+   (`clientUploads: false` → Payload's native admin upload widget, no client importMap
+   entry; `clientUploads: true` swaps in UploadThing's client widget and requires
+   `@payloadcms/storage-uploadthing/client` in the importMap plus a route at
+   `/storage-uploadthing-client-upload-route`). Media URLs are `https://utfs.io/f/<key>`;
+   the adapter injects a hidden `_key` field into Media.
 2. `(payload)/admin/[[...segments]]/not-found.tsx` imports `generatePageMetadata` (not
    `generateMetadata`) from `@payloadcms/next/views`.
 3. No webpack `extensionAlias` block — withPayload 3.87 handles Turbopack; add none.
@@ -173,8 +175,8 @@ vars); `open-next.config.ts` wires the custom `b2IncrementalCache` override
    generated workerd runtime types make `Body.json<T>()` return `unknown`, breaking the
    existing `src/app/checkout/checkout-page-client.tsx` (`response.json()` results become
    `unknown`). `payload.config.ts` types D1 via a narrow `Parameters<...>` cast instead;
-   B2 needs no binding cast — creds/buckets are plain `B2_*` env vars read from
-   `process.env` (same as `PAYLOAD_SECRET`).
+   no other storage needs a binding cast — `UPLOADTHING_TOKEN` and the `B2_*` cache vars
+   are plain env vars read from `process.env` (same as `PAYLOAD_SECRET`).
    Re-run `cf-typegen` + fix `checkout-page-client.tsx` casts when the bindings actually
    need typed env access.
 
@@ -195,8 +197,9 @@ thousands of modules), and the official docs recommend `false`. This is also why
 `/`, `/flowers`, `/admin`, `/admin/collections/products` all 200; `POST /api/checkout`
 empty-items still 400 (no route-group shadowing); zero `Failed to load external module` /
 `missing secret key` errors (admin fully initializes once `PAYLOAD_SECRET` is set).
-Remaining dev caveats: `payload generate:importmap` is needed before media upload works
-(storage-s3 client handler not yet in importMap — fine until Phase 3/B2 media wiring), and dev
+Remaining dev caveats: media uploads need a live UploadThing app — `UPLOADTHING_TOKEN`
+from the shell env / `example.env` (no client importMap entry needed with
+`clientUploads: false`), and dev
 must set `PAYLOAD_SECRET` (OpenNext's `initOpenNextCloudflareForDev` intentionally skips
 `.env*`/`.dev.vars` — `envFiles: []` — so the secret comes from the shell env or
 `example.env`).
@@ -230,10 +233,11 @@ remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot
 
 - `ProductImage.tsx` (`src/components/shop/ProductImage.tsx`) already falls back to the
   category SVG on error — keep.
-- CMS media now lives on **Backblaze B2** (public bucket), served from
-  `s3.<region>.backblazeb2.com` or the friendly `https://f<id>.backblazeb2.com/file/<bucket>/<key>`
-  URLs: add the host to `next.config.ts` `images.remotePatterns` **and** the CSP `img-src`
-  directive (`next.config.ts:9`). Known open issue **#15502**: Next image optimization
+- CMS media now lives on **UploadThing** (`utfs.io` CDN): add `utfs.io` to
+  `next.config.ts` `images.remotePatterns` **and** the CSP `img-src` directive
+  (`next.config.ts:9`). Note admin media views go through a signed-URL 2-hop proxy
+  (adapter `staticHandler` → `utApi.getSignedURL` + ranged GET); storefront pages use
+  the `utfs.io` URLs directly. Known open issue **#15502**: Next image optimization
   breaks via OpenNext static-asset routing — workaround `images.unoptimized: true` or
   absolute URLs.
 
@@ -246,10 +250,13 @@ remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot
 - Local env files (`.env`, `.env.dev`, `.env.preview`, `.env.production`, `.dev.vars`) +
   the tracked template (`example.env` — note: AGENTS.md says `.dev.vars.example` is
   tracked, which is currently inaccurate; fix that doc line while here). New vars:
-  `PAYLOAD_SECRET`, CMS URL/API key, D1 names, B2 region/buckets (`B2_REGION`,
-  `B2_MEDIA_BUCKET`, `B2_CACHE_BUCKET`). B2 credentials (`B2_APPLICATION_KEY_ID`,
-  `B2_APPLICATION_KEY`) are **per-Worker runtime secrets** via `wrangler secret put`
-  (same pattern as `STRIPE_SECRET_KEY`) — never in `wrangler.jsonc`.
+  `PAYLOAD_SECRET`, CMS URL/API key, D1 names, B2 cache region/bucket (`B2_REGION`,
+  `B2_CACHE_BUCKET`), and `UPLOADTHING_TOKEN`. The B2 cache credentials
+  (`B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`) and `UPLOADTHING_TOKEN` are
+  **per-Worker runtime secrets** via `wrangler secret put` (same pattern as
+  `STRIPE_SECRET_KEY`) — never in `wrangler.jsonc`. Verify whether the OpenNext build
+  also needs `UPLOADTHING_TOKEN` at build time (`UTApi` is instantiated in
+  `payload.config.ts`).
 - **Deploy step**: add `opennextjs-cloudflare populate-cache remote` after each deploy
   (initializes the `revalidations` table + uploads build cache entries).
 
@@ -327,10 +334,10 @@ already repeated per env) — B2 needs no binding (env vars only). Mind the
 ```
 
 Add `PAYLOAD_SECRET` to `vars` or as a runtime secret per Worker, the D1 binding Payload
-itself needs (`D1`), and the non-secret B2 vars (`B2_REGION`, `B2_MEDIA_BUCKET`,
-`B2_CACHE_BUCKET`) in the base `vars` block (inherited by both env stanzas — the same
-inheritance rule as `UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_KEY_ID`,
-`B2_APPLICATION_KEY`) are **runtime secrets** — set once per Worker via
+itself needs (`D1`), and the non-secret B2 cache vars (`B2_REGION`, `B2_CACHE_BUCKET`) in
+the base `vars` block (inherited by both env stanzas — the same inheritance rule as
+`UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`)
+and `UPLOADTHING_TOKEN` are **runtime secrets** — set once per Worker via
 `wrangler secret put ... --env production` / `--env preview` (same pattern as
 `STRIPE_SECRET_KEY`), never in `wrangler.jsonc`. Locally they come from the shell env /
 `example.env` (OpenNext dev skips `.env*`/`.dev.vars`).
@@ -379,11 +386,12 @@ inheritance rule as `UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_K
 | GraphQL on Workers | Not guaranteed (workerd #5175) | Not needed — don't rely on it |
 | Stale localStorage carts | `sanitizeStoredCart` validates exact `Product` shape | Don't remove `Product` fields |
 | Webhook async on serverless | Payload Stripe webhooks may terminate mid-handler | Proxy webhooks via own endpoint if Phase 5 is attempted |
-| B2 creds misconfiguration | Missing/rotated `B2_*` secrets → incremental cache silently falls back to misses and media uploads 403 | Set secrets per Worker before first deploy; smoke-test one media upload + one revalidate in the Phase 1 spike |
-| B2/S3 checksums | `@aws-sdk/client-s3` ≥ 3.66 sends CRC32 request checksums by default, which B2 rejects | `requestChecksumCalculation: 'WHEN_REQUIRED'` in the `s3Storage` config |
-| AWS SDK peer mismatch | `@payloadcms/storage-s3` resolves `@aws-sdk/lib-storage@3.1102` against the shared `@aws-sdk/client-s3@3.984` (bun peer warning; 3.984 is `@opennextjs/aws`'s exact pin) | Verify one media upload on the deployed Worker; add `package.json` overrides only if uploads actually break |
+| B2 cache creds misconfiguration | Missing/rotated `B2_*` secrets → incremental cache silently falls back to misses | Set secrets per Worker before first deploy; smoke-test one revalidate in the Phase 1 spike |
 | Custom cache override | No upstream S3/B2 cache exists — `b2-incremental-cache.ts` is in-repo code and version-sensitive | Re-verify after every `@opennextjs/cloudflare` upgrade; keep the `computeCacheKey` key layout so `populate-cache remote` keeps working |
-| B2 bucket access model | B2 has no object-level ACLs; browser uploads need bucket CORS rules | Public (`allPublic`) bucket or `signedDownloads` presigned URLs; set CORS rules in the B2 console if direct browser uploads are ever added |
+| UploadThing removed in Payload v4 | The official v4 migration guide: storage-uploadthing "deprecated in a previous release... deleted and will no longer be published. Migrate to another storage adapter such as `@payloadcms/storage-s3` before upgrading to 4.0" | Accepted trade-off (user decision 2026-08-03); plan the storage-s3/B2 media swap as part of the future v4 migration |
+| Runtime SaaS dependency | `UPLOADTHING_TOKEN` required at runtime for uploads, deletes, and every admin media GET (staticHandler 2-hop) — dev + Phase 1 spike need a live UploadThing app | Set the token as a per-Worker secret before first deploy; dev reads it from the shell env / `example.env`; verify build-time token need in the Phase 1 spike |
+| Media on external CDN | All storefront media URLs live on `utfs.io` (UploadThing CDN); free tier ~2 GB total; file-size caps not published | Revisit if real photography ships; the `ProductImage` SVG fallback already softens breakage |
+| UploadThing on Next 16/OpenNext unverified | `uploadthing/next` route handler + `UTApi` under OpenNext 1.20.2 + Next 16.2.12 has no public evidence (adapter code is WinterCG-only; UT docs have a Workers page with fetch workarounds) | Validate in the Phase 1 spike: one admin upload + one admin media GET on the deployed Worker |
 
 ## Open questions for the implementing agent
 
@@ -402,6 +410,9 @@ inheritance rule as `UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_K
   carts only cosmetically.
 - With `withRegionalCache` ruled out, is a regional/edge cache desired later (queue +
   Cache API) — out of scope until #1281/#1303 resolve.
+- Does the OpenNext build need `UPLOADTHING_TOKEN` at build time (`UTApi` is instantiated
+  inside `payload.config.ts`)? Verify in the Phase 1 spike; if yes, add it to the build
+  step env like `STRIPE_SECRET_KEY` today.
 
 ## Suggested skills for future agents
 
@@ -419,9 +430,13 @@ inheritance rule as `UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_K
   (README, templates/with-cloudflare-d1, issues #14656 / #15094 / #15502 / #14716)
 - blog.cloudflare.com/payload-cms-workers (2025-09-30)
 - Backblaze B2 S3-compatible API docs (call-the-s3-compatible-api, s3-compatible-api,
-  use-the-aws-sdk-for-javascript-v3-with-backblaze-b2, buckets); payloadcms/payload
-  v3.87.0 `packages/storage-s3` source (index.ts / generateURL.ts); mhart/aws4fetch
+  use-the-aws-sdk-for-javascript-v3-with-backblaze-b2, buckets); mhart/aws4fetch
   README + installed 1.0.20 source (native B2 hostname detection)
+- payloadcms/payload v3.87.0 `packages/storage-uploadthing` source + README (token
+  option, clientUploads, `_key` field, staticHandler 2-hop); payloadcms/payload
+  `docs/migration-guide/v4.mdx` (adapter removed in v4); uploadthing.com docs
+  (backend-adapters/fetch — WinterCG + Workers workarounds) + pricing (free tier ~2 GB);
+  uploadthing@7.3.0 npm tarball (no `node:` imports)
 - opennext.js.org/cloudflare/caching + /cloudflare (2026-05-20);
   opennextjs/opennextjs-cloudflare #659 / #700 / #702 / #1130 / #1225 / #1281 / #754;
   opennext.js.org/aws/config/overrides/incremental_cache (s3-lite pattern)

@@ -6,7 +6,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
-import { s3Storage } from '@payloadcms/storage-s3'
+import { uploadthingStorage } from '@payloadcms/storage-uploadthing'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
@@ -70,23 +70,14 @@ export default buildConfig({
   db: sqliteD1Adapter({ binding: env.D1 }),
   logger: isProduction ? cloudflareLogger : undefined,
   plugins: [
-    s3Storage({
+    // Media storage on UploadThing (utfs.io CDN). Server-side uploads by default
+    // (`clientUploads: false` keeps Payload's native admin upload widget and needs
+    // no client importMap entry; flip to `clientUploads: true` only if the
+    // UploadThing client widget is wanted). The token is a runtime secret.
+    uploadthingStorage({
       collections: { media: true },
-      bucket: process.env.B2_MEDIA_BUCKET ?? '',
-      config: {
-        credentials: {
-          accessKeyId: process.env.B2_APPLICATION_KEY_ID ?? '',
-          secretAccessKey: process.env.B2_APPLICATION_KEY ?? '',
-        },
-        region: process.env.B2_REGION ?? '',
-        // B2's S3-compatible endpoint; path-style URLs (B2 has no virtual-host
-        // TLS for dotted bucket names). Do NOT set `acl` — B2 has no object-level
-        // ACLs; make the bucket `allPublic` or use `signedDownloads` instead.
-        endpoint: `https://s3.${process.env.B2_REGION ?? ''}.backblazeb2.com`,
-        forcePathStyle: true,
-        // @aws-sdk/client-s3 >= 3.66 sends CRC32 request checksums by default,
-        // which B2 rejects — only checksum when the API requires it.
-        requestChecksumCalculation: 'WHEN_REQUIRED',
+      options: {
+        token: process.env.UPLOADTHING_TOKEN,
       },
     }),
   ],
