@@ -2,9 +2,13 @@
 
 import type { NextConfig } from "next";
 
+// Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it
+// only in development. Production builds keep a strict CSP.
+const isDev = process.env.NODE_ENV === "development";
+
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://js.stripe.com`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://static.cloudflareinsights.com https://js.stripe.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
