@@ -16,8 +16,10 @@
       "service": "emilys-flowers"
     }
   ],
+  // Non-sensitive vars only — secrets (PAYLOAD_SECRET, B2_APPLICATION_KEY_ID,
+  // B2_APPLICATION_KEY, UPLOADTHING_TOKEN) are set per Worker via `wrangler secret put`.
+  // NOTE: wrangler does NOT inherit `vars` into [env.*] stanzas — each env repeats them.
   "vars": {
-    "PAYLOAD_SECRET": "dev-payload-secret-change-me",
     "B2_REGION": "ca-east-006",
     "B2_CACHE_BUCKET": "emilys-flowers-incremental-cache"
   },
@@ -25,12 +27,12 @@
     {
       "binding": "D1",
       "database_name": "emilys-flowers-payload",
-      "database_id": "REPLACE_WITH_DATABASE_ID"
+      "database_id": "5346d160-4c6a-40d7-b9f4-d9a9cb5e9259"
     },
     {
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "emilys-flowers-tag-cache",
-      "database_id": "REPLACE_WITH_DATABASE_ID"
+      "database_id": "5e11fd9e-b95a-429e-a90b-09627de58157"
     }
   ],
   "images": {
@@ -56,12 +58,12 @@
         {
           "binding": "D1",
           "database_name": "emilys-flowers-payload",
-          "database_id": "REPLACE_WITH_DATABASE_ID"
+          "database_id": "5346d160-4c6a-40d7-b9f4-d9a9cb5e9259"
         },
         {
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
-          "database_id": "REPLACE_WITH_DATABASE_ID"
+          "database_id": "5e11fd9e-b95a-429e-a90b-09627de58157"
         }
       ],
       "images": {
@@ -72,7 +74,9 @@
       },
       "routes": [{ "pattern": "emilysflowers.ca", "custom_domain": true }],
       "vars": {
-        "UNDER_CONSTRUCTION": "true"
+        "UNDER_CONSTRUCTION": "true",
+        "B2_REGION": "ca-east-006",
+        "B2_CACHE_BUCKET": "emilys-flowers-incremental-cache"
       }
     },
     "preview": {
@@ -91,12 +95,12 @@
         {
           "binding": "D1",
           "database_name": "emilys-flowers-payload",
-          "database_id": "REPLACE_WITH_DATABASE_ID"
+          "database_id": "5346d160-4c6a-40d7-b9f4-d9a9cb5e9259"
         },
         {
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
-          "database_id": "REPLACE_WITH_DATABASE_ID"
+          "database_id": "5e11fd9e-b95a-429e-a90b-09627de58157"
         }
       ],
       "images": {
@@ -104,6 +108,10 @@
       },
       "observability": {
         "enabled": true
+      },
+      "vars": {
+        "B2_REGION": "ca-east-006",
+        "B2_CACHE_BUCKET": "emilys-flowers-incremental-cache"
       }
     }
   }

@@ -333,14 +333,15 @@ already repeated per env) — B2 needs no binding (env vars only). Mind the
 // if time-based ISR is ever added: durable_objects + migrations for NEXT_CACHE_DO_QUEUE
 ```
 
-Add `PAYLOAD_SECRET` to `vars` or as a runtime secret per Worker, the D1 binding Payload
-itself needs (`D1`), and the non-secret B2 cache vars (`B2_REGION`, `B2_CACHE_BUCKET`) in
-the base `vars` block (inherited by both env stanzas — the same inheritance rule as
-`UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`)
-and `UPLOADTHING_TOKEN` are **runtime secrets** — set once per Worker via
-`wrangler secret put ... --env production` / `--env preview` (same pattern as
-`STRIPE_SECRET_KEY`), never in `wrangler.jsonc`. Locally they come from the shell env /
-`example.env` (OpenNext dev skips `.env*`/`.dev.vars`).
+Add the D1 binding Payload itself needs (`D1`) and the non-secret B2 cache vars
+(`B2_REGION`, `B2_CACHE_BUCKET`) to the `vars` block of **all three stanzas** — wrangler
+does **not** inherit `vars` into `[env.*]` (verified: wrangler warns at deploy time
+"vars configuration is not inherited by environments"). `PAYLOAD_SECRET`, the B2
+credentials (`B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`) and `UPLOADTHING_TOKEN` are
+**runtime secrets** — set once per Worker via `wrangler secret put ... --env production` /
+`--env preview` (same pattern as `STRIPE_SECRET_KEY`), never in `wrangler.jsonc`. Locally
+they come from the shell env / `example.env` (OpenNext dev skips `.env*`/`.dev.vars`);
+`bun run preview` reads `.dev.vars`.
 
 ### Pages
 
