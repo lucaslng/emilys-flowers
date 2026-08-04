@@ -125,9 +125,9 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="plaque-name font-serif text-base font-semibold text-[#4A3B3B]">
+            <h2 className="plaque-name font-serif text-base font-semibold text-[#4A3B3B]">
               {product.name}
-            </h3>
+            </h2>
             <p className="mt-0.5 font-sans text-sm text-[#7A6868]">
               ${formatPrice(product.price)} each
             </p>
