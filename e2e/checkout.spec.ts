@@ -32,7 +32,9 @@ test.describe("Checkout flow", () => {
 
     // The success page clears the cart on mount — confirm by visiting /cart
     await page.goto("/cart");
-    await expect(page.locator("h2")).toContainText("Your cart is empty", { timeout: 5_000 });
+    await expect(
+      page.getByRole("heading", { name: "Your cart is empty" })
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test("POST /api/checkout with empty items returns 400", async ({ page }) => {

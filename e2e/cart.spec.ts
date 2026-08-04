@@ -3,7 +3,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Cart functionality", () => {
   test("empty cart shows empty state", async ({ page }) => {
     await page.goto("/cart");
-    await expect(page.locator("h2")).toContainText("Your cart is empty");
+    await expect(
+      page.getByRole("heading", { name: "Your cart is empty" })
+    ).toBeVisible();
     await expect(page.getByRole("link", { name: "Shop Bouquets" })).toBeVisible();
   });
 
@@ -62,7 +64,9 @@ test.describe("Cart functionality", () => {
     await removeButton.click();
 
     // Cart should be empty again
-    await expect(page.locator("h2")).toContainText("Your cart is empty");
+    await expect(
+      page.getByRole("heading", { name: "Your cart is empty" })
+    ).toBeVisible();
   });
 
   test("cart persists across page reload", async ({ page }) => {
@@ -88,7 +92,9 @@ test.describe("Cart functionality", () => {
       );
     });
     await page.goto("/cart");
-    await expect(page.locator("h2")).toContainText("Your cart is empty", { timeout: 5_000 });
+    await expect(
+      page.getByRole("heading", { name: "Your cart is empty" })
+    ).toBeVisible({ timeout: 5_000 });
     // And no ghost line items rendered
     await expect(page.getByTestId("cart-item-quantity")).toHaveCount(0);
   });
