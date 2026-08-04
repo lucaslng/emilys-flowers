@@ -1,8 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import Button from '@/components/ui/Button';
 import Container from '@/components/ui/Container';
@@ -30,15 +29,30 @@ export default function NotFound() {
   const flowerGroup = useRef<SVGGElement>(null);
   const flowerSvg = useRef<SVGSVGElement>(null);
 
-  useGSAP(
-    () => {
+  // GSAP is loaded lazily on mount (kept off the initial JS payload of the
+  // route). The MatchMedia context and petal-puff delayedCall created after
+  // the import resolves are reverted/killed on unmount — cleanup parity with
+  // the previous useGSAP(auto-revert) behavior.
+  useEffect(() => {
+    let cancelled = false;
+    // MatchMedia context created by gsap.matchMedia(...) — reverted on unmount.
+    let mm: { revert(): void } | null = null;
+    // The petal-puff delayedCall tween — killed on unmount so it can't fire
+    // after teardown.
+    let puff: { kill(): void } | null = null;
+
+    import('@/lib/gsap').then(({ gsap }) => {
+      if (cancelled) return;
+      const rootEl = root.current;
+      if (!rootEl) return;
+
       const card = cardRef.current;
       const bloom = flowerGroup.current;
       const stems = gsap.utils.toArray<SVGPathElement>(
-        root.current?.querySelectorAll('[data-stem]') ?? []
+        rootEl.querySelectorAll('[data-stem]') ?? []
       );
 
-      gsap.matchMedia({
+      mm = gsap.matchMedia({
         '(prefers-reduced-motion: no-preference)': () => {
           // Card settles onto the page like a specimen being placed down.
           if (card) {
@@ -78,7 +92,7 @@ export default function NotFound() {
             const r = svg.getBoundingClientRect();
             const cx = r.left + r.width / 2;
             const cy = r.top + r.height * 0.3;
-            gsap.delayedCall(1.0, () => {
+            puff = gsap.delayedCall(1.0, () => {
               firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 115 });
             });
           }
@@ -93,9 +107,14 @@ export default function NotFound() {
           });
         },
       });
-    },
-    { scope: root, dependencies: [] }
-  );
+    });
+
+    return () => {
+      cancelled = true;
+      puff?.kill();
+      mm?.revert();
+    };
+  }, []);
 
   const outerPetals = Array.from({ length: 6 }, (_, i) => (
     <path
