@@ -128,14 +128,14 @@ export default function CartItem({ item }: CartItemProps) {
             <h3 className="plaque-name font-serif text-base font-semibold text-[#4A3B3B]">
               {product.name}
             </h3>
-            <p className="mt-0.5 font-sans text-sm text-[#8B7B7B]">
+            <p className="mt-0.5 font-sans text-sm text-[#7A6868]">
               ${formatPrice(product.price)} each
             </p>
           </div>
           <button
             onClick={handleRemove}
             disabled={isRemoving}
-            className="ml-4 flex-shrink-0 text-[#8B7B7B] transition-colors hover:text-[#A8625A] disabled:cursor-not-allowed disabled:opacity-40"
+            className="ml-4 flex-shrink-0 p-1 text-[#7A6868] transition-colors hover:text-[#9E5E5E] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={`Remove ${product.name} from cart`}
           >
             <svg

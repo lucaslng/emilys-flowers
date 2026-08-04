@@ -8,6 +8,8 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
+  useState,
 } from 'react';
 import { CartItem, Product } from '@/types';
 import { computeLineItemTotal, computeLineItemCount, type LineItem } from '@/lib/order';
@@ -164,6 +166,33 @@ const STORAGE_KEY = 'emilys-flowers-cart';
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
+  // Live-region announcement for cart actions (WCAG 4.1.2 / 3.2.1): a
+  // visually-hidden `role="status"` element stays mounted in the provider tree
+  // and announces add/remove/clear/quantity changes to screen readers. The
+  // message clears after a short delay so a repeat action re-announces.
+  const [announcement, setAnnouncement] = useState('');
+  const announceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const announce = useCallback((message: string) => {
+    setAnnouncement(message);
+    if (announceTimerRef.current) {
+      clearTimeout(announceTimerRef.current);
+    }
+    announceTimerRef.current = setTimeout(() => {
+      setAnnouncement('');
+      announceTimerRef.current = null;
+    }, 2000);
+  }, []);
+
+  // Clear any in-flight announcement timer on unmount to avoid a leak.
+  useEffect(() => {
+    return () => {
+      if (announceTimerRef.current) {
+        clearTimeout(announceTimerRef.current);
+      }
+    };
+  }, []);
+
   // Hydrate from localStorage on mount
   useEffect(() => {
     try {
@@ -187,21 +216,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [state.items]);
 
-  const addToCart = useCallback((product: Product) => {
-    dispatch({ type: 'ADD_TO_CART', payload: product });
-  }, []);
+  const addToCart = useCallback(
+    (product: Product) => {
+      announce(`Added ${product.name} to your cart`);
+      dispatch({ type: 'ADD_TO_CART', payload: product });
+    },
+    [announce]
+  );
 
-  const removeFromCart = useCallback((productId: string) => {
-    dispatch({ type: 'REMOVE_FROM_CART', payload: productId });
-  }, []);
+  const removeFromCart = useCallback(
+    (productId: string) => {
+      const item = state.items.find((i) => i.product.id === productId);
+      if (item) {
+        announce(`Removed ${item.product.name} from your cart`);
+      }
+      dispatch({ type: 'REMOVE_FROM_CART', payload: productId });
+    },
+    [state.items, announce]
+  );
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
-  }, []);
+  const updateQuantity = useCallback(
+    (productId: string, quantity: number) => {
+      const item = state.items.find((i) => i.product.id === productId);
+      if (item) {
+        announce(`Quantity of ${item.product.name} updated to ${quantity}`);
+      }
+      dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
+    },
+    [state.items, announce]
+  );
 
   const clearCart = useCallback(() => {
+    announce('Your cart has been cleared');
     dispatch({ type: 'CLEAR_CART' });
-  }, []);
+  }, [announce]);
 
   const getTotal = useCallback(() => {
     return computeLineItemTotal(toLineItems(state.items));
@@ -224,7 +272,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [state.items, addToCart, removeFromCart, updateQuantity, clearCart, getTotal, getItemCount]
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {/* Visually-hidden live region for cart announcements (WCAG 4.1.2).
+          `role="status"` implies aria-live="polite"; always mounted so screen
+          readers detect content changes. No sr-only utility exists in the
+          codebase, so the hiding is done with inline styles. */}
+      <span
+        role="status"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          margin: '-1px',
+          padding: 0,
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
+          clipPath: 'inset(50%)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {announcement}
+      </span>
+    </CartContext.Provider>
+  );
 }
 
 // --- Hook ---

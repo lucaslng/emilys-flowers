@@ -85,9 +85,10 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-[#FFFAFA] font-sans text-[#4A3B3B]">
         <CartProvider>
+          <a href="#main" className="skip-link">Skip to content</a>
           <PetalBurstProvider />
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main" className="flex-1">{children}</main>
           <Footer />
         </CartProvider>
         <JsonLd data={organizationSchema()} />

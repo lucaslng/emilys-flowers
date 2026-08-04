@@ -98,7 +98,7 @@ export default function CartPageClient() {
             <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
               Shopping Cart
             </h1>
-            <p className="mt-2 font-sans text-base text-[#8B7B7B]">
+            <p className="mt-2 font-sans text-base text-[#7A6868]">
               Review and manage your items
             </p>
             <div className="mt-2 flex justify-center">
@@ -117,7 +117,7 @@ export default function CartPageClient() {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-12 w-12 text-[#D4A5A5]"
+                  className="h-12 w-12 text-[#9E5E5E]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -136,7 +136,7 @@ export default function CartPageClient() {
               <div className="mt-3 flex justify-center">
                 <SquiggleUnderline />
               </div>
-              <p className="mt-4 max-w-sm font-sans text-sm text-[#8B7B7B]">
+              <p className="mt-4 max-w-sm font-sans text-sm text-[#7A6868]">
                 Looks like you haven&apos;t added any flowers yet.
               </p>
               <Link href="/bouquets" className="mt-8">
@@ -149,13 +149,13 @@ export default function CartPageClient() {
             {/* Cart Items */}
             <div className="lg:col-span-2">
               <div className="mb-5 flex items-center justify-between">
-                <p className="font-sans text-sm text-[#8B7B7B]">
+                <p className="font-sans text-sm text-[#7A6868]">
                   {totalQuantity} item{totalQuantity !== 1 ? 's' : ''} in your cart
                 </p>
                 <button
                   onClick={handleClearCart}
                   disabled={isClearing}
-                  className="font-sans text-sm text-[#8B7B7B] underline decoration-[#E0CFCF] underline-offset-4 transition-colors hover:text-[#A8625A] hover:decoration-[#A8625A] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="py-1 font-sans text-sm text-[#7A6868] underline decoration-[#E0CFCF] underline-offset-4 transition-colors hover:text-[#9E5E5E] hover:decoration-[#9E5E5E] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Clear Cart
                 </button>

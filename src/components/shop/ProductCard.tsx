@@ -18,6 +18,9 @@ interface ProductCardProps {
   className?: string;
   /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
   priority?: boolean;
+  /** Heading level for the product name (default "h3"). Listing pages pass
+   *  "h2" so the heading outline reads h1 → h2 → h3 without skipping levels. */
+  headingLevel?: 'h2' | 'h3';
 }
 
 export default function ProductCard({
@@ -25,8 +28,10 @@ export default function ProductCard({
   emphasized = false,
   className = '',
   priority = false,
+  headingLevel = 'h3',
 }: ProductCardProps) {
   const { addToCart } = useCart();
+  const Heading = headingLevel as 'h2' | 'h3';
 
   return (
     <div
@@ -49,7 +54,7 @@ export default function ProductCard({
         {emphasized && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-3 select-none border border-[#D4A5A5]/70 bg-[#FFFAFA]/85 px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.2em] text-[#D4A5A5]"
+            className="pointer-events-none absolute left-3 top-3 select-none border border-[#B16E6E]/70 bg-[#FFFAFA]/85 px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.2em] text-[#9E5E5E]"
           >
             Featured
           </span>
@@ -66,10 +71,10 @@ export default function ProductCard({
       {/* Specimen label */}
       <div className="flex flex-1 flex-col p-5">
         <div className="plaque-divider -mx-5 mb-4" />
-        <h3 className="plaque-name font-serif text-lg font-semibold text-[#4A3B3B]">
+        <Heading className="plaque-name font-serif text-lg font-semibold text-[#4A3B3B]">
           <Link href={`/products/${product.slug}`}>{product.name}</Link>
-        </h3>
-        <p className="mt-1 line-clamp-2 font-sans text-sm text-[#8B7B7B]">
+        </Heading>
+        <p className="mt-1 line-clamp-2 font-sans text-sm text-[#7A6868]">
           {product.description}
         </p>
 

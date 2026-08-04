@@ -127,7 +127,7 @@ function CheckoutSuccessContent() {
 
         <p
           data-reveal
-          className="mx-auto mt-5 max-w-md font-sans text-base text-[#8B7B7B]"
+          className="mx-auto mt-5 max-w-md font-sans text-base text-[#7A6868]"
         >
           {hasItems
             ? 'Your handcrafted blooms are being prepared with care. A confirmation is on its way to your inbox.'
@@ -139,7 +139,7 @@ function CheckoutSuccessContent() {
             data-reveal
             className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#F0E0E0] bg-[#FFF5F5] px-4 py-1.5"
           >
-            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-[#8B7B7B]">
+            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-[#7A6868]">
               Order
             </span>
             <span
@@ -181,7 +181,7 @@ function CheckoutSuccessContent() {
                     <p className="truncate font-sans text-sm font-medium text-[#4A3B3B]">
                       {item.name}
                     </p>
-                    <p className="font-sans text-xs text-[#8B7B7B]">
+                    <p className="font-sans text-xs text-[#7A6868]">
                       Qty {item.quantity}
                     </p>
                   </div>
@@ -241,7 +241,7 @@ function CheckoutSuccessContent() {
       {/* ── Reassurance ──────────────────────────────────────────── */}
       <p
         data-reveal
-        className="mt-8 text-center font-sans text-sm text-[#8B7B7B]"
+        className="mt-8 text-center font-sans text-sm text-[#7A6868]"
       >
         Each bloom is handcrafted to order. Your confirmation and shipping
         details are on their way to your email.
@@ -254,7 +254,7 @@ function SuccessFallback() {
   return (
     <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
       <BloomSpinner size={56} color="#D4A5A5" />
-      <p className="mt-4 font-sans text-sm text-[#8B7B7B]">
+      <p className="mt-4 font-sans text-sm text-[#7A6868]">
         Loading your order…
       </p>
     </div>

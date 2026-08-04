@@ -71,7 +71,7 @@ export default function BouquetsPageClient({
           <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
             Bouquet Collections
           </h1>
-          <p className="mt-3 font-sans text-base text-[#8B7B7B]">
+          <p className="mt-3 font-sans text-base text-[#7A6868]">
             Explore our curated collections of handcrafted ribbon flower
             bouquets
           </p>
@@ -95,6 +95,7 @@ export default function BouquetsPageClient({
         {/* Product Grid */}
         <ProductGrid
           products={filtered}
+          headingLevel="h2"
           emptyMessage="No bouquets match your filters. Try adjusting your criteria."
         />
       </Container>
