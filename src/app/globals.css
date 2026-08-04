@@ -8,7 +8,7 @@
   --lavender: #E8D5E8;
   --rose: #D4A5A5;
   --border: #F0E0E0;
-  --muted: #8B7B7B;
+  --muted: #7A6868;
 }
 
 @theme inline {
@@ -28,6 +28,45 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* ─── Focus & Skip Link (WCAG 2.4.7 / 2.4.1 / 2.4.11) ───────────── */
+/* Visible focus indicator: currentColor = the element's text color, which
+   already meets 4.5:1 on its background, so the outline always contrasts. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Skip link: visually hidden until focused, then shown fixed at top-left
+   above the sticky nav. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus-visible {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 99999;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1.25rem;
+  background: #4A3B3B;
+  color: #FFFAFA;
+  font-weight: 600;
+}
+
+/* Keyboard-scrolled focus is never hidden under the sticky top nav. */
+html {
+  scroll-padding-top: 5rem;
+}
+:where(a, button, input, select, [tabindex]) {
+  scroll-margin-top: 5rem;
 }
 
 /* ─── Reduced Motion Guard ─────────────────────────────────────── */
@@ -164,7 +203,7 @@ body {
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 .plaque-card.is-emphasized {
-  border-color: #D4A5A5;
+  border-color: #B16E6E;
   box-shadow: 0 10px 28px -16px rgba(212, 165, 165, 0.45);
 }
 .plaque-divider {
@@ -180,7 +219,7 @@ body {
   bottom: -2px;
   height: 2px;
   width: 0;
-  background: #D4A5A5;
+  background: #B16E6E;
   transition: width 0.45s ease;
 }
 .group:hover .plaque-name::after,
@@ -196,7 +235,7 @@ body {
    don't redeclare the transition here. Used on cart line items so the
    cart reads as part of the same editorial system as the product cards. */
 .cart-item-card:hover {
-  border-color: #D4A5A5;
+  border-color: #B16E6E;
 }
 
 .bloom-glow {

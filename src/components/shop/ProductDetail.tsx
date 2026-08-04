@@ -60,7 +60,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             <Link
               href={backHref}
-              className="mb-4 inline-flex w-fit items-center gap-1 font-sans text-sm font-medium text-[#8B7B7B] transition-colors hover:text-[#D4A5A5]"
+              className="mb-4 inline-flex w-fit items-center gap-1 font-sans text-sm font-medium text-[#7A6868] transition-colors hover:text-[#9E5E5E]"
             >
               <span aria-hidden="true">←</span>
               {backLabel}
@@ -90,7 +90,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </div>
             )}
 
-            <p className="mt-6 font-sans text-base leading-relaxed text-[#8B7B7B]">
+            <p className="mt-6 font-sans text-base leading-relaxed text-[#7A6868]">
               {product.description}
             </p>
 

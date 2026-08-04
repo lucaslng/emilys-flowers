@@ -11,7 +11,7 @@ export default function Loading() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 bg-[#FFFAFA] px-6">
       <BloomSpinner size={56} />
-      <p className="font-serif text-sm tracking-wide text-[#8B7B7B]">
+      <p className="font-serif text-sm tracking-wide text-[#7A6868]">
         Blooming…
       </p>
     </div>

@@ -16,10 +16,9 @@ import Container from '@/components/ui/Container';
  * corners, no heavy shadow, rose accent) used by product cards across the site.
  *
  * Motion: the card settles onto the page, the flower head blooms open, the stem
- * draws in, and a gentle puff of petals drifts upward from the bloom. Hovering
- * the pressed flower briefly "releases" it — another petal puff. All motion is
- * gated behind prefers-reduced-motion (no-preference / reduce branches), and
- * firePetalBurst is itself a no-op under reduced motion.
+ * draws in, and a gentle puff of petals drifts upward from the bloom. All
+ * motion is gated behind prefers-reduced-motion (no-preference / reduce
+ * branches), and firePetalBurst is itself a no-op under reduced motion.
  */
 
 const OUTER_PETAL_D = 'M100 40 C 84 54, 84 74, 100 80 C 116 74, 116 54, 100 40 Z';
@@ -98,16 +97,6 @@ export default function NotFound() {
     { scope: root, dependencies: [] }
   );
 
-  /** Hovering the pressed flower briefly "releases" it — a small petal puff. */
-  function handleFlowerHover() {
-    const svg = flowerSvg.current;
-    if (!svg) return;
-    const r = svg.getBoundingClientRect();
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height * 0.3;
-    firePetalBurst({ x: cx, y: cy }, { x: cx, y: cy - 95 });
-  }
-
   const outerPetals = Array.from({ length: 6 }, (_, i) => (
     <path
       key={`outer-${i}`}
@@ -139,11 +128,11 @@ export default function NotFound() {
       {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded
           via the .petal class (base opacity:0, forced to a single 0.01ms
           iteration under prefers-reduced-motion, so they stay invisible). */}
-      <span className="petal text-[#D4A5A5] text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
-      <span className="petal text-[#D4A5A5] text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-[#D4A5A5] text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
-      <span className="petal text-[#D4A5A5] text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-[#D4A5A5] text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#B16E6E] text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#B16E6E] text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-[#B16E6E] text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
+      <span className="petal text-[#B16E6E] text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-[#B16E6E] text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
 
       <Container className="relative z-10">
         <div
@@ -159,8 +148,6 @@ export default function NotFound() {
               viewBox="0 0 200 280"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="cursor-pointer"
-              onMouseEnter={handleFlowerHover}
               aria-hidden="true"
             >
               {/* Stem + leaves — draw in on mount */}
@@ -210,7 +197,7 @@ export default function NotFound() {
           <div className="plaque-divider my-5" />
 
           {/* Specimen catalog number */}
-          <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-[#8B7B7B]">
+          <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-[#7A6868]">
             Specimen &#8470;404
           </p>
 
@@ -220,7 +207,7 @@ export default function NotFound() {
           </h1>
 
           {/* Subtext */}
-          <p className="mt-2 text-center font-sans text-base text-[#8B7B7B]">
+          <p className="mt-2 text-center font-sans text-base text-[#7A6868]">
             The page you&rsquo;re looking for isn&rsquo;t in our garden.
             Let&rsquo;s find your way back.
           </p>

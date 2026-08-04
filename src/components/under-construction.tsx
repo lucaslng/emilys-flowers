@@ -136,15 +136,15 @@ export default function UnderConstruction() {
             style={{ animationDelay: '0.32s' }}
           >
             <div aria-hidden="true" className="flex items-center gap-3">
-              <span className="h-px w-12 bg-rose/50" />
-              <span className="text-xs leading-none text-rose">&#10040;</span>
-              <span className="h-px w-12 bg-rose/50" />
+              <span className="h-px w-12 bg-[#B16E6E]/50" />
+              <span className="text-xs leading-none text-[#9E5E5E]">&#10040;</span>
+              <span className="h-px w-12 bg-[#B16E6E]/50" />
             </div>
             <p className="font-sans text-sm text-muted">
               Until then, contact us at{' '}
               <a
                 href="mailto:contact@emilysflowers.ca"
-                className="border-b border-rose/60 font-medium text-foreground transition-colors duration-300 hover:border-rose hover:text-rose"
+                className="border-b border-rose/60 font-medium text-foreground transition-colors duration-300 hover:border-[#B16E6E] hover:text-[#9E5E5E]"
               >
                 contact@emilysflowers.ca
               </a>

@@ -82,7 +82,7 @@ export default function FlowersPageClient({
           <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
             Individual Flowers
           </h1>
-          <p className="mt-3 font-sans text-base text-[#8B7B7B]">
+          <p className="mt-3 font-sans text-base text-[#7A6868]">
             Choose from our collection of handcrafted single-stem ribbon flowers
           </p>
         </div>
@@ -108,6 +108,7 @@ export default function FlowersPageClient({
         {/* Product Grid */}
         <ProductGrid
           products={filtered}
+          headingLevel="h2"
           emptyMessage="No flowers match your filters. Try adjusting your criteria."
         />
       </Container>

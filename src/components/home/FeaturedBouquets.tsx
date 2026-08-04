@@ -15,7 +15,7 @@ export default async function FeaturedBouquets() {
             <h2 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
               Featured Bouquets
             </h2>
-            <p className="mt-2 font-sans text-base text-[#8B7B7B]">
+            <p className="mt-2 font-sans text-base text-[#7A6868]">
               Our most beloved handcrafted arrangements
             </p>
             <div className="mt-2 flex justify-center">

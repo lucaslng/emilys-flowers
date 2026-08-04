@@ -56,7 +56,7 @@ export default function CheckoutPageClient() {
             <h1 className="font-serif text-2xl font-bold text-[#4A3B3B]">
               Your cart is empty
             </h1>
-            <p className="mt-2 font-sans text-sm text-[#8B7B7B]">
+            <p className="mt-2 font-sans text-sm text-[#7A6868]">
               Add some items to your cart before checking out.
             </p>
             <Link href="/bouquets" className="mt-6">
@@ -76,7 +76,7 @@ export default function CheckoutPageClient() {
             <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
               Checkout
             </h1>
-            <p className="mt-2 font-sans text-base text-[#8B7B7B]">
+            <p className="mt-2 font-sans text-base text-[#7A6868]">
               Review your order and proceed to payment
             </p>
           </div>
@@ -97,7 +97,7 @@ export default function CheckoutPageClient() {
                     <p className="font-sans text-sm font-medium text-[#4A3B3B]">
                       {item.product.name}
                     </p>
-                    <p className="font-sans text-xs text-[#8B7B7B]">
+                    <p className="font-sans text-xs text-[#7A6868]">
                       Qty: {item.quantity}
                     </p>
                   </div>
@@ -136,7 +136,10 @@ export default function CheckoutPageClient() {
           {/* Payment Button */}
           <div className="mt-8">
             {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 font-sans text-sm text-red-700">
+              <div
+                role="alert"
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 font-sans text-sm text-red-700"
+              >
                 {error}
               </div>
             )}
@@ -145,6 +148,7 @@ export default function CheckoutPageClient() {
               fullWidth
               onClick={handleCheckout}
               disabled={loading}
+              aria-busy={loading}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -173,7 +177,7 @@ export default function CheckoutPageClient() {
                 'Pay with Stripe'
               )}
             </Button>
-            <p className="mt-3 text-center font-sans text-xs text-[#8B7B7B]">
+            <p className="mt-3 text-center font-sans text-xs text-[#7A6868]">
               You will be redirected to Stripe&apos;s secure checkout to
               complete your payment.
             </p>

@@ -76,7 +76,7 @@ export default function CartSummary() {
             </span>
           </div>
           {shipping > 0 && (
-            <p className="font-sans text-xs text-[#8B7B7B]">
+            <p className="font-sans text-xs text-[#7A6868]">
               Free shipping on orders over $50.00
             </p>
           )}
@@ -96,7 +96,7 @@ export default function CartSummary() {
 
         <Link
           href="/bouquets"
-          className="mt-3 block text-center font-sans text-sm text-[#8B7B7B] underline transition-colors hover:text-[#D4A5A5]"
+          className="mt-3 block text-center font-sans text-sm text-[#7A6868] underline transition-colors hover:text-[#9E5E5E]"
         >
           Continue Shopping
         </Link>

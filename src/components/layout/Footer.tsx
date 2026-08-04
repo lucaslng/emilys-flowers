@@ -33,13 +33,13 @@ export default function Footer() {
   return (
     <footer className="relative isolate overflow-hidden border-t border-[#F0E0E0] bg-[#FFF5F5]">
       {/* Ambient falling petals — behind all footer content */}
-      <span className="petal text-[#D4A5A5] text-lg"  style={{ left: '6%',  animationDuration: '11s', animationDelay: '0s' }}   aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-xl"  style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-sm"  style={{ left: '38%', animationDuration: '9s',  animationDelay: '4s' }}   aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-2xl" style={{ left: '52%', animationDuration: '13s', animationDelay: '1s' }}  aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-base" style={{ left: '66%', animationDuration: '10s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
-      <span className="petal text-[#D4A5A5] text-lg"  style={{ left: '78%', animationDuration: '12s', animationDelay: '3s' }}  aria-hidden="true">✿</span>
-      <span className="petal text-[#D4A5A5] text-sm"  style={{ left: '90%', animationDuration: '15s', animationDelay: '6s' }}  aria-hidden="true">❀</span>
+      <span className="petal text-[#B16E6E] text-lg"  style={{ left: '6%',  animationDuration: '11s', animationDelay: '0s' }}   aria-hidden="true">❀</span>
+      <span className="petal text-[#B16E6E] text-xl"  style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
+      <span className="petal text-[#B16E6E] text-sm"  style={{ left: '38%', animationDuration: '9s',  animationDelay: '4s' }}   aria-hidden="true">❀</span>
+      <span className="petal text-[#B16E6E] text-2xl" style={{ left: '52%', animationDuration: '13s', animationDelay: '1s' }}  aria-hidden="true">✿</span>
+      <span className="petal text-[#B16E6E] text-base" style={{ left: '66%', animationDuration: '10s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
+      <span className="petal text-[#B16E6E] text-lg"  style={{ left: '78%', animationDuration: '12s', animationDelay: '3s' }}  aria-hidden="true">✿</span>
+      <span className="petal text-[#B16E6E] text-sm"  style={{ left: '90%', animationDuration: '15s', animationDelay: '6s' }}  aria-hidden="true">❀</span>
 
       <div className="relative z-10">
         {/* Links */}
@@ -53,7 +53,7 @@ export default function Footer() {
               >
                 Emily&#39;s Flowers
               </Link>
-              <p className="mt-3 font-sans text-sm text-[#8B7B7B] leading-relaxed">
+              <p className="mt-3 font-sans text-sm text-[#7A6868] leading-relaxed">
                 Handcrafted ribbon flowers and bouquets made with love and
                 attention to detail. Each piece is a timeless work of art.
               </p>
@@ -70,7 +70,7 @@ export default function Footer() {
                     <li key={link.label}>
                       <Link
                         href={link.href}
-                        className="font-sans text-sm text-[#8B7B7B] transition-colors hover:text-[#D4A5A5]"
+                        className="font-sans text-sm text-[#7A6868] transition-colors hover:text-[#9E5E5E]"
                       >
                         {link.label}
                       </Link>
@@ -85,7 +85,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-[#F0E0E0]">
           <Container className="flex items-center justify-center py-6">
-            <span className="font-sans text-xs text-[#8B7B7B]">Handcrafted with &hearts;</span>
+            <span className="font-sans text-xs text-[#7A6868]">Handcrafted with &hearts;</span>
           </Container>
         </div>
       </div>
