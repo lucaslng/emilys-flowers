@@ -16,6 +16,31 @@
       "service": "emilys-flowers"
     }
   ],
+  "vars": {
+    "PAYLOAD_SECRET": "dev-payload-secret-change-me"
+  },
+  "d1_databases": [
+    {
+      "binding": "D1",
+      "database_name": "emilys-flowers-payload",
+      "database_id": "REPLACE_WITH_DATABASE_ID"
+    },
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "emilys-flowers-tag-cache",
+      "database_id": "REPLACE_WITH_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "emilys-flowers-media"
+    },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "emilys-flowers-incremental-cache"
+    }
+  ],
   "images": {
     "binding": "IMAGES"
   },
@@ -33,6 +58,28 @@
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "emilys-flowers-production"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "D1",
+          "database_name": "emilys-flowers-payload",
+          "database_id": "REPLACE_WITH_DATABASE_ID"
+        },
+        {
+          "binding": "NEXT_TAG_CACHE_D1",
+          "database_name": "emilys-flowers-tag-cache",
+          "database_id": "REPLACE_WITH_DATABASE_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "emilys-flowers-media"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "emilys-flowers-incremental-cache"
         }
       ],
       "images": {
@@ -56,6 +103,28 @@
         {
           "binding": "WORKER_SELF_REFERENCE",
           "service": "emilys-flowers-preview"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "D1",
+          "database_name": "emilys-flowers-payload",
+          "database_id": "REPLACE_WITH_DATABASE_ID"
+        },
+        {
+          "binding": "NEXT_TAG_CACHE_D1",
+          "database_name": "emilys-flowers-tag-cache",
+          "database_id": "REPLACE_WITH_DATABASE_ID"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "emilys-flowers-media"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "emilys-flowers-incremental-cache"
         }
       ],
       "images": {

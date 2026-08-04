@@ -1,6 +1,7 @@
 // next.config.ts
 
 import type { NextConfig } from "next";
+import { withPayload } from '@payloadcms/next/withPayload';
 
 const csp = [
   "default-src 'self'",
@@ -56,13 +57,17 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [],
+    localPatterns: [{ pathname: '/api/media/file/**' }],
   },
   experimental: {
     inlineCss: true, // Inlines critical CSS into the HTML payload
   },
+  serverExternalPackages: ['jose', 'pg-cloudflare'],
 };
 
-export default nextConfig;
+// devBundleServerPackages: false (official default) — dev runs under Node, where
+// Turbopack's hashed serverExternalPackages names resolve (see package.json dev script).
+export default withPayload(nextConfig, { devBundleServerPackages: false });
 
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();

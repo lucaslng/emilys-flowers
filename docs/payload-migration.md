@@ -139,6 +139,57 @@ remains about #1295 behavior.
    3 bouquets** so E2E count assertions stay valid. Make the 36/3 seed a documented contract.
 7. D1 + R2 bindings (details in "ISR wiring" below).
 
+#### Phase 1 results (verified 2026-08-03, PR #108)
+
+All six Payload packages pinned to **3.87.0** (`payload`, `@payloadcms/next`,
+`@payloadcms/db-d1-sqlite`, `@payloadcms/storage-r2`, `@payloadcms/richtext-lexical`,
+`@payloadcms/ui`). Implemented: `src/payload.config.ts` (template's config incl. inline
+console JSON logger, `sqliteD1Adapter`, `r2Storage`, `getCloudflareContextFromWrangler`);
+collections `users`/`media`/`products` (`src/collections/`); admin route group
+`src/app/(payload)/` (layout, `admin/[[...segments]]`, `api/[...slug]` — **no GraphQL
+routes**, per workerd #5175); `tsconfig.json` gains `@payload-config` alias;
+`next.config.ts` wraps `withPayload(nextConfig, { devBundleServerPackages: false })` +
+`serverExternalPackages: ['jose', 'pg-cloudflare']` + `images.localPatterns`; D1/R2
+bindings added to all three wrangler stanzas; `open-next.config.ts` enables
+`r2IncrementalCache` + `d1NextTagCache`; 36/3 seed contract in
+`scripts/seed_payload.ts`; `example.env` documents `PAYLOAD_SECRET`.
+
+**3.87.0 deviations from the Next-15 template (all verified against installed types):**
+1. `r2Storage` goes in `plugins: [...]` — the `storage:` config key does **not** exist in
+   3.87 (`storage` is the v4 shape).
+2. `(payload)/admin/[[...segments]]/not-found.tsx` imports `generatePageMetadata` (not
+   `generateMetadata`) from `@payloadcms/next/views`.
+3. No webpack `extensionAlias` block — withPayload 3.87 handles Turbopack; add none.
+4. `cloudflare-env.d.ts` (from `bun run cf-typegen`) **must not be committed yet**: the
+   generated workerd runtime types make `Body.json<T>()` return `unknown`, breaking the
+   existing `src/app/checkout/checkout-page-client.tsx` (`response.json()` results become
+   `unknown`). `payload.config.ts` types D1/R2 via narrow `Parameters<...>` casts instead.
+   Re-run `cf-typegen` + fix `checkout-page-client.tsx` casts when the bindings actually
+   need typed env access.
+
+**CRITICAL dev-runtime finding — Bun cannot run `next dev` with Payload:** Turbopack
+(Next 16.1+) emits **hashed external-module names** (`pkg-<hash>`, symlinked under
+`.next/dev/node_modules/`) for `serverExternalPackages` entries, and **only Node resolves
+them** (vercel/next.js#86652 fixed Node-side in 16.1.0-canary.10; **oven-sh/bun#25370
+remains open — no Bun workaround**). The `with-cloudflare-d1` template never hits this
+because its `dev` script runs `next dev` under Node. Our `dev` script is therefore
+`next dev --no-server-fast-refresh` (Node runtime — do NOT use `bun run --bun next dev`),
+and `--no-server-fast-refresh` is also the official Payload requirement for Next 16.2+
+HMR (payload#16074). Do **not** set `devBundleServerPackages: true` to "fix" this — it
+only delays the crash to the next external (`jose`), slows dev compiles (bundles Payload's
+thousands of modules), and the official docs recommend `false`. This is also why
+`AGENTS.md`'s Commands section now documents the Node runtime for `bun run dev`.
+
+**Verification:** `bunx tsc --noEmit` 0 errors; `bun test` 130/130 green; dev smoke —
+`/`, `/flowers`, `/admin`, `/admin/collections/products` all 200; `POST /api/checkout`
+empty-items still 400 (no route-group shadowing); zero `Failed to load external module` /
+`missing secret key` errors (admin fully initializes once `PAYLOAD_SECRET` is set).
+Remaining dev caveats: `payload generate:importmap` is needed before media upload works
+(storage-r2 client handler not yet in importMap — fine until Phase 3/R2 exists), and dev
+must set `PAYLOAD_SECRET` (OpenNext's `initOpenNextCloudflareForDev` intentionally skips
+`.env*`/`.dev.vars` — `envFiles: []` — so the secret comes from the shell env or
+`example.env`).
+
 ### Phase 2 — Data-layer swap
 
 1. New `src/lib/payload-catalog.ts` with the same 4 functions (memoized with React `cache`

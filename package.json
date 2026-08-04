@@ -4,20 +4,28 @@
   "private": true,
   "scripts": {
     "build": "bun run --bun next build",
-    "dev": "bun run --bun next dev",
+    "dev": "next dev --no-server-fast-refresh",
     "start": "bun run --bun next start",
     "test": "bun test",
     "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "payload": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload",
+    "generate:types": "PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@opennextjs/cloudflare": "^1.20.2",
+    "@payloadcms/db-d1-sqlite": "3.87.0",
+    "@payloadcms/next": "3.87.0",
+    "@payloadcms/richtext-lexical": "3.87.0",
+    "@payloadcms/storage-r2": "3.87.0",
+    "@payloadcms/ui": "3.87.0",
     "gsap": "^3.15.0",
     "next": "16.2.12",
+    "payload": "3.87.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "stripe": "^22.4.0"

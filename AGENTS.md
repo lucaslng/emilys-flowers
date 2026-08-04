@@ -15,7 +15,11 @@ Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScri
 ## Commands
 
 ```bash
-bun run dev       # dev server on :3000 (Next.js, with OpenNext bindings injected)
+bun run dev       # dev server on :3000 (Next.js, with OpenNext bindings injected).
+                  # Runs under the Node runtime (next dev --no-server-fast-refresh), NOT
+                  # `bun run --bun`: Turbopack's hashed serverExternalPackages names only
+                  # resolve under Node (oven-sh/bun#25370). `--no-server-fast-refresh` is
+                  # required for Payload HMR on Next 16.2+ (see docs/payload-migration.md).
 bun run build     # production build (Next.js)
 bun start         # serve the production build (Node.js runtime — NOT Workers)
 bun test          # unit tests (bun's built-in runner)
