@@ -1,4 +1,4 @@
-import { getFeaturedProducts } from '@/lib/stripe-catalog';
+import { getFeaturedProducts } from '@/lib/payload-catalog';
 import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';

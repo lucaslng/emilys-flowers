@@ -229,6 +229,47 @@ remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot
 3. Delete `src/lib/stripe-catalog.ts`. **No consumer changes** — verify with a grep for
    `@/lib/stripe-catalog` after deletion.
 
+#### Phase 2 results (2026-08-04, PR #108)
+
+Data-layer swap landed. `src/lib/stripe-catalog.ts` deleted; its 5 import sites
+(`products/[slug]/page.tsx`, `flowers/page.tsx`, `bouquets/page.tsx`, `sitemap.ts`,
+`FeaturedBouquets.tsx`) now import `@/lib/payload-catalog` — same 4-function surface,
+no consumer logic changed.
+
+- `payload-catalog.ts` reads Payload from D1 per request (queries never memoized, so
+  on-demand revalidation sees fresh data); only the Payload instance is memoized per
+  request with React `cache`. Pure exports: `mapPayloadProduct`, `slugify`,
+  `PLACEHOLDER_DESCRIPTION`, `PayloadProductDoc` (structural doc type — generated
+  `payload-types.ts` deferred; it would also require the wrangler proxy). Media:
+  `media[].url` (utfs.io) when present, else the category SVG placeholder.
+- **Lazy Payload imports (important)**: `getPayload` + `@payload-config` are
+  dynamic-imported inside the query path, not statically. A static config import drags
+  the Lexical module graph into every importer — `bun test` importing the module crashed
+  with `ReferenceError: Cannot access 'DecoratorNode' before initialization`
+  (lexical circular-init). Lazy imports keep the module import-safe and defer all
+  Payload loading to query time.
+- **Build-time tolerance (empirical)**: first `next build` failed with
+  `D1_ERROR: no such table: products` — `generateStaticParams` → `payload.find` on an
+  unmigrated D1 threw instead of returning empty. `fetchProducts` now catches read
+  failures when `process.env.NEXT_PHASE === 'phase-production-build'` (set in
+  `node_modules/next/dist/build/index.js:1131`) and returns an empty catalog → no slugs
+  baked, pages render on first request (the runtime-only pattern, made explicit).
+  Runtime failures still rethrow. Also proven: `getCloudflareContext({async:true})` +
+  `getPayload` init work inside `next build` — only the missing table needed handling.
+- **Verified**: `bunx tsc --noEmit` 0 errors; `bun test` 134/134 (`payload-catalog.test.ts`
+  mirrors the old suite + media-fallback/featured-checkbox cases); `bun run build`
+  succeeds **without** `STRIPE_SECRET_KEY` (proves the Phase 4 deploy-check for the
+  catalog path). Route matrix: `/products/[slug]` SSG with no baked slugs (runtime
+  generation), `/flowers` + `/bouquets` bake empty until the webhook ISR wiring lands
+  (expected mid-migration state — see "Pages"; note that section's `export const
+  revalidate = 3600` text predates the on-demand-only correction, the webhook is the
+  target), `/admin` + `/api/[...slug]` dynamic.
+- Also updated: `scripts/seed_payload.ts` comments reference the new module; AGENTS.md
+  Data & state + Testing bullets (the Deployment/GitHub-secrets text still describes
+  build-time Stripe fetching — Phase 4/7 will fix it alongside `deploy.yml`).
+- Deferred: delete obsolete `scripts/create_flower_products.ts` (superseded by
+  `seed_payload.ts`); `docs/README.md` product-data bullet (Phase 7 doc pass).
+
 ### Phase 3 — Images & CSP
 
 - `ProductImage.tsx` (`src/components/shop/ProductImage.tsx`) already falls back to the

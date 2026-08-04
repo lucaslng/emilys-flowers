@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getProductsByCategory } from '@/lib/stripe-catalog';
+import { getProductsByCategory } from '@/lib/payload-catalog';
 import JsonLd from '@/components/JsonLd';
 import { itemListSchema, breadcrumbSchema } from '@/lib/json-ld';
 import { SITE_URL } from '@/lib/site';

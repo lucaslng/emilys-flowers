@@ -1,7 +1,7 @@
 // sitemap.ts
 
 import { MetadataRoute } from 'next';
-import { getAllProducts } from '@/lib/stripe-catalog';
+import { getAllProducts } from '@/lib/payload-catalog';
 import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -30,11 +30,11 @@ const FLOWERS: Record<string, number> = {
 
 const COLORS = ['Cream White', 'Cyan', 'Yellow', 'Green', 'Blue', 'Pink']
 
-/** Mirrors the repo's PLACEHOLDER_DESCRIPTION (src/lib/stripe-catalog.ts). */
+/** Mirrors the repo's PLACEHOLDER_DESCRIPTION (src/lib/payload-catalog.ts). */
 const PLACEHOLDER_DESCRIPTION =
   'A handcrafted ribbon flower, made to order from premium satin ribbon. Each bloom is shaped petal by petal, so no two are ever quite alike.'
 
-/** Same rules as src/lib/stripe-catalog.ts slugify: lowercase, trim, non-alphanumerics → '-'. */
+/** Same rules as src/lib/payload-catalog.ts slugify: lowercase, trim, non-alphanumerics → '-'. */
 function slugify(name: string): string {
   return name
     .toLowerCase()
