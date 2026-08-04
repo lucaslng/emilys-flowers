@@ -24,12 +24,13 @@ migration. If you are an agent about to implement this:
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Rendering model | **On-demand revalidation (classic route-segment ISR)** — `export const revalidate` + `revalidateTag(tag, profile)`; **not** Cache Components | CMS edits go live without redeploy; responses stay cached; OpenNext's R2/DO machinery is built for classic ISR; Cache Components have open OpenNext bugs |
+| Rendering model | **On-demand revalidation (classic route-segment ISR)** — `export const revalidate` + `revalidateTag(tag, profile)`; **not** Cache Components | CMS edits go live without redeploy; responses stay cached; OpenNext's cache-override machinery is built for classic ISR; Cache Components have open OpenNext bugs |
 | Next 16 stance | Stay on classic ISR (`revalidate` export + `generateStaticParams`), which remains documented in 16.2.12 | `cacheComponents: true` disables `dynamicParams`, breaks with OpenNext (#1130, #1225) |
 | Hosting shape | **Single Worker** (official `with-cloudflare-d1` path): Payload + admin + storefront in one OpenNext Worker. Split hosting is the fallback if admin auth on Workers blocks progress | Official, documented route; requires **paid Workers plan** (bundle >3 MiB free limit) |
 | Revalidation trigger | **Dedicated webhook route with shared-secret auth** (`src/app/api/revalidate/route.ts`) calling `revalidateTag('products', 'max')`, plus in-process `afterChange`/`afterDelete` Payload hooks | Webhook route is independent of the admin-request context (which has an open auth bug) and survives a future split-hosting move |
 | Data layer | New `src/lib/payload-catalog.ts` exposing the **same 4-query API**, delete `src/lib/stripe-catalog.ts` | All consumers stay untouched — this seam is the whole strategy |
 | Stripe | Stays as payment processor only (checkout route uses inline `price_data`, decoupled from catalog). Optional `@payloadcms/plugin-stripe` for two-way product sync (Phase 5) | Zero changes to cart/checkout required |
+| Storage | **Backblaze B2** (S3-compatible) for Payload media **and** the ISR incremental cache — replaces Cloudflare R2 | `@payloadcms/storage-s3` speaks B2's S3 API directly; the incremental cache is a small custom OpenNext override (aws4fetch → B2); R2 buckets/bindings dropped |
 
 ## Current architecture (before)
 
@@ -39,10 +40,10 @@ migration. If you are an agent about to implement this:
   no `revalidate`/`dynamic` anywhere).
 - Deploys to Cloudflare Workers via `@opennextjs/cloudflare` (OpenNext); two-Worker model
   in `wrangler.jsonc` (`env.production` → `emilys-flowers-production`, `env.preview` →
-  `emilys-flowers-preview`), `WORKER_SELF_REFERENCE` service binding present, **no R2/D1/DO
-  bindings**.
-- `open-next.config.ts` is `defineCloudflareConfig({})` with R2 incremental cache commented
-  out. `next.config.ts` has CSP, empty `images.remotePatterns`, and the unconditional
+  `emilys-flowers-preview`), `WORKER_SELF_REFERENCE` service binding present, **no B2/D1
+  storage and no DO bindings**.
+- `open-next.config.ts` is `defineCloudflareConfig({})` with dummy caches (no
+  incremental-cache override). `next.config.ts` has CSP, empty `images.remotePatterns`, and the unconditional
   `initOpenNextCloudflareForDev()` import.
 - Only one server route: `POST /api/checkout` (Stripe Checkout, inline `price_data`,
   simulated-success fallback when no secret). No server actions.
@@ -109,7 +110,8 @@ Rules:
    `withRegionalCache`**. **Plan correction: go on-demand-only** (`revalidateTag`
    webhook + Payload hooks, no `export const revalidate` TTL) until #1303 lands. Also
    monitor **#1295** (`bypassTagCacheOnCacheHit` can serve stale entries after an on-demand
-   `revalidateTag`) and #1284 (R2 populate flakiness). Import paths, `populate-cache
+    `revalidateTag`) and #1284 (R2 populate flakiness — populate-cache with the custom B2
+    override is re-verified in the Phase 1 spike). Import paths, `populate-cache
    remote`, and `--keep-vars`/`--preview-alias` forwarding are all confirmed against the
    installed package (see "ISR wiring (exact)").
 3. **Paid Workers plan — CONFIRMED** on the account (bundle ~19-21 MiB vs 3 MiB free).
@@ -124,7 +126,8 @@ remains about #1295 behavior.
 ### Phase 1 — Stand up Payload
 
 1. Add deps: `payload`, `@payloadcms/next`, `@payloadcms/db-d1-sqlite`,
-   `@payloadcms/storage-r2`. (Add `@payloadcms/plugin-stripe` only in Phase 5.)
+   `@payloadcms/storage-s3` (Backblaze B2 media), `aws4fetch` (custom B2 incremental-cache
+   override — see "ISR wiring (exact)"). (Add `@payloadcms/plugin-stripe` only in Phase 5.)
    Lockfile is `bun.lock` — use `bun add`.
 2. `src/payload.config.ts`: collections `products` (fields mirroring the `Product` shape:
    name, slug, description, priceCents, category, tags, featured/featuredOrder, inStock,
@@ -137,33 +140,41 @@ remains about #1295 behavior.
 5. Replace the pino logger (Node-only, breaks Workers) with a console logger.
 6. **Seed script** replacing `scripts/create_flower_products.ts`: recreate **36 flowers /
    3 bouquets** so E2E count assertions stay valid. Make the 36/3 seed a documented contract.
-7. D1 + R2 bindings (details in "ISR wiring" below).
+7. D1 binding + Backblaze B2 wiring (details in "ISR wiring" below).
 
 #### Phase 1 results (verified 2026-08-03, PR #108)
 
 All six Payload packages pinned to **3.87.0** (`payload`, `@payloadcms/next`,
-`@payloadcms/db-d1-sqlite`, `@payloadcms/storage-r2`, `@payloadcms/richtext-lexical`,
-`@payloadcms/ui`). Implemented: `src/payload.config.ts` (template's config incl. inline
-console JSON logger, `sqliteD1Adapter`, `r2Storage`, `getCloudflareContextFromWrangler`);
+`@payloadcms/db-d1-sqlite`, `@payloadcms/storage-s3`, `@payloadcms/richtext-lexical`,
+`@payloadcms/ui`) + `aws4fetch`. Implemented: `src/payload.config.ts` (template's config incl. inline
+console JSON logger, `sqliteD1Adapter`, `s3Storage` pointed at Backblaze B2,
+`getCloudflareContextFromWrangler`);
 collections `users`/`media`/`products` (`src/collections/`); admin route group
 `src/app/(payload)/` (layout, `admin/[[...segments]]`, `api/[...slug]` — **no GraphQL
 routes**, per workerd #5175); `tsconfig.json` gains `@payload-config` alias;
 `next.config.ts` wraps `withPayload(nextConfig, { devBundleServerPackages: false })` +
-`serverExternalPackages: ['jose', 'pg-cloudflare']` + `images.localPatterns`; D1/R2
-bindings added to all three wrangler stanzas; `open-next.config.ts` enables
-`r2IncrementalCache` + `d1NextTagCache`; 36/3 seed contract in
-`scripts/seed_payload.ts`; `example.env` documents `PAYLOAD_SECRET`.
+`serverExternalPackages: ['jose', 'pg-cloudflare']` + `images.localPatterns`; D1
+bindings on all three wrangler stanzas (R2 buckets dropped in favor of B2 `B2_*` env
+vars); `open-next.config.ts` wires the custom `b2IncrementalCache` override
+(`b2-incremental-cache.ts`) + `d1NextTagCache`; 36/3 seed contract in
+`scripts/seed_payload.ts`; `example.env` documents `PAYLOAD_SECRET` + B2 vars.
 
 **3.87.0 deviations from the Next-15 template (all verified against installed types):**
-1. `r2Storage` goes in `plugins: [...]` — the `storage:` config key does **not** exist in
-   3.87 (`storage` is the v4 shape).
+1. `s3Storage` goes in `plugins: [...]` — the `storage:` config key does **not** exist in
+   3.87 (`storage` is the v4 shape). For B2: set `endpoint` to
+   `https://s3.<region>.backblazeb2.com`, `forcePathStyle: true`, do **not** set `acl`
+   (B2 has no object-level ACLs — make the bucket `allPublic` or use `signedDownloads`),
+   and set `requestChecksumCalculation: 'WHEN_REQUIRED'` (`@aws-sdk/client-s3` ≥ 3.66
+   sends CRC32 request checksums by default, which B2 rejects).
 2. `(payload)/admin/[[...segments]]/not-found.tsx` imports `generatePageMetadata` (not
    `generateMetadata`) from `@payloadcms/next/views`.
 3. No webpack `extensionAlias` block — withPayload 3.87 handles Turbopack; add none.
 4. `cloudflare-env.d.ts` (from `bun run cf-typegen`) **must not be committed yet**: the
    generated workerd runtime types make `Body.json<T>()` return `unknown`, breaking the
    existing `src/app/checkout/checkout-page-client.tsx` (`response.json()` results become
-   `unknown`). `payload.config.ts` types D1/R2 via narrow `Parameters<...>` casts instead.
+   `unknown`). `payload.config.ts` types D1 via a narrow `Parameters<...>` cast instead;
+   B2 needs no binding cast — creds/buckets are plain `B2_*` env vars read from
+   `process.env` (same as `PAYLOAD_SECRET`).
    Re-run `cf-typegen` + fix `checkout-page-client.tsx` casts when the bindings actually
    need typed env access.
 
@@ -185,7 +196,7 @@ thousands of modules), and the official docs recommend `false`. This is also why
 empty-items still 400 (no route-group shadowing); zero `Failed to load external module` /
 `missing secret key` errors (admin fully initializes once `PAYLOAD_SECRET` is set).
 Remaining dev caveats: `payload generate:importmap` is needed before media upload works
-(storage-r2 client handler not yet in importMap — fine until Phase 3/R2 exists), and dev
+(storage-s3 client handler not yet in importMap — fine until Phase 3/B2 media wiring), and dev
 must set `PAYLOAD_SECRET` (OpenNext's `initOpenNextCloudflareForDev` intentionally skips
 `.env*`/`.dev.vars` — `envFiles: []` — so the secret comes from the shell env or
 `example.env`).
@@ -219,10 +230,12 @@ remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot
 
 - `ProductImage.tsx` (`src/components/shop/ProductImage.tsx`) already falls back to the
   category SVG on error — keep.
-- Remote CMS media (e.g., `*.payloadcms.com` or your media host): add to
-  `next.config.ts` `images.remotePatterns` **and** the CSP `img-src` directive
-  (`next.config.ts:9`). Known open issue **#15502**: Next image optimization breaks via
-  OpenNext static-asset routing — workaround `images.unoptimized: true` or absolute URLs.
+- CMS media now lives on **Backblaze B2** (public bucket), served from
+  `s3.<region>.backblazeb2.com` or the friendly `https://f<id>.backblazeb2.com/file/<bucket>/<key>`
+  URLs: add the host to `next.config.ts` `images.remotePatterns` **and** the CSP `img-src`
+  directive (`next.config.ts:9`). Known open issue **#15502**: Next image optimization
+  breaks via OpenNext static-asset routing — workaround `images.unoptimized: true` or
+  absolute URLs.
 
 ### Phase 4 — Build, CI, local env
 
@@ -233,7 +246,10 @@ remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot
 - Local env files (`.env`, `.env.dev`, `.env.preview`, `.env.production`, `.dev.vars`) +
   the tracked template (`example.env` — note: AGENTS.md says `.dev.vars.example` is
   tracked, which is currently inaccurate; fix that doc line while here). New vars:
-  `PAYLOAD_SECRET`, CMS URL/API key, D1/R2 names.
+  `PAYLOAD_SECRET`, CMS URL/API key, D1 names, B2 region/buckets (`B2_REGION`,
+  `B2_MEDIA_BUCKET`, `B2_CACHE_BUCKET`). B2 credentials (`B2_APPLICATION_KEY_ID`,
+  `B2_APPLICATION_KEY`) are **per-Worker runtime secrets** via `wrangler secret put`
+  (same pattern as `STRIPE_SECRET_KEY`) — never in `wrangler.jsonc`.
 - **Deploy step**: add `opennextjs-cloudflare populate-cache remote` after each deploy
   (initializes the `revalidations` table + uploads build cache entries).
 
@@ -268,14 +284,12 @@ installed adapter: `dist/api/config.js:45-62`) — ISR will not persist without 
 Canonical on-demand-only config (confirm import paths against installed 1.20.2):
 
 ```ts
-import { defineCloudflareConfig } from "@opennextjs/cloudflare/config";
-import r2IncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/r2-incremental-cache";
-// tag cache for on-demand revalidation:
-//   import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
-//   (or doShardedTagCache)
+import { defineCloudflareConfig } from "@opennextjs/cloudflare";
+import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
+import b2IncrementalCache from "./b2-incremental-cache";
 
 export default defineCloudflareConfig({
-  incrementalCache: r2IncrementalCache,
+  incrementalCache: b2IncrementalCache,
   tagCache: d1NextTagCache,
   // Queue: NOT required for on-demand-only to update content — without an override the
   // dummy queue makes stale requests fall back to a BLOCKING re-render (fresh content on
@@ -288,23 +302,38 @@ export default defineCloudflareConfig({
 });
 ```
 
-The R2 override is a **singleton**, binding hard-coded to `NEXT_INC_CACHE_R2_BUCKET`
-(prefix via `NEXT_INC_CACHE_R2_PREFIX`, default `incremental-cache`).
+`b2-incremental-cache.ts` (repo root) is a ~90-line port of `@opennextjs/aws`'s `s3-lite`
+incremental cache: an `aws4fetch` client PUTs/GETs/DELETEs JSON entries at the path-style
+URL `https://s3.<region>.backblazeb2.com/<bucket>/<key>`. Keys use the Cloudflare
+adapter's `computeCacheKey` (the same `incremental-cache/<build-id>/<sha>.cache` layout as
+the R2 override), so `populate-cache` and the D1 tag cache interoperate. aws4fetch detects
+B2 hostnames natively (`s3.<region>.backblazeb2.com` → service `s3` + region) — no signing
+config needed. **No published `@opennextjs/cloudflare` ships an S3/B2 cache** (verified
+1.20.2, the latest), so this custom override is the only B2 path — treat it as in-repo
+code to re-verify on every adapter upgrade. It is a singleton reading env vars:
+`B2_APPLICATION_KEY_ID` / `B2_APPLICATION_KEY` (secrets), `B2_REGION`, `B2_CACHE_BUCKET`,
+optional `B2_CACHE_PREFIX` (default `incremental-cache`).
 
 ### `wrangler.jsonc` — add to ALL THREE stanzas (base, `env.production`, `env.preview`)
 
-R2/D1/DO bindings are **non-inheritable** (like `assets`/`services`/`images`/`observability`
-already repeated per env). Mind the `WORKER_SELF_REFERENCE` per-env trap (each env points at
-its own worker name).
+D1/DO bindings are **non-inheritable** (like `assets`/`services`/`images`/`observability`
+already repeated per env) — B2 needs no binding (env vars only). Mind the
+`WORKER_SELF_REFERENCE` per-env trap (each env points at its own worker name).
 
 ```jsonc
-"r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "<name>" }],
+// B2 has no Wrangler binding — access is via env vars (see below)
 "d1_databases": [{ "binding": "NEXT_TAG_CACHE_D1", "database_name": "<name>", "database_id": "<id>" }],
 // if time-based ISR is ever added: durable_objects + migrations for NEXT_CACHE_DO_QUEUE
 ```
 
-Add `PAYLOAD_SECRET` to `vars` or as a runtime secret per Worker, and the D1/R2 bindings
-Payload itself needs (`D1`, `R2`).
+Add `PAYLOAD_SECRET` to `vars` or as a runtime secret per Worker, the D1 binding Payload
+itself needs (`D1`), and the non-secret B2 vars (`B2_REGION`, `B2_MEDIA_BUCKET`,
+`B2_CACHE_BUCKET`) in the base `vars` block (inherited by both env stanzas — the same
+inheritance rule as `UNDER_CONSTRUCTION`). The B2 credentials (`B2_APPLICATION_KEY_ID`,
+`B2_APPLICATION_KEY`) are **runtime secrets** — set once per Worker via
+`wrangler secret put ... --env production` / `--env preview` (same pattern as
+`STRIPE_SECRET_KEY`), never in `wrangler.jsonc`. Locally they come from the shell env /
+`example.env` (OpenNext dev skips `.env*`/`.dev.vars`).
 
 ### Pages
 
@@ -350,12 +379,19 @@ Payload itself needs (`D1`, `R2`).
 | GraphQL on Workers | Not guaranteed (workerd #5175) | Not needed — don't rely on it |
 | Stale localStorage carts | `sanitizeStoredCart` validates exact `Product` shape | Don't remove `Product` fields |
 | Webhook async on serverless | Payload Stripe webhooks may terminate mid-handler | Proxy webhooks via own endpoint if Phase 5 is attempted |
+| B2 creds misconfiguration | Missing/rotated `B2_*` secrets → incremental cache silently falls back to misses and media uploads 403 | Set secrets per Worker before first deploy; smoke-test one media upload + one revalidate in the Phase 1 spike |
+| B2/S3 checksums | `@aws-sdk/client-s3` ≥ 3.66 sends CRC32 request checksums by default, which B2 rejects | `requestChecksumCalculation: 'WHEN_REQUIRED'` in the `s3Storage` config |
+| AWS SDK peer mismatch | `@payloadcms/storage-s3` resolves `@aws-sdk/lib-storage@3.1102` against the shared `@aws-sdk/client-s3@3.984` (bun peer warning; 3.984 is `@opennextjs/aws`'s exact pin) | Verify one media upload on the deployed Worker; add `package.json` overrides only if uploads actually break |
+| Custom cache override | No upstream S3/B2 cache exists — `b2-incremental-cache.ts` is in-repo code and version-sensitive | Re-verify after every `@opennextjs/cloudflare` upgrade; keep the `computeCacheKey` key layout so `populate-cache remote` keeps working |
+| B2 bucket access model | B2 has no object-level ACLs; browser uploads need bucket CORS rules | Public (`allPublic`) bucket or `signedDownloads` presigned URLs; set CORS rules in the B2 console if direct browser uploads are ever added |
 
 ## Open questions for the implementing agent
 
 - ~~Exact import paths for `r2IncrementalCache` / `d1NextTagCache` / `doShardedTagCache`
   in the installed `@opennextjs/cloudflare` 1.20.2~~ — **answered (Phase 0):** the package
-  `"./*"` export map resolves them (see "ISR wiring (exact)").
+  `"./*"` export map resolves them (see "ISR wiring (exact)"). The R2 cache is replaced
+  by the in-repo `b2-incremental-cache.ts` override (see "ISR wiring (exact)");
+  `d1NextTagCache` import is unchanged.
 - ~~Whether `populate-cache remote` is still the correct command name in 1.20.2~~ —
   **answered (Phase 0):** `populate-cache {local,remote}` exists, and `deploy`/`upload`
   auto-run `populate-cache remote`; it also creates the D1 `revalidations` table.
@@ -382,8 +418,13 @@ Payload itself needs (`D1`, `R2`).
 - payloadcms.com/docs (installation, sqlite, plugins/stripe); github.com/payloadcms/payload
   (README, templates/with-cloudflare-d1, issues #14656 / #15094 / #15502 / #14716)
 - blog.cloudflare.com/payload-cms-workers (2025-09-30)
+- Backblaze B2 S3-compatible API docs (call-the-s3-compatible-api, s3-compatible-api,
+  use-the-aws-sdk-for-javascript-v3-with-backblaze-b2, buckets); payloadcms/payload
+  v3.87.0 `packages/storage-s3` source (index.ts / generateURL.ts); mhart/aws4fetch
+  README + installed 1.0.20 source (native B2 hostname detection)
 - opennext.js.org/cloudflare/caching + /cloudflare (2026-05-20);
-  opennextjs/opennextjs-cloudflare #659 / #700 / #702 / #1130 / #1225 / #1281 / #754
+  opennextjs/opennextjs-cloudflare #659 / #700 / #702 / #1130 / #1225 / #1281 / #754;
+  opennext.js.org/aws/config/overrides/incremental_cache (s3-lite pattern)
 - nextjs.org/docs revalidatePath + revalidating (16.2.12); nextjs.org/blog/next-16
 - This repo's installed adapters/docs: `node_modules/next/dist/docs/`,
   `node_modules/@opennextjs/cloudflare`, `node_modules/@opennextjs/aws/dist/types/open-next.d.ts`

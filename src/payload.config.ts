@@ -6,7 +6,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
-import { r2Storage } from '@payloadcms/storage-r2'
+import { s3Storage } from '@payloadcms/storage-s3'
 
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
@@ -44,13 +44,14 @@ const cloudflare =
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true })
 
-// The `D1`/`R2` bindings are declared in wrangler.jsonc (infra lane) and will be
+// The `D1` binding is declared in wrangler.jsonc (infra lane) and will be
 // reflected in `cloudflare-env.d.ts` once `bun run cf-typegen` is re-run. Until
-// then the generated CloudflareEnv type doesn't include them, so type them here
-// from the consumers that require them rather than loosening strictness.
+// then the generated CloudflareEnv type doesn't include it, so type it here
+// from the consumer that requires it rather than loosening strictness.
+// Backblaze B2 credentials/bucket are plain env vars (`B2_*`), read from
+// `process.env` like `PAYLOAD_SECRET` — no binding or type cast needed.
 const env = cloudflare.env as CloudflareEnv & {
   D1: Parameters<typeof sqliteD1Adapter>[0]['binding']
-  R2: Parameters<typeof r2Storage>[0]['bucket']
 }
 
 export default buildConfig({
@@ -69,9 +70,24 @@ export default buildConfig({
   db: sqliteD1Adapter({ binding: env.D1 }),
   logger: isProduction ? cloudflareLogger : undefined,
   plugins: [
-    r2Storage({
-      bucket: env.R2,
+    s3Storage({
       collections: { media: true },
+      bucket: process.env.B2_MEDIA_BUCKET ?? '',
+      config: {
+        credentials: {
+          accessKeyId: process.env.B2_APPLICATION_KEY_ID ?? '',
+          secretAccessKey: process.env.B2_APPLICATION_KEY ?? '',
+        },
+        region: process.env.B2_REGION ?? '',
+        // B2's S3-compatible endpoint; path-style URLs (B2 has no virtual-host
+        // TLS for dotted bucket names). Do NOT set `acl` — B2 has no object-level
+        // ACLs; make the bucket `allPublic` or use `signedDownloads` instead.
+        endpoint: `https://s3.${process.env.B2_REGION ?? ''}.backblazeb2.com`,
+        forcePathStyle: true,
+        // @aws-sdk/client-s3 >= 3.66 sends CRC32 request checksums by default,
+        // which B2 rejects — only checksum when the API requires it.
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+      },
     }),
   ],
 })

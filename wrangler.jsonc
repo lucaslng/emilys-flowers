@@ -17,7 +17,10 @@
     }
   ],
   "vars": {
-    "PAYLOAD_SECRET": "dev-payload-secret-change-me"
+    "PAYLOAD_SECRET": "dev-payload-secret-change-me",
+    "B2_REGION": "REPLACE_WITH_B2_CLUSTER_CODE",
+    "B2_MEDIA_BUCKET": "REPLACE_WITH_B2_MEDIA_BUCKET",
+    "B2_CACHE_BUCKET": "REPLACE_WITH_B2_CACHE_BUCKET"
   },
   "d1_databases": [
     {
@@ -29,16 +32,6 @@
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "emilys-flowers-tag-cache",
       "database_id": "REPLACE_WITH_DATABASE_ID"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "emilys-flowers-media"
-    },
-    {
-      "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "emilys-flowers-incremental-cache"
     }
   ],
   "images": {
@@ -70,16 +63,6 @@
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
           "database_id": "REPLACE_WITH_DATABASE_ID"
-        }
-      ],
-      "r2_buckets": [
-        {
-          "binding": "R2",
-          "bucket_name": "emilys-flowers-media"
-        },
-        {
-          "binding": "NEXT_INC_CACHE_R2_BUCKET",
-          "bucket_name": "emilys-flowers-incremental-cache"
         }
       ],
       "images": {
@@ -115,16 +98,6 @@
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "emilys-flowers-tag-cache",
           "database_id": "REPLACE_WITH_DATABASE_ID"
-        }
-      ],
-      "r2_buckets": [
-        {
-          "binding": "R2",
-          "bucket_name": "emilys-flowers-media"
-        },
-        {
-          "binding": "NEXT_INC_CACHE_R2_BUCKET",
-          "bucket_name": "emilys-flowers-incremental-cache"
         }
       ],
       "images": {

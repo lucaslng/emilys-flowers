@@ -1,10 +1,10 @@
 // open-next.config.ts — ISR wiring (Phase 1, on-demand-only revalidation)
 import { defineCloudflareConfig } from "@opennextjs/cloudflare";
-import r2IncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/r2-incremental-cache";
 import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
+import b2IncrementalCache from "./b2-incremental-cache";
 
 export default defineCloudflareConfig({
-	incrementalCache: r2IncrementalCache,
+	incrementalCache: b2IncrementalCache,
 	tagCache: d1NextTagCache,
 	// Queue: NOT required for on-demand-only to update content — without an override the
 	// dummy queue makes stale requests fall back to a BLOCKING re-render (fresh content on
