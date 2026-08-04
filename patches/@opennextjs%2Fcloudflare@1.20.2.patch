@@ -1,0 +1,7 @@
+diff --git a/dist/cli/templates/shims/env.js b/dist/cli/templates/shims/env.js
+index bb9094a4121a70ac1da42e3a1d748c43624ea54f..8a46d3824313374e941537a6d3c52b9f0dc47835 100644
+--- a/dist/cli/templates/shims/env.js
++++ b/dist/cli/templates/shims/env.js
+@@ -1 +1,2 @@
+ export function loadEnvConfig() { }
++export default { loadEnvConfig };

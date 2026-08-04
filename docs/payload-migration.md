@@ -190,6 +190,22 @@ must set `PAYLOAD_SECRET` (OpenNext's `initOpenNextCloudflareForDev` intentional
 `.env*`/`.dev.vars` — `envFiles: []` — so the secret comes from the shell env or
 `example.env`).
 
+**Deploy-build fix (2026-08-03, PR #108):** the OpenNext build (`Build (OpenNext)` step in
+`deploy.yml`) failed with `No matching export in ".open-next/cloudflare-templates/shims/env.js" for
+import "default"` from `payload/dist/bin/loadEnv.js:1` (`import nextEnvImport from '@next/env'`).
+Root cause: `@payloadcms/db-d1-sqlite` → `@payloadcms/drizzle` → `blocksToJsonMigrator.js` →
+`import { findConfig } from 'payload/node'` → `payload/node` re-exports `loadEnv` from
+`bin/loadEnv.js`, whose **default import** of `@next/env` breaks against OpenNext's esbuild alias
+(`bundle-server.js` unconditionally aliases `@next/env` → named-export-only `shims/env.js`; the
+real CJS `@next/env` drops its default interop since Next 15.5 — payload#16683/#16674/#16341, no
+published fix; Payload's real fix, a `dotenv` rewrite of `loadEnv.ts`, is only on `main`). Pinned
+workaround (validated: `opennextjs-cloudflare build` completes, `tsc` clean, survives CI
+`bun install`): **bun-patch `@opennextjs/cloudflare@1.20.2`** — `patches/` +
+`patchedDependencies` in `package.json` add `export default { loadEnvConfig }` to the shim
+template. Re-verify on any `@opennextjs/cloudflare` upgrade (version-keyed patch fails loudly);
+remove when Payload ships the `loadEnv` rewrite. `serverExternalPackages` cannot bypass the alias
+(verified empirically).
+
 ### Phase 2 — Data-layer swap
 
 1. New `src/lib/payload-catalog.ts` with the same 4 functions (memoized with React `cache`

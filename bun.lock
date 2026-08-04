@@ -32,6 +32,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@opennextjs/cloudflare@1.20.2": "patches/@opennextjs%2Fcloudflare@1.20.2.patch",
+  },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
