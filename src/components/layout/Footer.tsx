@@ -35,8 +35,8 @@ const footerLinks: FooterGroup[] = [
     title: 'Contact',
     links: [
       { label: 'contact@emilysflowers.ca', href: 'mailto:contact@emilysflowers.ca' },
-      { label: 'Instagram: emilysflowers_', href: 'https://instagram.com/emilysflowers_', external: true },
-      { label: 'TikTok: emilyysflowers', href: 'https://www.tiktok.com/@emilyysflowers', external: true },
+      { label: 'Instagram: @emilysflowers_', href: 'https://instagram.com/emilysflowers_', external: true },
+      { label: 'TikTok: @emilyysflowers', href: 'https://www.tiktok.com/@emilyysflowers', external: true },
     ],
   },
 ];
