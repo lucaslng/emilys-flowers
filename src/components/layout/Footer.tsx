@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import Container from '@/components/ui/Container';
 
-const footerLinks = [
+type FooterLink = { label: string; href: string; external?: boolean };
+
+type FooterGroup = { title: string; links: FooterLink[] };
+
+const footerLinks: FooterGroup[] = [
   {
     title: 'Shop',
     links: [
@@ -27,6 +31,14 @@ const footerLinks = [
       { label: 'Blog', href: '#' },
     ],
   },
+  {
+    title: 'Contact',
+    links: [
+      { label: 'contact@emilysflowers.ca', href: 'mailto:contact@emilysflowers.ca' },
+      { label: 'Instagram: emilysflowers_', href: 'https://instagram.com/emilysflowers_', external: true },
+      { label: 'TikTok: emilyysflowers', href: 'https://www.tiktok.com/@emilyysflowers', external: true },
+    ],
+  },
 ];
 
 export default function Footer() {
@@ -44,7 +56,7 @@ export default function Footer() {
       <div className="relative z-10">
         {/* Links */}
         <Container className="py-12">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
             {/* Brand */}
             <div>
               <Link
@@ -70,6 +82,9 @@ export default function Footer() {
                     <li key={link.label}>
                       <Link
                         href={link.href}
+                        {...(link.external
+                          ? { target: '_blank', rel: 'noopener noreferrer' }
+                          : {})}
                         className="font-sans text-sm text-[#7A6868] transition-colors hover:text-[#9E5E5E]"
                       >
                         {link.label}
