@@ -15,28 +15,13 @@ const footerLinks: FooterGroup[] = [
     ],
   },
   {
-    title: 'Support',
-    links: [
-      { label: 'Contact Us', href: '#' },
-      { label: 'Shipping Info', href: '#' },
-      { label: 'Returns', href: '#' },
-      { label: 'FAQ', href: '#' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
-      { label: 'About Us', href: '#' },
-      { label: 'Our Story', href: '#' },
-      { label: 'Blog', href: '#' },
-    ],
-  },
-  {
     title: 'Contact',
     links: [
+      { label: 'About Us', href: '/#why-emilys-flowers' },
       { label: 'contact@emilysflowers.ca', href: 'mailto:contact@emilysflowers.ca' },
       { label: 'Instagram: @emilysflowers_', href: 'https://instagram.com/emilysflowers_', external: true },
       { label: 'TikTok: @emilyysflowers', href: 'https://www.tiktok.com/@emilyysflowers', external: true },
+      { label: 'FAQ', href: '/faq' },
     ],
   },
 ];
@@ -56,7 +41,7 @@ export default function Footer() {
       <div className="relative z-10">
         {/* Links */}
         <Container className="py-12">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* Brand */}
             <div>
               <Link

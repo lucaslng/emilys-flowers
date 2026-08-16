@@ -21,7 +21,7 @@ const reasons = [
 
 export default function WhyChooseUs() {
   return (
-    <section className="bg-[#FFF5F5] pt-20 pb-24 sm:pt-28 sm:pb-32">
+    <section id="why-emilys-flowers" className="bg-[#FFF5F5] pt-20 pb-24 sm:pt-28 sm:pb-32">
       <Container>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
           {/* Editorial intro — left column */}
