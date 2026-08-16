@@ -47,9 +47,9 @@ Cloudflare Workers has no built-in per-project Preview/Production env-var toggle
 The site can be put "under construction" so nothing is browsable or purchasable
 while the storefront is being prepared. This is driven by a Cloudflare
 **Flagship** feature flag: the `under-construction` boolean flag in the
-`emilysflowers` Flagship app. When the flag is **on**, every page renders the
-construction screen; when **off** (or when Flagship credentials are absent —
-local dev, E2E), the store renders normally.
+`emilysflowers` Flagship app. When the flag is **on**, the production build
+renders the construction screen on every page; when **off** (or when Flagship
+credentials are absent — local dev, E2E), the store renders normally.
 
 The check happens **at build time, exactly once per build**, exactly like
 `enable-flowers-page`: `next.config.ts` (an async config function) calls
@@ -62,9 +62,12 @@ flag). The evaluate call uses Node's `https` module (not the global `fetch`) so
 Next.js's Data Cache never serves a stale flag value from a previous build; the
 flag is re-evaluated fresh on every build, and flipping it in the dashboard
 does **not** change already-deployed pages until the next CI build. No Flagship
-SDK dependency. Credentials (`FLAGSHIP_APP_ID`, `FLAGSHIP_API_TOKEN`,
-`CLOUDFLARE_ACCOUNT_ID`) are passed to **both** `Build (OpenNext)` steps in
-`deploy.yml`, so production and preview evaluate the same flag.
+SDK dependency. **Only the production build evaluates the flag**: `deploy.yml`
+sets `UNDER_CONSTRUCTION_ENABLED: "true"` in the production `Build (OpenNext)`
+step env, and `evaluateUnderConstruction()` returns `false` when that marker is
+absent — so preview builds always render the store, never the construction
+screen. (The Flagship credentials are still passed to both builds because
+`enable-flowers-page` is evaluated in both.)
 
 When the flag is on, `src/app/layout.tsx` renders the standalone
 `UnderConstruction` component (`src/components/under-construction.tsx`) instead

@@ -49,6 +49,11 @@ function evaluateFlag(url: string, apiToken: string): Promise<boolean> {
 // Called once per build from next.config.ts; result stored in
 // process.env.UNDER_CONSTRUCTION for all static-gen workers.
 export async function evaluateUnderConstruction(): Promise<boolean> {
+  // Only the production build honors the flag: deploy.yml sets
+  // UNDER_CONSTRUCTION_ENABLED there, and preview/dev builds skip evaluation
+  // so previews always render the store, never the construction screen.
+  if (process.env.UNDER_CONSTRUCTION_ENABLED !== "true") return false;
+
   const appId = process.env.FLAGSHIP_APP_ID;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const apiToken = process.env.FLAGSHIP_API_TOKEN;
