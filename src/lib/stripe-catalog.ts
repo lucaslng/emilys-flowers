@@ -82,7 +82,8 @@ export function mapStripeProduct(
 /**
  * Resolve the real product images for a slug from `public/products/<slug>/`.
  * Returns URL paths (e.g. `/products/cream-white/01-main.jpg`), not fs paths.
- * Falls back to the category placeholder SVG when the folder is missing.
+ * Falls back to the category placeholder SVG when the folder is missing or
+ * contains no image files (so `images` is never empty).
  * `baseDir` is injectable for tests; it defaults to the app's `public/products`.
  */
 export function imagesForProduct(
@@ -92,10 +93,12 @@ export function imagesForProduct(
 ): string[] {
   const dir = path.join(baseDir, slug);
   if (!existsSync(dir)) return [PLACEHOLDER_IMAGES[category]];
-  return readdirSync(dir)
+  const files = readdirSync(dir)
     .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
-    .sort()
-    .map((f) => `/products/${slug}/${f}`);
+    .sort();
+  return files.length > 0
+    ? files.map((f) => `/products/${slug}/${f}`)
+    : [PLACEHOLDER_IMAGES[category]];
 }
 
 async function fetchCatalog(): Promise<Product[]> {

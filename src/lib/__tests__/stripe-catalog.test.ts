@@ -154,4 +154,19 @@ describe("imagesForProduct", () => {
       "/placeholders/bouquet.svg",
     ]);
   });
+
+  test("falls back to the category placeholder when the folder has no image files", () => {
+    const slug = "empty-folder";
+    const dir = path.join(baseDir, slug);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, ".DS_Store"), "");
+    writeFileSync(path.join(dir, "README.md"), "");
+
+    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+      "/placeholders/flower.svg",
+    ]);
+    expect(imagesForProduct(slug, "bouquet", baseDir)).toEqual([
+      "/placeholders/bouquet.svg",
+    ]);
+  });
 });
