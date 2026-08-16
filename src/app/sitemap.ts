@@ -2,10 +2,12 @@
 
 import { MetadataRoute } from 'next';
 import { getAllProducts } from '@/lib/stripe-catalog';
+import { isFlowersEnabled } from '@/lib/flowers-flag';
 import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
+  const showFlowers = isFlowersEnabled();
   const products = await getAllProducts();
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -15,12 +17,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 1,
     },
-    {
-      url: `${SITE_URL}/flowers`,
-      lastModified,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
+    ...(showFlowers
+      ? ([
+          {
+            url: `${SITE_URL}/flowers`,
+            lastModified,
+            changeFrequency: 'monthly',
+            priority: 0.8,
+          },
+        ] as MetadataRoute.Sitemap)
+      : []),
     {
       url: `${SITE_URL}/bouquets`,
       lastModified,
@@ -29,12 +35,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
-    url: `${SITE_URL}/products/${p.slug}`,
-    lastModified,
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  }));
+  const productRoutes: MetadataRoute.Sitemap = products
+    .filter((p) => showFlowers || p.category !== 'flower')
+    .map((p) => ({
+      url: `${SITE_URL}/products/${p.slug}`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
 
   return [...staticRoutes, ...productRoutes];
 }

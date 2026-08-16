@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getProductsByCategory } from '@/lib/stripe-catalog';
+import { isFlowersEnabled } from '@/lib/flowers-flag';
 import JsonLd from '@/components/JsonLd';
 import { itemListSchema, breadcrumbSchema } from '@/lib/json-ld';
 import { SITE_URL } from '@/lib/site';
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FlowersPage() {
+  if (!isFlowersEnabled()) notFound();
   const products = await getProductsByCategory('flower');
   return (
     <>

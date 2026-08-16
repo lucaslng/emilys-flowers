@@ -156,6 +156,9 @@ jobs:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_LIVE }}
           UNDER_CONSTRUCTION: "true"
+          FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
+          FLAGSHIP_API_TOKEN: ${{ secrets.FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
       # `--keep-vars` preserves dashboard-set runtime secrets (STRIPE_SECRET_KEY)
@@ -196,6 +199,9 @@ jobs:
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
+          FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
+          FLAGSHIP_API_TOKEN: ${{ secrets.FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
       # Use `upload` (wrangler versions upload) instead of `deploy` so each

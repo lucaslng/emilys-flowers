@@ -78,6 +78,39 @@ the `deploy.yml` production build step and flip/remove
 `env.production.vars.UNDER_CONSTRUCTION`, then redeploy. (The API gate would
 still be armed by the wrangler var alone, so flip both together.)
 
+### Flowers catalogue flag (Flagship)
+
+The entire flowers catalogue can be hidden behind a Cloudflare **Flagship**
+feature flag: `enable-flowers-page` in the `emilysflowers` Flagship app. When
+the flag is **off**, `/flowers` and every flower product page render 404, the
+nav/footer/hero/404 "browse flowers" links disappear, featured products on the
+home page exclude flowers, and the sitemap drops the `/flowers` and flower
+product URLs. When **on** (or when Flagship credentials are absent — local dev,
+E2E), everything renders as normal.
+
+The check happens **at build time, exactly once per build**: `next.config.ts`
+(an async config function) calls `evaluateFlowersEnabled()` from
+`src/lib/flowers-flag.ts` in the main build process — before static-generation
+workers spawn — and stores the result in `process.env.FLOWERS_ENABLED`, which
+every worker thread inherits. The app then reads it synchronously via
+`isFlowersEnabled()` (`process.env.FLOWERS_ENABLED !== "false"`, fails open to
+enabled). This avoids both Next.js's Data Cache (a cached fetch would serve a
+stale flag value from a previous build — the Data Cache persists across builds
+with a 1-year revalidate) and per-page-render fetches. The evaluate call uses
+Node's `https` module (not the global `fetch`) so the Data Cache never
+intercepts it; the flag is re-evaluated fresh on every build. The result is
+baked into the static pages — like `UNDER_CONSTRUCTION`, flipping the flag in
+the dashboard does **not** change already-deployed pages until the next CI
+build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
+from server components (layout, pages, Footer, not-found, FeaturedBouquets,
+sitemap) — never from client components; client components receive the value as
+a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
+
+Credentials are passed to **both** `Build (OpenNext)` steps in `deploy.yml`
+(production and preview evaluate the same flag): `FLAGSHIP_APP_ID`,
+`FLAGSHIP_API_TOKEN` (API token with Flagship read/evaluate permission), and
+`CLOUDFLARE_ACCOUNT_ID` (reused from the deploy secrets).
+
 **Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
 
 ### CI/CD — GitHub Actions
@@ -106,6 +139,8 @@ The preview job uses `upload` (which calls `wrangler versions upload`) rather th
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
 | `STRIPE_SECRET_KEY_LIVE` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
 | `STRIPE_SECRET_KEY_TEST` | preview build | `sk_test_...`, used at build time to fetch the Stripe product catalog |
+| `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` |
+| `FLAGSHIP_API_TOKEN` | both builds | API token with Flagship read/evaluate permission, used at build time to evaluate `enable-flowers-page` |
 
 `STRIPE_SECRET_KEY` is now needed in **two** places:
 
@@ -165,7 +200,7 @@ Two layers: **bun test** for unit tests and **Playwright** for E2E. Both are wir
 
 - **Unit tests** live in `src/lib/__tests__/*.test.ts` and are pure-logic (no DOM, no TSX rendering) — they test the Stripe→`Product` mapping and slug derivation (`stripe-catalog.test.ts`), the client-safe listing helpers (`product-utils.test.ts`), the exported \`cartReducer\`, the \`toLineItems\` seam, and the extracted pure helpers (\`formatPrice\` in \`src/lib/format.ts\`; \`computeLineItemTotal\` / \`computeLineItemCount\` / \`computeShipping\` and \`validateLineItems\` in \`src/lib/order.ts\`). Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias resolves automatically (bun reads `tsconfig.json` paths). No happy-dom / testing-library — keep unit tests dependency-free; if a component needs DOM rendering, that belongs in E2E, not here.
 - **E2E tests** live in `e2e/*.spec.ts` and use `@playwright/test`. `playwright.config.ts` runs `bun run build && bun run start` on `:3000` (production build, per Next.js guidance) with a chromium project and `baseURL http://localhost:3000`. Prefer web-first assertions (`expect(locator).toBeVisible()` / `toContainText()`) — they auto-wait and absorb the `template.tsx` page-enter animation. To put items in the cart, drive the real UI (navigate to `/bouquets`, click "Add to Cart") rather than injecting `localStorage`, except for narrow edge cases where `page.addInitScript` is clearer.
-- **Checkout E2E runs in simulated mode** — `playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=` (empty) so `/api/checkout` always uses its simulated success path (redirects to `/checkout/success?success=true&order=...&items=...` and `CheckoutSuccessContent` clears the cart), even when a developer has a real key in `.env`. Next.js does not override an existing env var (even empty) with `.env` values, so this forces `!secretKey` → simulated path. E2E must never hit the real Stripe API. The API route is also tested directly (empty items → 400 with `error: "No items provided"`, valid items → 200 with `url`). Input validation lives in \`validateLineItems\` (\`src/lib/order.ts\`) and is unit-tested there; the route imports it. The empty-items 400 error string is asserted by E2E — keep it stable. E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update them if the Stripe catalog changes.
+- **Checkout E2E runs in simulated mode** — `playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=` (empty) so `/api/checkout` always uses its simulated success path (redirects to `/checkout/success?success=true&order=...&items=...` and `CheckoutSuccessContent` clears the cart), even when a developer has a real key in `.env`. Next.js does not override an existing env var (even empty) with `.env` values, so this forces `!secretKey` → simulated path. E2E must never hit the real Stripe API. The API route is also tested directly (empty items → 400 with `error: "No items provided"`, valid items → 200 with `url`). Input validation lives in \`validateLineItems\` (\`src/lib/order.ts\`) and is unit-tested there; the route imports it. The empty-items 400 error string is asserted by E2E — keep it stable. E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update them if the Stripe catalog changes. E2E builds run without Flagship credentials, so `enable-flowers-page` fails open to enabled and the flowers catalogue is visible in E2E.
 - **Accessibility (WCAG 2.2 AA) is scanned with axe-core** — `e2e/accessibility.spec.ts` uses `@axe-core/playwright` (devDependency) to scan every public route (`/`, `/flowers`, `/bouquets`, a product page, `/cart`, `/checkout`, `/checkout/success`) plus the open mobile nav, asserting zero violations with the five WCAG tags (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). No axe rules are disabled. The same spec also covers keyboard-only and focus-not-obscured checks. Running it needs `STRIPE_SECRET_KEY_TEST` in the process env (Playwright auto-loads `.env` from the test root; the config reads the `_TEST` name specifically) or the build fails. Axe scans must wait for the `template.tsx` page-enter animation and ScrollTrigger reveals to settle — the `settlePage` helper scrolls in steps with pauses, because an instant jump down the page misses mid-page reveals and never settles. Note: axe-core has no rule for 2.4.11 Focus Not Obscured; that SC is covered by the manual focus-obscured check in the same spec.
 - **`bunfig.toml`** excludes `e2e/**` from `bun test` discovery so the two runners don't collide. `bun test` runs only unit tests; `bun run test:e2e` runs only Playwright.
 - **Generated dirs** `test-results/` and `playwright-report/` are gitignored. Browser binaries live outside the repo (installed via `bunx playwright install chromium`).

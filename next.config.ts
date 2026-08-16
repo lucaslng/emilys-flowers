@@ -1,6 +1,7 @@
 // next.config.ts
 
 import type { NextConfig } from "next";
+import { evaluateFlowersEnabled } from "./src/lib/flowers-flag";
 
 // Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it
 // only in development. Production builds keep a strict CSP.
@@ -49,24 +50,29 @@ const securityHeaders = [
   },
 ];
 
-const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-    ];
-  },
-  images: {
-    remotePatterns: [],
-  },
-  experimental: {
-    inlineCss: true, // Inlines critical CSS into the HTML payload
-  },
-};
+export default async function nextConfig(): Promise<NextConfig> {
+  // Evaluate the flag once per build; workers inherit the result via env.
+  if (process.env.FLOWERS_ENABLED === undefined) {
+    process.env.FLOWERS_ENABLED = String(await evaluateFlowersEnabled());
+  }
 
-export default nextConfig;
+  return {
+    async headers() {
+      return [
+        {
+          source: "/(.*)",
+          headers: securityHeaders,
+        },
+      ];
+    },
+    images: {
+      remotePatterns: [],
+    },
+    experimental: {
+      inlineCss: true, // Inlines critical CSS into the HTML payload
+    },
+  };
+}
 
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();

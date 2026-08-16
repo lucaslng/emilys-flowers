@@ -10,7 +10,7 @@ import StarMotif from '@/components/ui/StarMotif';
  * and a diagonal ribbon band. Centered single-subject, generous negative
  * space — like opening a carefully wrapped gift.
  */
-export default function Hero() {
+export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) {
   return (
     <section className="relative isolate overflow-hidden">
       {/* Frosted wrapping-paper grid + soft satin light */}
@@ -61,9 +61,11 @@ export default function Hero() {
             <Button as={Link} href="/bouquets" variant="primary" size="lg">
               Shop Bouquets
             </Button>
-            <Button as={Link} href="/flowers" variant="secondary" size="lg">
-              Browse Flowers
-            </Button>
+            {showFlowers && (
+              <Button as={Link} href="/flowers" variant="secondary" size="lg">
+                Browse Flowers
+              </Button>
+            )}
           </div>
         </div>
 
