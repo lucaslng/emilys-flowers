@@ -175,6 +175,23 @@ html {
   50%      { transform: rotate(1.5deg); }
 }
 
+/* Hand-drawn "line boil" — tiny transform jitter so hand-drawn line art
+   trembles like ink still settling. Very subtle (<1.5px translate,
+   ±0.5deg rotate) with irregular keyframe spacing so it never reads as a
+   mechanical loop. 0%/100% sit at zero so the loop is seamless and the
+   reduced-motion collapse lands exactly on the static composition. */
+@keyframes line-boil {
+  0%   { transform: translate(0px, 0px)     rotate(0deg); }
+  12%  { transform: translate(0.6px, -0.8px) rotate(0.35deg); }
+  25%  { transform: translate(-0.9px, 0.4px) rotate(-0.45deg); }
+  37%  { transform: translate(0.4px, 0.9px)  rotate(0.2deg); }
+  50%  { transform: translate(-0.5px, -0.6px) rotate(-0.3deg); }
+  62%  { transform: translate(1px, 0.3px)    rotate(0.4deg); }
+  75%  { transform: translate(-0.7px, -0.4px) rotate(-0.5deg); }
+  87%  { transform: translate(0.5px, 0.7px)  rotate(0.25deg); }
+  100% { transform: translate(0px, 0px)      rotate(0deg); }
+}
+
 /* ─── Animation Utility Classes ────────────────────────────────── */
 .reveal-init {
   opacity: 0;
@@ -199,6 +216,22 @@ html {
 
 .animate-ribbon {
   animation: ribbon-sway 6s ease-in-out infinite;
+}
+
+/* Hand-drawn line boil — for hand-drawn line art ONLY (arrows, ribbon tails,
+   bud strokes, specimen strokes). `transform-box: fill-box` centers the
+   jitter on each element's own bounds, and transform-only means no layout
+   shift. Explicitly disabled under reduced motion so the artwork is
+   pixel-identical to the static composition. */
+.line-boil {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: line-boil 1.15s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .line-boil {
+    animation: none;
+  }
 }
 
 /* Decorative petals. Base `opacity: 0` so that under `prefers-reduced-motion`

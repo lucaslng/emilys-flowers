@@ -108,7 +108,7 @@ export default function FlowersPageClient({
           </p>
           {/* Hand-drawn arrow annotation */}
           <div className="mt-3 flex items-center gap-2">
-            <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="text-rose-line">
+            <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
               <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
               <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
             </svg>
