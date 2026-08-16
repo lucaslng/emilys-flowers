@@ -56,7 +56,7 @@ export async function evaluateUnderConstruction(): Promise<boolean> {
 
   const appId = process.env.FLAGSHIP_APP_ID;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const apiToken = process.env.FLAGSHIP_API_TOKEN;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
 
   // No Flagship credentials (local dev, E2E) → store stays open.
   if (!appId || !accountId || !apiToken) return false;

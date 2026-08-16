@@ -4,6 +4,7 @@ import {
   flagshipEvaluateUrl,
   FLOWERS_FLAG_KEY,
   isFlowersEnabled,
+  evaluateFlowersEnabled,
 } from "@/lib/flowers-flag";
 
 describe("flowersEnabledFromEvaluateResponse", () => {
@@ -30,6 +31,30 @@ describe("flagshipEvaluateUrl", () => {
     expect(url).toContain(`flagKey=${FLOWERS_FLAG_KEY}`);
     expect(url).toContain("acct-1");
     expect(url).toContain("app-1");
+  });
+});
+
+describe("evaluateFlowersEnabled", () => {
+  const original = {
+    appId: process.env.FLAGSHIP_APP_ID,
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+  };
+
+  afterEach(() => {
+    if (original.appId === undefined) delete process.env.FLAGSHIP_APP_ID;
+    else process.env.FLAGSHIP_APP_ID = original.appId;
+    if (original.accountId === undefined) delete process.env.CLOUDFLARE_ACCOUNT_ID;
+    else process.env.CLOUDFLARE_ACCOUNT_ID = original.accountId;
+    if (original.apiToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN;
+    else process.env.CLOUDFLARE_API_TOKEN = original.apiToken;
+  });
+
+  test("true when Flagship credentials are missing (local dev, E2E)", async () => {
+    delete process.env.FLAGSHIP_APP_ID;
+    delete process.env.CLOUDFLARE_ACCOUNT_ID;
+    delete process.env.CLOUDFLARE_API_TOKEN;
+    expect(await evaluateFlowersEnabled()).toBe(true);
   });
 });
 
