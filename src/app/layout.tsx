@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
@@ -83,7 +83,7 @@ export default async function RootLayout({
       </html>
     );
   }
-  const showFlowers = await isFlowersEnabled();
+  const showFlowers = isFlowersEnabled();
   return (
     <html lang="en" className={`${fontClasses} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">

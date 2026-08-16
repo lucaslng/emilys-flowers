@@ -7,7 +7,7 @@ import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  const showFlowers = await isFlowersEnabled();
+  const showFlowers = isFlowersEnabled();
   const products = await getAllProducts();
 
   const staticRoutes: MetadataRoute.Sitemap = [

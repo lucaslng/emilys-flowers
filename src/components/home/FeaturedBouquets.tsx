@@ -14,7 +14,7 @@ import StarMotif from '@/components/ui/StarMotif';
  * fight.
  */
 export default async function FeaturedBouquets() {
-  const showFlowers = await isFlowersEnabled();
+  const showFlowers = isFlowersEnabled();
   const featured = (await getFeaturedProducts()).filter(
     (p) => showFlowers || p.category !== 'flower'
   );

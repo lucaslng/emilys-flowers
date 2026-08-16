@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function HomePage() {
-  const showFlowers = await isFlowersEnabled();
+export default function HomePage() {
+  const showFlowers = isFlowersEnabled();
   return (
     <>
       <Hero showFlowers={showFlowers} />

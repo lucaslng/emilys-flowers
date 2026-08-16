@@ -1,4 +1,3 @@
-import { cache } from "react";
 import https from "node:https";
 
 export const FLOWERS_FLAG_KEY = "enable-flowers-page";
@@ -49,7 +48,11 @@ function evaluateFlag(url: string, apiToken: string): Promise<boolean> {
   });
 }
 
-async function fetchFlowersEnabled(): Promise<boolean> {
+// Evaluated exactly once per build, in next.config.ts (the main build process,
+// before static-generation workers spawn). The result is stored in
+// process.env.FLOWERS_ENABLED, which every worker thread inherits — so the
+// flag is fetched once per build instead of once per static page render.
+export async function evaluateFlowersEnabled(): Promise<boolean> {
   const appId = process.env.FLAGSHIP_APP_ID;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const apiToken = process.env.FLAGSHIP_API_TOKEN;
@@ -60,4 +63,8 @@ async function fetchFlowersEnabled(): Promise<boolean> {
   return evaluateFlag(flagshipEvaluateUrl(accountId, appId), apiToken);
 }
 
-export const isFlowersEnabled = cache(fetchFlowersEnabled);
+// Synchronous read of the build-time value set by next.config.ts. Defaults to
+// enabled when unset (e.g. unit tests, or a build that skipped evaluation).
+export function isFlowersEnabled(): boolean {
+  return process.env.FLOWERS_ENABLED !== "false";
+}

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FlowersPage() {
-  if (!(await isFlowersEnabled())) notFound();
+  if (!isFlowersEnabled()) notFound();
   const products = await getProductsByCategory('flower');
   return (
     <>

@@ -37,8 +37,8 @@ const footerLinks: FooterGroup[] = [
  * overlapping note cards at the right, and the bottom bar carries a
  * handwritten sign-off.
  */
-export default async function Footer() {
-  const showFlowers = await isFlowersEnabled();
+export default function Footer() {
+  const showFlowers = isFlowersEnabled();
   const visibleFooterLinks = footerLinks.map((group) => ({
     ...group,
     links: group.links.filter(

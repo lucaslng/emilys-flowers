@@ -88,18 +88,20 @@ home page exclude flowers, and the sitemap drops the `/flowers` and flower
 product URLs. When **on** (or when Flagship credentials are absent — local dev,
 E2E), everything renders as normal.
 
-The check happens **at build time** in `src/lib/flowers-flag.ts` (server-only,
-memoized with React `cache`, fails open to enabled). It calls the Flagship REST
-evaluate endpoint
-(`GET /accounts/{accountId}/flagship/apps/{appId}/evaluate?flagKey=enable-flowers-page`)
-once per build and bakes the result into the static pages — like
-`UNDER_CONSTRUCTION`, flipping the flag in the dashboard does **not** change
-already-deployed pages until the next CI build. No Flagship SDK dependency is
-used; the evaluate endpoint is called via Node's `https` module (not the global
-`fetch`) so Next.js's Data Cache never intercepts it — a cached fetch would
-serve a stale flag value from a previous build (the Data Cache persists across
-builds with a 1-year revalidate), and the flag must be re-evaluated fresh on
-every build. Import `isFlowersEnabled` only
+The check happens **at build time, exactly once per build**: `next.config.ts`
+(an async config function) calls `evaluateFlowersEnabled()` from
+`src/lib/flowers-flag.ts` in the main build process — before static-generation
+workers spawn — and stores the result in `process.env.FLOWERS_ENABLED`, which
+every worker thread inherits. The app then reads it synchronously via
+`isFlowersEnabled()` (`process.env.FLOWERS_ENABLED !== "false"`, fails open to
+enabled). This avoids both Next.js's Data Cache (a cached fetch would serve a
+stale flag value from a previous build — the Data Cache persists across builds
+with a 1-year revalidate) and per-page-render fetches. The evaluate call uses
+Node's `https` module (not the global `fetch`) so the Data Cache never
+intercepts it; the flag is re-evaluated fresh on every build. The result is
+baked into the static pages — like `UNDER_CONSTRUCTION`, flipping the flag in
+the dashboard does **not** change already-deployed pages until the next CI
+build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
 from server components (layout, pages, Footer, not-found, FeaturedBouquets,
 sitemap) — never from client components; client components receive the value as
 a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
