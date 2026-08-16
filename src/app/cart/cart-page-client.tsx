@@ -115,11 +115,18 @@ export default function CartPageClient() {
                 Shopping Cart
               </h1>
             </div>
-            <p className="mt-3 font-hand text-3xl leading-none text-rose-deep">
-              {totalQuantity > 0
-                ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped ♡`
-                : 'nothing wrapped yet ♡'}
-            </p>
+            {/* Hand-drawn arrow annotation */}
+            <div className="mt-3 flex items-center gap-2">
+              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
+                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              </svg>
+              <span className="font-hand text-3xl leading-none text-rose-deep">
+                {totalQuantity > 0
+                  ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped ♡`
+                  : 'nothing wrapped yet ♡'}
+              </span>
+            </div>
           </div>
         </Reveal>
 

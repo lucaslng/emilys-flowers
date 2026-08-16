@@ -112,11 +112,40 @@ function CheckoutSuccessContent() {
       {/* ── Hero — the thank-you card ─────────────────────────────── */}
       <div className="relative text-center">
         <StarMotif size={40} className="mx-auto text-rose opacity-70" />
-        {/* Confirmation seal — a slow-turning floral emblem. */}
-        <div ref={sealRef} data-reveal className="mt-4 flex justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-border bg-surface">
+        {/* Confirmation seal — a slow-turning floral emblem inside a
+            hand-drawn dashed ring that boils like a hand-stamped circle. */}
+        <div ref={sealRef} data-reveal className="mt-4 flex flex-col items-center">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-surface">
+            <svg
+              aria-hidden="true"
+              className="line-boil-fine absolute inset-0 h-full w-full text-rose-line"
+              viewBox="0 0 80 80"
+              fill="none"
+            >
+              <circle
+                cx="40"
+                cy="40"
+                r="37.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeDasharray="7 6"
+                strokeLinecap="round"
+              />
+            </svg>
             <BloomSpinner size={48} color="#D4A5A5" />
           </div>
+          {/* Hand-drawn arrow pointing at the heading */}
+          <svg
+            aria-hidden="true"
+            width="20"
+            height="34"
+            viewBox="0 0 20 34"
+            fill="none"
+            className="line-boil-fine mt-2 text-rose-line"
+          >
+            <path d="M10 2 C 12 12 8 22 10 30" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+            <path d="M10 30 L 4 22 M 10 30 L 16 22" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+          </svg>
         </div>
 
         <div data-reveal className="mt-6">

@@ -94,9 +94,16 @@ export default function CheckoutPageClient() {
             <h1 className="mt-4 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               Checkout
             </h1>
-            <p className="mt-2 font-hand text-3xl leading-none text-rose-deep">
-              almost wrapped ♡
-            </p>
+            {/* Hand-drawn arrow annotation */}
+            <div className="mt-2 flex items-center justify-center gap-2">
+              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
+                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              </svg>
+              <span className="font-hand text-3xl leading-none text-rose-deep">
+                almost wrapped ♡
+              </span>
+            </div>
           </div>
 
           {/* Order Summary — the receipt */}

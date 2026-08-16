@@ -87,7 +87,7 @@ export default function Hero() {
                 height="34"
                 viewBox="0 0 90 34"
                 fill="none"
-                className="text-rose-deep"
+                className="line-boil text-rose-deep"
               >
                 <path
                   d="M4 26 C 30 22 52 14 84 8"

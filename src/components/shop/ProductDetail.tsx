@@ -99,7 +99,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             {/* Handwritten category annotation with arrow */}
             <div className="flex items-center gap-2">
-              <svg aria-hidden="true" width="72" height="24" viewBox="0 0 72 24" fill="none" className="text-rose-line">
+              <svg aria-hidden="true" width="72" height="24" viewBox="0 0 72 24" fill="none" className="line-boil text-rose-line">
                 <path d="M4 20 C 24 16 46 8 68 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
                 <path d="M68 5 L 59 4 M 68 5 L 64 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
               </svg>

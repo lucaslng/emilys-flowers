@@ -28,9 +28,16 @@ export default function FaqPage() {
         <div className="mx-auto max-w-3xl">
           <div className="relative">
             <StarMotif size={48} className="absolute -left-8 -top-6 text-rose opacity-70" />
-            <p className="font-hand text-3xl leading-none text-rose-deep">
-              good to know ♡
-            </p>
+            {/* Hand-drawn arrow annotation */}
+            <div className="flex items-center gap-2">
+              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
+                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              </svg>
+              <span className="font-hand text-3xl leading-none text-rose-deep">
+                good to know ♡
+              </span>
+            </div>
             <h1 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               FAQ
             </h1>

@@ -64,8 +64,26 @@ export default function Footer() {
                 </p>
                 <div className="mt-5 flex items-center gap-3">
                   <span className="h-px w-12 bg-rose-line/60" aria-hidden="true" />
-                  <span className="font-hand text-2xl leading-none text-rose-deep">
-                    made with ♡
+                  <span className="flex items-center gap-1">
+                    <span className="font-hand text-2xl leading-none text-rose-deep">
+                      made with
+                    </span>
+                    {/* Hand-drawn heart outline — boils like ink settling */}
+                    <svg
+                      aria-hidden="true"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="line-boil-fine text-rose-deep"
+                    >
+                      <path
+                        d="M12 20 C 8.5 16.5 4.5 13.5 4.5 9.5 C 4.5 6.5 6.5 4.5 9 4.5 C 10.5 4.5 11.5 5.5 12 7 C 12.5 5.5 13.5 4.5 15 4.5 C 17.5 4.5 19.5 6.5 19.5 9.5 C 19.5 13.5 15.5 16.5 12 20 Z"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </span>
                 </div>
                 {/* Origami star — the geometric counterpoint */}

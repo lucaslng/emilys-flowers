@@ -2,26 +2,104 @@ import Container from '@/components/ui/Container';
 import Reveal from '@/components/ui/Reveal';
 import StarMotif from '@/components/ui/StarMotif';
 
-const reasons = [
+type ReasonIconName = 'scissors' | 'heart' | 'bloom';
+
+const reasons: {
+  title: string;
+  description: string;
+  icon: ReasonIconName;
+}[] = [
   {
     title: 'Made by Hand',
     description:
       'My BF and I cut, fold, and assemble every petal by hand.',
-    icon: '✂',
+    icon: 'scissors',
   },
   {
     title: 'Made to Keep',
     description:
       'Unlike regular flowers, my ribbon flowers will last you for the rest of time.',
-    icon: '♡',
+    icon: 'heart',
   },
   {
     title: 'Made to Your Palette',
     description:
       'Custom color, style, and arrangement requests are welcome for weddings, interiors, and gifts. Feel free to message me on Instagram @emilysflowers_!',
-    icon: '✿',
+    icon: 'bloom',
   },
 ];
+
+/**
+ * ReasonIcon — hand-drawn line-art icons for the maker's notes (scissors,
+ * heart, bloom). Stroke-only SVG line art, `currentColor` so the parent's
+ * text color drives the tone. The icon boils like ink settling while the
+ * crisp bordered stamp around it stays still (satin content, geometric
+ * frame). Purely decorative (aria-hidden).
+ */
+function ReasonIcon({ name }: { name: ReasonIconName }) {
+  const common = {
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+
+  if (name === 'scissors') {
+    return (
+      <svg
+        aria-hidden="true"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="line-boil-fine text-rose-deep"
+      >
+        <circle cx="7" cy="7" r="2.4" {...common} />
+        <circle cx="17" cy="7" r="2.4" {...common} />
+        <path d="M9.4 9.4 L 20 20" {...common} />
+        <path d="M14.6 9.4 L 4 20" {...common} />
+      </svg>
+    );
+  }
+
+  if (name === 'heart') {
+    return (
+      <svg
+        aria-hidden="true"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="line-boil-fine text-rose-deep"
+      >
+        <path
+          d="M12 20 C 8.5 16.5 4.5 13.5 4.5 9.5 C 4.5 6.5 6.5 4.5 9 4.5 C 10.5 4.5 11.5 5.5 12 7 C 12.5 5.5 13.5 4.5 15 4.5 C 17.5 4.5 19.5 6.5 19.5 9.5 C 19.5 13.5 15.5 16.5 12 20 Z"
+          {...common}
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="line-boil-fine text-rose-deep"
+    >
+      <g {...common}>
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(72 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(144 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(216 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(288 12 12)" />
+      </g>
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
 
 /**
  * WhyChooseUs — "the maker's notebook". A stitched, ruled panel holds three
@@ -85,9 +163,9 @@ export default function WhyChooseUs() {
                   <div className="flex flex-col items-center gap-1 pt-1">
                     <span
                       aria-hidden="true"
-                      className="flex h-11 w-11 items-center justify-center border border-rose-line/70 bg-blush/60 text-lg text-rose-deep"
+                      className="flex h-11 w-11 items-center justify-center border border-rose-line/70 bg-blush/60 text-rose-deep"
                     >
-                      {reason.icon}
+                      <ReasonIcon name={reason.icon} />
                     </span>
                     <span
                       aria-hidden="true"

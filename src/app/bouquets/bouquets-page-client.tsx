@@ -100,7 +100,7 @@ export default function BouquetsPageClient({
             <span className="font-hand text-2xl leading-none text-rose-deep">
               gifts that last
             </span>
-            <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="text-rose-line -scale-x-100">
+            <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line -scale-x-100">
               <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
               <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
             </svg>
