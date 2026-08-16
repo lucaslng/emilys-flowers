@@ -1,14 +1,25 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+   EMILY'S FLOWERS — "warm handmade" design system
+   Satin softness vs. crisp geometric structure. Warm blush / cream /
+   champagne with pink as the ONLY chromatic accent. Zero cool tones.
+   Fonts: Martian Mono (structure, labels, UI) + Reenie Beanie (hand-drawn
+   accents). Loaded via next/font in layout.tsx.
+   ───────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #FFFAFA;
-  --foreground: #4A3B3B;
-  --surface: #FFF5F5;
-  --blush: #F9E4E4;
-  --lavender: #E8D5E8;
-  --rose: #D4A5A5;
-  --border: #F0E0E0;
-  --muted: #7A6868;
+  /* Warm paper creams — no cool tints anywhere */
+  --background: #FEFAF5;   /* warm cream page */
+  --foreground: #4A3B3B;   /* deep warm cocoa */
+  --surface: #FCF5EF;      /* champagne cream panel */
+  --blush: #F9E4E4;        /* soft satin pink */
+  --champagne: #F3E4D3;    /* champagne — replaces the old cool lavender */
+  --rose: #D4A5A5;         /* decorative rose (non-text) */
+  --rose-deep: #9E5E5E;    /* text rose — 4.5:1 on bg & surface */
+  --rose-line: #B16E6E;    /* non-text rose — 3:1 on bg & surface */
+  --border: #EDE0D4;       /* warm hairline */
+  --muted: #7A6868;        /* warm taupe text — 4.5:1 on bg & surface */
 }
 
 @theme inline {
@@ -16,12 +27,17 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-blush: var(--blush);
-  --color-lavender: var(--lavender);
+  --color-champagne: var(--champagne);
   --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-rose-line: var(--rose-line);
   --color-border: var(--border);
   --color-muted: var(--muted);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-sans: var(--font-martian), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+  --font-hand: var(--font-reenie), "Segoe Script", "Bradley Hand", cursive;
+  --font-serif: var(--font-martian), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
 }
 
 body {
@@ -57,7 +73,7 @@ body {
   height: auto;
   padding: 0.75rem 1.25rem;
   background: #4A3B3B;
-  color: #FFFAFA;
+  color: #FEFAF5;
   font-weight: 600;
 }
 
@@ -99,10 +115,7 @@ html {
 
 /* Vertical fall is driven by `top` (container-relative %), so a petal truly
    traverses its parent and resets OFF-SCREEN (clipped by `overflow: hidden`).
-   `transform` only carries the gentle horizontal sway + rotation. The loop
-   jumps from `top: 112%` (below, clipped) back to `top: -12%` (above,
-   clipped), so the reset is invisible — no teleport. Opacity fades the petal
-   in/out near the clipped edges as a soft secondary safeguard. */
+   `transform` only carries the gentle horizontal sway + rotation. */
 @keyframes petal-fall {
   0%   { top: -12%; transform: translateX(0px)  rotate(0deg);   opacity: 0; }
   10%  { opacity: 0.85; }
@@ -113,10 +126,7 @@ html {
   100% { top: 112%; transform: translateX(0px)  rotate(360deg); opacity: 0; }
 }
 
-/* Navbar variant: the bar is short + sticky, so a long fall reads as a jitter.
-   Instead, a gentle in-place drift + slow spin that returns to its starting
-   transform/opacity, looping seamlessly (start state == end state). No fall,
-   no off-screen reset needed — no teleport. */
+/* Navbar variant: gentle in-place drift + slow spin, looping seamlessly. */
 @keyframes petal-drift {
   0%   { transform: translate(0px, 0px)  rotate(0deg);   opacity: 0; }
   25%  { transform: translate(6px, 2px)  rotate(90deg);  opacity: 0.55; }
@@ -145,6 +155,57 @@ html {
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Floating hearts — rise gently, fading in and out (decorative). */
+@keyframes heart-float {
+  0%   { transform: translateY(6px) scale(0.7); opacity: 0; }
+  20%  { opacity: 0.85; }
+  80%  { opacity: 0.5; }
+  100% { transform: translateY(-64px) scale(1); opacity: 0; }
+}
+
+/* Slow origami-star rotation (decorative, ~1 min per turn). */
+@keyframes star-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ribbon band sway — like a gift ribbon catching light. */
+@keyframes ribbon-sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50%      { transform: rotate(1.5deg); }
+}
+
+/* Hand-drawn "line boil" — tiny transform jitter so hand-drawn line art
+   trembles like ink still settling. Very subtle (<1.5px translate,
+   ±0.5deg rotate) with irregular keyframe spacing so it never reads as a
+   mechanical loop. 0%/100% sit at zero so the loop is seamless and the
+   reduced-motion collapse lands exactly on the static composition. */
+@keyframes line-boil {
+  0%   { transform: translate(0px, 0px)     rotate(0deg); }
+  12%  { transform: translate(0.6px, -0.8px) rotate(0.35deg); }
+  25%  { transform: translate(-0.9px, 0.4px) rotate(-0.45deg); }
+  37%  { transform: translate(0.4px, 0.9px)  rotate(0.2deg); }
+  50%  { transform: translate(-0.5px, -0.6px) rotate(-0.3deg); }
+  62%  { transform: translate(1px, 0.3px)    rotate(0.4deg); }
+  75%  { transform: translate(-0.7px, -0.4px) rotate(-0.5deg); }
+  87%  { transform: translate(0.5px, 0.7px)  rotate(0.25deg); }
+  100% { transform: translate(0px, 0px)      rotate(0deg); }
+}
+
+/* Finer boil for small hand-drawn accents (icon-sized line art): gentler
+   jitter so tiny strokes shimmer without reading as wobble. Same seamless
+   loop, transform-only, and reduced-motion guarantees as `line-boil`. */
+@keyframes line-boil-fine {
+  0%   { transform: translate(0px, 0px)     rotate(0deg); }
+  15%  { transform: translate(0.4px, -0.5px) rotate(0.2deg); }
+  30%  { transform: translate(-0.6px, 0.3px) rotate(-0.25deg); }
+  45%  { transform: translate(0.3px, 0.5px)  rotate(0.15deg); }
+  60%  { transform: translate(-0.4px, -0.4px) rotate(-0.2deg); }
+  75%  { transform: translate(0.5px, 0.2px)  rotate(0.25deg); }
+  90%  { transform: translate(-0.3px, 0.4px)  rotate(-0.15deg); }
+  100% { transform: translate(0px, 0px)      rotate(0deg); }
+}
+
 /* ─── Animation Utility Classes ────────────────────────────────── */
 .reveal-init {
   opacity: 0;
@@ -163,12 +224,45 @@ html {
   animation: float 4s ease-in-out infinite alternate;
 }
 
+.animate-star {
+  animation: star-spin 60s linear infinite;
+}
+
+.animate-ribbon {
+  animation: ribbon-sway 6s ease-in-out infinite;
+}
+
+/* Hand-drawn line boil — for hand-drawn line art ONLY (arrows, ribbon tails,
+   bud strokes, specimen strokes). `transform-box: fill-box` centers the
+   jitter on each element's own bounds, and transform-only means no layout
+   shift. Explicitly disabled under reduced motion so the artwork is
+   pixel-identical to the static composition. */
+.line-boil {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: line-boil 1.15s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .line-boil {
+    animation: none;
+  }
+}
+
+/* Icon-sized variant — same guarantees, gentler jitter. */
+.line-boil-fine {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: line-boil-fine 1.25s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .line-boil-fine {
+    animation: none;
+  }
+}
+
 /* Decorative petals. Base `opacity: 0` so that under `prefers-reduced-motion`
    (which forces the animation to a single 0.01ms iteration) the petals settle
-   to their non-animated state and stay invisible — no motion, no static clutter.
-   `pointer-events: none` + `z-index: 0` keep them behind live content; the
-   surrounding section establishes a stacking context (Tailwind `isolate` /
-   sticky nav) and the real content sits in a `relative z-10` wrapper. */
+   to their non-animated state and stay invisible. */
 .petal {
   position: absolute;
   pointer-events: none;
@@ -177,9 +271,6 @@ html {
   animation: petal-fall 10s linear infinite;
 }
 
-/* Navbar petals: faint, behind the nav's content. `z-index: -1` places them
-   above the nav's own background but below the (non-positioned) links, logo
-   and cart icon within the sticky nav's stacking context. */
 .petal-nav {
   position: absolute;
   pointer-events: none;
@@ -188,52 +279,118 @@ html {
   animation: petal-drift 9s ease-in-out infinite;
 }
 
-/* ─── Product Card: museum-plaque / gallery label ──────────────── */
-/* Anti-generic: sharp corners (border-radius: 0), a single 1px hairline
-   border, NO shadow on side cards, edge-to-edge image, a hairline
-   divider under the image, and an editorial specimen label below.
-   Hover draws a 2px rose underline under the product name (width 0→100%)
-   — a calm, non-zoom delight. The reduced-motion guard forces the
-   transition to ~instant, so the underline snaps to full width on hover
-   and settles to width 0 on rest. No broken state. */
-.plaque-card {
-  border: 1px solid #F0E0E0;
+/* Floating hearts: base opacity 0 (invisible under reduced motion). */
+.heart-float {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  animation: heart-float 6s ease-in-out infinite;
+}
+
+/* ─── Texture: frosted wrapping-paper grid ─────────────────────── */
+/* The "crisp geometric structure" half of the brand: a faint rose grid,
+   like tracing paper over a gift box. */
+.wrapping-grid {
+  background-image:
+    linear-gradient(to right, rgba(177, 110, 110, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(177, 110, 110, 0.055) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* ─── Texture: soft diffused warm light (satin vignette) ───────── */
+.vignette {
+  background:
+    radial-gradient(ellipse 72% 58% at 50% 38%, rgba(249, 228, 228, 0.55), rgba(254, 250, 245, 0) 72%);
+}
+
+/* ─── Texture: stitching (hand-sewn dashed seams) ──────────────── */
+.stitch {
+  border: 1px dashed #E4C9B8;
+}
+
+/* ─── Texture: washi tape strip ────────────────────────────────── */
+.washi {
+  background: rgba(249, 228, 228, 0.78);
+  box-shadow: 0 1px 4px rgba(74, 59, 59, 0.1);
+}
+
+/* ─── Product Card: warm "gift tag" language ───────────────────── */
+/* Evolves the museum-plaque card: sharp corners, warm hairline border,
+   no shadow, paper-cream ground. Hover warms the border and draws a rose
+   underline under the name. The reduced-motion guard forces transitions
+   to ~instant, so the underline snaps to full width on hover. */
+.gift-card {
+  border: 1px solid #EDE0D4;
   border-radius: 0;
-  background: #FFFAFA;
+  background: #FEFAF5;
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
-.plaque-card.is-emphasized {
+.gift-card:hover {
   border-color: #B16E6E;
-  box-shadow: 0 10px 28px -16px rgba(212, 165, 165, 0.45);
 }
-.plaque-divider {
-  border-top: 1px solid #F0E0E0;
+.gift-card.is-emphasized {
+  border-color: #B16E6E;
+  box-shadow: 0 14px 30px -18px rgba(212, 165, 165, 0.55);
 }
-.plaque-name {
+
+.gift-divider {
+  border-top: 1px dashed #E4C9B8;
+}
+
+.gift-name {
   position: relative;
 }
-.plaque-name::after {
+.gift-name::after {
   content: "";
   position: absolute;
   left: 0;
-  bottom: -2px;
+  bottom: -3px;
   height: 2px;
   width: 0;
   background: #B16E6E;
   transition: width 0.45s ease;
 }
-.group:hover .plaque-name::after,
-.group:focus-within .plaque-name::after {
+.group:hover .gift-name::after,
+.group:focus-within .gift-name::after {
   width: 100%;
 }
 
-/* ─── Cart item: plaque language + calm border-warm on hover ────── */
-/* Extends `.plaque-card` (sharp corners, hairline border, no shadow)
-   with a rose border-warm on hover. The `:hover` specificity beats
-   `.plaque-card`'s base `border-color`, and `.plaque-card`'s own
-   `transition: border-color 0.4s ease` carries the animation — so we
-   don't redeclare the transition here. Used on cart line items so the
-   cart reads as part of the same editorial system as the product cards. */
+/* ─── Specimen wall: staggered herbarium grid ──────────────────── */
+/* Asymmetric product wall — columns 2 & 4 sit lower, like specimens
+   pinned to a board at different heights. */
+.specimen-wall {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+.specimen-wall > *:nth-child(4n+2),
+.specimen-wall > *:nth-child(4n+4) {
+  margin-top: 2.5rem;
+}
+@media (max-width: 1024px) {
+  .specimen-wall {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .specimen-wall > *:nth-child(4n+2),
+  .specimen-wall > *:nth-child(4n+4) {
+    margin-top: 0;
+  }
+  .specimen-wall > *:nth-child(2n) {
+    margin-top: 2.5rem;
+  }
+}
+@media (max-width: 640px) {
+  .specimen-wall {
+    grid-template-columns: 1fr;
+  }
+  .specimen-wall > *:nth-child(2n) {
+    margin-top: 0;
+  }
+}
+
+/* ─── Cart item: warm border-warm on hover ─────────────────────── */
 .cart-item-card:hover {
   border-color: #B16E6E;
 }
@@ -253,14 +410,6 @@ html {
 }
 
 /* ─── Under-construction screen: staggered entrance ─────────────── */
-/* The under-construction page replaces the whole site, so template.tsx's
-   `.page-enter` never wraps it — it needs its own settle-in. Content elements
-   opt in with `.uc-enter` and stagger via inline `animation-delay`. The
-   animation is declared ONLY under `(prefers-reduced-motion: no-preference)`,
-   so reduced-motion users get the fully-visible static composition instantly
-   with no animation-delay gap (the global guard can't cancel delays, so we
-   never set them in the first place). Reuses the existing `fade-up` keyframes
-   (16px rise + fade). */
 @media (prefers-reduced-motion: no-preference) {
   .uc-enter {
     animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;

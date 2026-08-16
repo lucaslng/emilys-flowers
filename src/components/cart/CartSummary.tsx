@@ -10,6 +10,10 @@ import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
+/**
+ * CartSummary — "the receipt". A stitched receipt card with a dashed seam
+ * under the heading. Free shipping reads in rose (no cool green anywhere).
+ */
 export default function CartSummary() {
   const { items, getTotal, getItemCount } = useCart();
   const subtotal = getTotal();
@@ -23,10 +27,7 @@ export default function CartSummary() {
   const isFirstRun = useRef(true);
 
   // Cost-number micro-interaction: a subtle scale bump on the Total
-  // whenever it changes — which happens both when a quantity changes
-  // and when an item is removed (the row's exit tween completes, the
-  // context updates, and this fires). No-op under reduced motion and
-  // on the first render. Mirrors the quantity-bump in CartItem.
+  // whenever it changes. No-op under reduced motion and on first render.
   useGSAP(
     () => {
       if (isFirstRun.current) {
@@ -51,37 +52,37 @@ export default function CartSummary() {
 
   return (
     <Reveal delay={0.1}>
-      <div ref={rootRef} className="border border-[#F0E0E0] bg-[#FFF5F5] p-6">
-        <h2 className="font-serif text-xl font-semibold text-[#4A3B3B]">
+      <div ref={rootRef} className="stitch relative bg-surface p-6">
+        <h2 className="font-sans text-lg font-bold uppercase tracking-[0.14em] text-foreground">
           Order Summary
         </h2>
-        {/* Edge-to-edge hairline divider under the heading (specimen-label feel) */}
-        <div className="plaque-divider -mx-6 mt-4" />
+        {/* Dashed seam under the heading */}
+        <div className="gift-divider -mx-6 mt-4" />
 
         <div className="mt-6 space-y-3">
-          <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
+          <div className="flex justify-between font-sans text-sm text-foreground">
             <span>
               Items ({itemCount})
             </span>
             <span className="tabular-nums">${formatPrice(subtotal)}</span>
           </div>
-          <div className="flex justify-between font-sans text-sm text-[#4A3B3B]">
+          <div className="flex justify-between font-sans text-sm text-foreground">
             <span>Shipping</span>
             <span className="tabular-nums">
               {shipping === 0 ? (
-                <span className="text-green-700">Free</span>
+                <span className="font-semibold text-rose-deep">Free</span>
               ) : (
                 `$${formatPrice(shipping)}`
               )}
             </span>
           </div>
           {shipping > 0 && (
-            <p className="font-sans text-xs text-[#7A6868]">
+            <p className="font-sans text-xs text-muted">
               Free shipping on orders over $50.00
             </p>
           )}
-          <div className="plaque-divider pt-3">
-            <div className="flex justify-between font-serif text-lg font-bold text-[#4A3B3B]">
+          <div className="gift-divider pt-3">
+            <div className="flex justify-between font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground">
               <span>Total</span>
               <span ref={totalRef} className="tabular-nums">${formatPrice(total)}</span>
             </div>
@@ -96,7 +97,7 @@ export default function CartSummary() {
 
         <Link
           href="/bouquets"
-          className="mt-3 block text-center font-sans text-sm text-[#7A6868] underline transition-colors hover:text-[#9E5E5E]"
+          className="mt-3 block text-center font-sans text-sm text-muted underline decoration-rose-line/50 underline-offset-4 transition-colors hover:text-rose-deep hover:decoration-rose-deep"
         >
           Continue Shopping
         </Link>

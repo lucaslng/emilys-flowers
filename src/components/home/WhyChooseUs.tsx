@@ -1,67 +1,198 @@
 import Container from '@/components/ui/Container';
 import Reveal from '@/components/ui/Reveal';
+import StarMotif from '@/components/ui/StarMotif';
 
-const reasons = [
+type ReasonIconName = 'scissors' | 'heart' | 'bloom';
+
+const reasons: {
+  title: string;
+  description: string;
+  icon: ReasonIconName;
+}[] = [
   {
     title: 'Made by Hand',
     description:
       'My BF and I cut, fold, and assemble every petal by hand.',
+    icon: 'scissors',
   },
   {
     title: 'Made to Keep',
     description:
       'Unlike regular flowers, my ribbon flowers will last you for the rest of time.',
+    icon: 'heart',
   },
   {
     title: 'Made to Your Palette',
     description:
       'Custom color, style, and arrangement requests are welcome for weddings, interiors, and gifts. Feel free to message me on Instagram @emilysflowers_!',
+    icon: 'bloom',
   },
 ];
 
+/**
+ * ReasonIcon — hand-drawn line-art icons for the maker's notes (scissors,
+ * heart, bloom). Stroke-only SVG line art, `currentColor` so the parent's
+ * text color drives the tone. The icon boils like ink settling while the
+ * crisp bordered stamp around it stays still (satin content, geometric
+ * frame). Purely decorative (aria-hidden).
+ */
+function ReasonIcon({ name }: { name: ReasonIconName }) {
+  const common = {
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+
+  if (name === 'scissors') {
+    return (
+      <svg
+        aria-hidden="true"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="line-boil-fine text-rose-deep"
+      >
+        <circle cx="7" cy="7" r="2.4" {...common} />
+        <circle cx="17" cy="7" r="2.4" {...common} />
+        <path d="M9.4 9.4 L 20 20" {...common} />
+        <path d="M14.6 9.4 L 4 20" {...common} />
+      </svg>
+    );
+  }
+
+  if (name === 'heart') {
+    return (
+      <svg
+        aria-hidden="true"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="line-boil-fine text-rose-deep"
+      >
+        <path
+          d="M12 20 C 8.5 16.5 4.5 13.5 4.5 9.5 C 4.5 6.5 6.5 4.5 9 4.5 C 10.5 4.5 11.5 5.5 12 7 C 12.5 5.5 13.5 4.5 15 4.5 C 17.5 4.5 19.5 6.5 19.5 9.5 C 19.5 13.5 15.5 16.5 12 20 Z"
+          {...common}
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="line-boil-fine text-rose-deep"
+    >
+      <g {...common}>
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(72 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(144 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(216 12 12)" />
+        <path d="M12 12 C 10.4 8.6 10.4 5.6 12 4.2 C 13.6 5.6 13.6 8.6 12 12" transform="rotate(288 12 12)" />
+      </g>
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * WhyChooseUs — "the maker's notebook". A stitched, ruled panel holds three
+ * numbered maker's notes, each with a hand-drawn icon and a dashed seam.
+ * The heading block is a tilted, washi-taped card overlapping the panel —
+ * no symmetric two-column layout.
+ */
 export default function WhyChooseUs() {
   return (
-    <section id="why-emilys-flowers" className="bg-[#FFF5F5] pt-20 pb-24 sm:pt-28 sm:pb-32">
-      <Container>
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
-          {/* Editorial intro — left column */}
-          <Reveal className="lg:pt-2">
-            <h2 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
-              Why Emily&rsquo;s Flowers
-            </h2>
-            <p className="mt-4 max-w-sm font-sans text-base leading-relaxed text-[#7A6868]">
-              Three standards behind every arrangement.
-            </p>
-            <div className="mt-6 h-px w-16 bg-[#D4A5A5]" aria-hidden="true" />
+    <section
+      id="why-emilys-flowers"
+      className="relative isolate overflow-hidden bg-surface py-16 sm:py-24"
+    >
+      {/* Warm champagne wash, lower-right */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 40% at 85% 90%, rgba(243, 228, 211, 0.6), rgba(243, 228, 211, 0) 70%)',
+        }}
+      />
+
+      <Container className="relative z-10">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:gap-14">
+          {/* Heading — tilted card, taped to the notebook */}
+          <Reveal className="lg:pt-10">
+            <div className="relative -rotate-1 border border-border bg-background p-6 sm:p-8">
+              <span aria-hidden="true" className="washi absolute -top-3 right-8 h-6 w-24 rotate-2" />
+              <StarMotif size={40} className="absolute -right-3 -top-3 text-rose opacity-70" />
+              <p className="font-hand text-3xl leading-none text-rose-deep">
+                our promise ♡
+              </p>
+              <h2 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
+                Why Emily&rsquo;s Flowers
+              </h2>
+              <p className="mt-4 font-sans text-sm leading-relaxed text-muted">
+                Three standards behind every arrangement.
+              </p>
+            </div>
           </Reveal>
 
-          {/* Specimen list — right column, framed by hairlines */}
-          <Reveal
-            stagger
-            className="border-t border-[#F0E0E0] lg:border-t-0 lg:border-l lg:pl-16"
-          >
-            {reasons.map((reason, i) => (
-              <div
-                key={reason.title}
-                className="group grid grid-cols-[auto_1fr] items-start gap-x-6 border-b border-[#F0E0E0] py-8 transition-colors duration-300 hover:border-[#B16E6E] sm:gap-x-8 sm:py-10"
-              >
-                <span
-                  aria-hidden="true"
-                  className="font-serif text-2xl leading-none tabular-nums text-[#9E5E5E] sm:text-3xl"
+          {/* Notebook page — stitched border + ruled lines */}
+          <div className="stitch relative bg-background px-6 py-8 sm:px-10 sm:py-10">
+            {/* Ruled lines — faint warm hairlines */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(to bottom, transparent 0, transparent 43px, rgba(177, 110, 110, 0.09) 43px, rgba(177, 110, 110, 0.09) 44px)',
+              }}
+            />
+            <Reveal stagger className="relative">
+              {reasons.map((reason, i) => (
+                <div
+                  key={reason.title}
+                  className="group grid grid-cols-[auto_1fr] items-start gap-x-5 py-7 first:pt-0 last:pb-0 sm:gap-x-7"
                 >
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <div>
-                  <h3 className="plaque-name font-serif text-xl font-semibold text-[#4A3B3B] sm:text-2xl">
-                    {reason.title}
-                  </h3>
-                  <p className="mt-2 font-sans text-sm leading-relaxed text-[#7A6868] sm:text-base">
-                    {reason.description}
-                  </p>
+                  {/* Hand-drawn icon + number */}
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-11 w-11 items-center justify-center border border-rose-line/70 bg-blush/60 text-rose-deep"
+                    >
+                      <ReasonIcon name={reason.icon} />
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="font-sans text-[10px] tabular-nums tracking-[0.2em] text-muted"
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="gift-name font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground sm:text-xl">
+                      {reason.title}
+                    </h3>
+                    <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-muted sm:text-base">
+                      {reason.description}
+                    </p>
+                  </div>
+                  {/* Dashed seam between notes */}
+                  {i < reasons.length - 1 && (
+                    <div
+                      aria-hidden="true"
+                      className="gift-divider col-span-2 mt-7"
+                    />
+                  )}
                 </div>
-              </div>
-            ))}
-          </Reveal>
+              ))}
+            </Reveal>
+          </div>
         </div>
       </Container>
     </section>

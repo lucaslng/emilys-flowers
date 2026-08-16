@@ -36,7 +36,7 @@ writing code that touches any of these areas.
 | Doc | When to read |
 |---|---|
 | [nextjs-and-react.md](./nextjs-and-react.md) | Before touching routes, layouts, data fetching, metadata, route handlers, or React hooks/components. Covers Next.js 16 + React 19 breaking changes. |
-| [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the museum-plaque card language. |
+| [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the warm gift-tag card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
 | [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts` or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) |
 

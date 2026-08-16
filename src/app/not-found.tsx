@@ -10,15 +10,11 @@ import Container from '@/components/ui/Container';
 /**
  * 404 — "This bloom has wandered off."
  *
- * A pressed-flower herbarium specimen card: a single handcrafted ribbon flower,
- * pressed flat and mounted on a plaque label, with "404" as its specimen
- * catalog number. Carries the museum-plaque aesthetic (hairline border, sharp
- * corners, no heavy shadow, rose accent) used by product cards across the site.
- *
- * Motion: the card settles onto the page, the flower head blooms open, the stem
- * draws in, and a gentle puff of petals drifts upward from the bloom. All
- * motion is gated behind prefers-reduced-motion (no-preference / reduce
- * branches), and firePetalBurst is itself a no-op under reduced motion.
+ * A pressed-flower specimen card: a single handcrafted ribbon flower pressed
+ * flat and mounted on a warm gift-tag label, with "404" as its specimen
+ * catalog number. Motion: the card settles onto the page, the flower head
+ * blooms open, the stem draws in, and a gentle puff of petals drifts upward.
+ * All motion is gated behind prefers-reduced-motion.
  */
 
 const OUTER_PETAL_D = 'M100 40 C 84 54, 84 74, 100 80 C 116 74, 116 54, 100 40 Z';
@@ -112,7 +108,7 @@ export default function NotFound() {
     <path
       key={`inner-${i}`}
       d={INNER_PETAL_D}
-      fill="#E8D5E8"
+      fill="#F3E4D3"
       stroke="#D4A5A5"
       strokeWidth={1}
       opacity={0.85}
@@ -123,21 +119,23 @@ export default function NotFound() {
   return (
     <section
       ref={root}
-      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-[#FFFAFA] py-8 sm:py-10"
+      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-background py-8 sm:py-10"
     >
-      {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded
-          via the .petal class (base opacity:0, forced to a single 0.01ms
-          iteration under prefers-reduced-motion, so they stay invisible). */}
-      <span className="petal text-[#B16E6E] text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
-      <span className="petal text-[#B16E6E] text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-[#B16E6E] text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
-      <span className="petal text-[#B16E6E] text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-[#B16E6E] text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
+      {/* Frosted wrapping grid + warm light */}
+      <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
+      <div aria-hidden="true" className="vignette absolute inset-0" />
+
+      {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded */}
+      <span className="petal text-rose-line text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
+      <span className="petal text-rose-line text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-rose-line text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
+      <span className="petal text-rose-line text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
+      <span className="petal text-rose-line text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
 
       <Container className="relative z-10">
         <div
           ref={cardRef}
-          className="plaque-card is-emphasized mx-auto max-w-xl px-8 py-8 sm:px-12 sm:py-10"
+          className="gift-card is-emphasized mx-auto max-w-xl px-8 py-8 sm:px-12 sm:py-10"
         >
           {/* Pressed ribbon flower specimen */}
           <div className="flex justify-center">
@@ -150,37 +148,42 @@ export default function NotFound() {
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
-              {/* Stem + leaves — draw in on mount */}
-              <path
-                data-stem
-                d="M100 115 Q 97 180 100 270"
-                stroke="#B5A77A"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                fill="none"
-              />
-              <path
-                data-stem
-                d="M100 175 Q 78 168 70 150 Q 86 158 100 175"
-                stroke="#B5A77A"
-                strokeWidth={2}
-                strokeLinecap="round"
-                fill="#B5A77A"
-                fillOpacity={0.25}
-              />
-              <path
-                data-stem
-                d="M100 210 Q 122 203 130 185 Q 114 193 100 210"
-                stroke="#B5A77A"
-                strokeWidth={2}
-                strokeLinecap="round"
-                fill="#B5A77A"
-                fillOpacity={0.25}
-              />
+              {/* Hand-drawn specimen strokes — boil like ink settling.
+                  GSAP's stem draw-in animates stroke-dashoffset (not
+                  transform), so the two compose without conflict. */}
+              <g className="line-boil">
+                {/* Stem + leaves — draw in on mount (warm tan, not green) */}
+                <path
+                  data-stem
+                  d="M100 115 Q 97 180 100 270"
+                  stroke="#B99A72"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <path
+                  data-stem
+                  d="M100 175 Q 78 168 70 150 Q 86 158 100 175"
+                  stroke="#B99A72"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  fill="#B99A72"
+                  fillOpacity={0.25}
+                />
+                <path
+                  data-stem
+                  d="M100 210 Q 122 203 130 185 Q 114 193 100 210"
+                  stroke="#B99A72"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  fill="#B99A72"
+                  fillOpacity={0.25}
+                />
 
-              {/* Ribbon tails + knot — the "ribbon" in ribbon flower */}
-              <path d="M95 115 Q 86 140 82 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
-              <path d="M105 115 Q 114 140 118 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
+                {/* Ribbon tails — the "ribbon" in ribbon flower */}
+                <path d="M95 115 Q 86 140 82 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
+                <path d="M105 115 Q 114 140 118 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
+              </g>
               <rect x={95} y={111} width={10} height={9} rx={1.5} fill="#D4A5A5" />
 
               {/* Flower head — blooms open from center */}
@@ -194,26 +197,29 @@ export default function NotFound() {
           </div>
 
           {/* Specimen label divider */}
-          <div className="plaque-divider my-5" />
+          <div className="gift-divider my-5" />
 
           {/* Specimen catalog number */}
-          <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-[#7A6868]">
+          <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-muted">
             Specimen &#8470;404
           </p>
 
           {/* Heading */}
-          <h1 className="mt-3 text-center font-serif text-2xl font-bold text-[#4A3B3B] sm:text-3xl">
+          <h1 className="mt-3 text-center font-sans text-2xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-3xl">
             This bloom has wandered off
           </h1>
 
-          {/* Subtext */}
-          <p className="mt-2 text-center font-sans text-base text-[#7A6868]">
-            The page you&rsquo;re looking for isn&rsquo;t in our garden.
-            Let&rsquo;s find your way back.
+          {/* Handwritten nudge */}
+          <p className="mt-2 text-center font-hand text-3xl leading-none text-rose-deep">
+            let&rsquo;s find our way back ♡
           </p>
 
-          {/* CTAs — Button renders a next/link via its polymorphic `as` prop,
-              keeping variant/size styles owned by Button (one source of truth). */}
+          {/* Subtext */}
+          <p className="mt-3 text-center font-sans text-base text-muted">
+            The page you&rsquo;re looking for isn&rsquo;t in our garden.
+          </p>
+
+          {/* CTAs */}
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Button as={Link} href="/" variant="primary" size="lg">
               Return home

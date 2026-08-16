@@ -21,13 +21,15 @@ type ButtonOwnProps<T extends ElementType> = {
 type ButtonProps<T extends ElementType = 'button'> = ButtonOwnProps<T> &
   Omit<ComponentPropsWithoutRef<T>, keyof ButtonOwnProps<T>>;
 
+/* Warm-stamped buttons: sharp corners (the geometric voice), a satin-blush
+   primary, a rose-outlined secondary, and a quiet ghost. */
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#F9E4E4] text-[#4A3B3B] hover:bg-[#F0D4D4] active:shadow-[0_0_15px_rgba(212,165,165,0.5)] border border-transparent',
+    'bg-blush text-foreground hover:bg-[#F0D4D4] active:shadow-[0_0_15px_rgba(212,165,165,0.5)] border border-transparent',
   secondary:
-    'bg-transparent text-[#4A3B3B] border border-[#B16E6E] hover:bg-[#FFF5F5]',
+    'bg-transparent text-foreground border border-rose-line hover:bg-surface',
   ghost:
-    'bg-transparent text-[#4A3B3B] hover:bg-[#FFF5F5] border border-transparent',
+    'bg-transparent text-foreground hover:bg-surface border border-transparent',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -52,7 +54,7 @@ export default function Button<T extends ElementType = 'button'>({
   const Component = (as ?? 'button') as ElementType;
   return (
     <Component
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-sans font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-none font-sans font-medium uppercase tracking-[0.12em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
       {...props}
     >
       {children}

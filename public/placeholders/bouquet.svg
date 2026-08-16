@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
-  <rect width="600" height="600" fill="#FFFAFA"/>
+  <rect width="600" height="600" fill="#FEFAF5"/>
   <defs>
     <g id="bloom">
       <g stroke="#D4A5A5" stroke-width="2" fill="#F9E4E4">
@@ -12,7 +12,7 @@
       <circle cx="0" cy="0" r="20" fill="#D4A5A5"/>
     </g>
   </defs>
-  <g stroke="#8B7B7B" stroke-width="3" fill="none" stroke-linecap="round">
+  <g stroke="#B99A72" stroke-width="3" fill="none" stroke-linecap="round">
     <line x1="300" y1="210" x2="300" y2="495"/>
     <line x1="205" y1="285" x2="300" y2="495"/>
     <line x1="395" y1="285" x2="300" y2="495"/>

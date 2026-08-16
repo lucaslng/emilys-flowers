@@ -8,11 +8,17 @@ import { firePetalBurst } from '@/lib/petal-burst';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
-import SquiggleUnderline from '@/components/ui/SquiggleUnderline';
+import RibbonRose from '@/components/ui/RibbonRose';
+import StarMotif from '@/components/ui/StarMotif';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
+/**
+ * CartPageClient — "the gift box, open". Items hang from a dashed string
+ * like gift tags on a line. The empty state is an open gift box with a
+ * handwritten nudge.
+ */
 export default function CartPageClient() {
   const { items, clearCart, getItemCount } = useCart();
   const itemsContainerRef = useRef<HTMLDivElement>(null);
@@ -57,9 +63,7 @@ export default function CartPageClient() {
     // Stagger the items out: fade + slide right + collapse height/margins/
     // padding, then dispatch clearCart() in onComplete so React state and
     // the visual exit stay in sync. Total duration is capped at ~0.5s
-    // regardless of item count: the stagger window shrinks as items grow
-    // (0.35s base + at most 0.15s of stagger) so a large cart still
-    // clears snappy and Playwright won't flake.
+    // regardless of item count so a large cart still clears snappy.
     const baseDuration = 0.35;
     const maxTotalDuration = 0.5;
     const stagger = Math.min(
@@ -91,77 +95,86 @@ export default function CartPageClient() {
   const totalQuantity = getItemCount();
 
   return (
-    <div className="py-12 sm:py-16">
-      <Container>
+    <div className="relative isolate overflow-hidden py-12 sm:py-16">
+      {/* Warm wash */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 40% at 20% 10%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)',
+        }}
+      />
+
+      <Container className="relative z-10">
         <Reveal>
-          <div className="mb-10 text-center sm:mb-12">
-            <h1 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
-              Shopping Cart
-            </h1>
-            <p className="mt-2 font-sans text-base text-[#7A6868]">
-              Review and manage your items
-            </p>
-            <div className="mt-2 flex justify-center">
-              <SquiggleUnderline />
+          <div className="mb-10 sm:mb-12">
+            <div className="flex items-center gap-3">
+              <StarMotif size={36} className="text-rose opacity-80" />
+              <h1 className="font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
+                Shopping Cart
+              </h1>
+            </div>
+            {/* Hand-drawn arrow annotation */}
+            <div className="mt-3 flex items-center gap-2">
+              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
+                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+              </svg>
+              <span className="font-hand text-3xl leading-none text-rose-deep">
+                {totalQuantity > 0
+                  ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped ♡`
+                  : 'nothing wrapped yet ♡'}
+              </span>
             </div>
           </div>
         </Reveal>
 
         {items.length === 0 ? (
-          /* Empty State — plaque frame + specimen-mount icon */
+          /* Empty State — an open gift box */
           <Reveal>
-            <div className="flex min-h-[420px] flex-col items-center justify-center border border-[#F0E0E0] bg-[#FFF5F5] px-6 py-16 text-center">
+            <div className="stitch relative flex min-h-[440px] flex-col items-center justify-center bg-surface px-6 py-16 text-center">
               <div
-                className="flex h-24 w-24 items-center justify-center border border-[#F0E0E0] bg-[#FFFAFA]"
                 aria-hidden="true"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-12 w-12 text-[#9E5E5E]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                  />
-                </svg>
+                className="wrapping-grid absolute inset-0 opacity-40"
+              />
+              <div className="relative">
+                <RibbonRose size={150} className="mx-auto" />
+                {/* Gift-box lid, tilted */}
+                <div className="mx-auto -mt-2 h-3 w-44 rotate-[-1.5deg] border border-rose-line/70 bg-blush/80" />
               </div>
-              <h2 className="mt-8 font-serif text-2xl font-semibold text-[#4A3B3B]">
+              <h2 className="relative mt-8 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
                 Your cart is empty
               </h2>
-              <div className="mt-3 flex justify-center">
-                <SquiggleUnderline />
-              </div>
-              <p className="mt-4 max-w-sm font-sans text-sm text-[#7A6868]">
-                Looks like you haven&apos;t added any flowers yet.
+              <p className="relative mt-3 max-w-sm font-sans text-sm leading-relaxed text-muted">
+                Looks like you haven&apos;t added any flowers yet. The gift
+                box is waiting.
               </p>
-              <Link href="/bouquets" className="mt-8">
+              <Link href="/bouquets" className="relative mt-8">
                 <Button variant="primary">Shop Bouquets</Button>
               </Link>
             </div>
           </Reveal>
         ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            {/* Cart Items */}
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-8">
+            {/* Cart Items — hanging from a dashed string */}
             <div className="lg:col-span-2">
+              {/* The string */}
+              <div aria-hidden="true" className="mb-8 border-t border-dashed border-rose-line/50" />
               <div className="mb-5 flex items-center justify-between">
-                <p className="font-sans text-sm text-[#7A6868]">
+                <p className="font-sans text-sm text-muted">
                   {totalQuantity} item{totalQuantity !== 1 ? 's' : ''} in your cart
                 </p>
                 <button
                   onClick={handleClearCart}
                   disabled={isClearing}
-                  className="py-1 font-sans text-sm text-[#7A6868] underline decoration-[#E0CFCF] underline-offset-4 transition-colors hover:text-[#9E5E5E] hover:decoration-[#9E5E5E] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="py-1 font-sans text-sm text-muted underline decoration-rose-line/50 underline-offset-4 transition-colors hover:text-rose-deep hover:decoration-rose-deep disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Clear Cart
                 </button>
               </div>
               <div ref={itemsContainerRef}>
-                <Reveal stagger className="space-y-4">
+                <Reveal stagger className="space-y-5">
                   {items.map((item) => (
                     <CartItem key={item.product.id} item={item} />
                   ))}
@@ -169,7 +182,7 @@ export default function CartPageClient() {
               </div>
             </div>
 
-            {/* Summary */}
+            {/* Summary — the receipt */}
             <div>
               <div className="sticky top-24">
                 <CartSummary />
