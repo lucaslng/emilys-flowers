@@ -72,6 +72,14 @@ absent — so preview builds always render the store, never the construction
 screen. (The Flagship credentials are still passed to both builds because
 `enable-flowers-page` is evaluated in both.)
 
+**The flag values only reach users because the prerendered pages are actually
+served**: `open-next.config.ts` uses `staticAssetsIncrementalCache` and
+`deploy.yml` runs `populateCache local` after the build, so the worker serves
+the build-time prerendered HTML (flags baked in) instead of re-rendering at
+runtime. If you ever remove the static-assets cache, the flags will silently
+fail open in production again — the build-time `process.env` values do not
+exist on the Worker at runtime.
+
 When the flag is on, `src/app/layout.tsx` renders the standalone
 `UnderConstruction` component (`src/components/under-construction.tsx`) instead
 of the app tree (no Navbar/Footer/cart/providers). `src/app/robots.ts` returns
@@ -120,6 +128,9 @@ CI build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
 from server components (layout, pages, Footer, not-found, FeaturedBouquets,
 sitemap) — never from client components; client components receive the value as
 a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
+Like `under-construction`, this only works because the prerendered pages are
+served via `staticAssetsIncrementalCache` + `populateCache local` (see the
+under-construction section).
 
 Credentials are passed to **both** `Build (OpenNext)` steps in `deploy.yml`
 (production and preview evaluate the same flag): `FLAGSHIP_APP_ID`,
@@ -180,7 +191,7 @@ echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
 ### Other config
 
 - **`wrangler.jsonc`** is the Workers config: `main: .open-next/worker.js`, `nodejs_compat` flag, `IMAGES` binding (Cloudflare Images for `next/image`), and `WORKER_SELF_REFERENCE` service binding (required by OpenNext for ISR revalidation, even though this app has no ISR today — keep it).
-- **`open-next.config.ts`** is the OpenNext adapter config. The default `defineCloudflareConfig({})` is sufficient for this app (hardcoded products, no ISR/SSG data fetching, no DB). R2 incremental cache is commented out — enable it only if you add cached data fetching.
+- **`open-next.config.ts`** is the OpenNext adapter config. It enables `staticAssetsIncrementalCache` (read-only Workers Static Assets cache): the worker serves the build-time prerendered pages from the assets instead of re-rendering every page at runtime. This is what makes the build-time Flagship flag values actually reach users — without it, the default "dummy" cache re-renders every page on the Worker, where the build-time `process.env` flag values don't exist, so every flag check fails open (flowers visible, no under-construction). The cache is populated by `populateCache local` in `deploy.yml` after `build` and before `deploy`/`upload` (copies `.open-next/cache` into the assets at `cdn-cgi/_next_cache/`). R2 incremental cache is the alternative if you add cached data fetching with revalidation.
 - **`next.config.ts`** ends with an unconditional `import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev())` — this is the official pattern; it injects `wrangler.jsonc` bindings into `next dev` so `getCloudflareContext()` works locally. It self-guards outside dev.
 - **Generated dirs** `.open-next/` (build output) and `.wrangler/` (local state) are gitignored. `cloudflare-env.d.ts` (from `bun run cf-typegen`) is also gitignored — regenerate it locally when you start referencing `CloudflareEnv` in code, then commit it once code depends on its types.
 - **Local Workers secrets** go in `.dev.vars` (gitignored). A `.dev.vars.example` template is tracked. Runtime secrets on production are set via `wrangler secret put` or the Cloudflare dashboard — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only).
