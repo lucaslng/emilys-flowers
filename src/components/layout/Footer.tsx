@@ -99,8 +99,8 @@ export default function Footer() {
               {footerLinks.map((group, i) => (
                 <div
                   key={group.title}
-                  className={`relative w-full max-w-xs border border-border bg-background p-5 sm:w-56 ${
-                    i === 0 ? 'rotate-1' : '-rotate-1 sm:mt-6'
+                  className={`relative w-full max-w-xs border border-border bg-background p-5 ${
+                    i === 0 ? 'rotate-1 sm:w-56' : '-rotate-1 sm:mt-6 sm:w-64'
                   }`}
                 >
                   <h3 className="mb-4 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-rose-deep">
@@ -114,7 +114,11 @@ export default function Footer() {
                           {...(link.external
                             ? { target: '_blank', rel: 'noopener noreferrer' }
                             : {})}
-                          className="font-sans text-sm text-muted transition-colors hover:text-rose-deep"
+                          className={`font-sans text-muted transition-colors hover:text-rose-deep ${
+                            link.href.startsWith('mailto:')
+                              ? 'whitespace-nowrap text-xs'
+                              : 'text-sm'
+                          }`}
                         >
                           {link.label}
                         </Link>

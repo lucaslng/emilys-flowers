@@ -25,14 +25,16 @@ export default function Hero() {
         }}
       />
 
-      {/* Diagonal ribbon band — the crisp geometric counterpoint */}
+      {/* Diagonal ribbon band — the crisp geometric counterpoint.
+          Kept to the top-right (45% width, high offset) so its rotated
+          left end never dips into the headline text at any breakpoint. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-24 top-10 h-10 w-[130%] -rotate-6 bg-blush/70"
+        className="pointer-events-none absolute -right-24 top-5 h-10 w-[45%] -rotate-6 bg-blush/70"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-24 top-[4.6rem] h-2 w-[130%] -rotate-6 bg-rose-line/40"
+        className="pointer-events-none absolute -right-24 top-[3.35rem] h-2 w-[45%] -rotate-6 bg-rose-line/40"
       />
 
       {/* Floating hearts — decorative, reduced-motion-guarded via .heart-float */}
