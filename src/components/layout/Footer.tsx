@@ -12,23 +12,8 @@ const footerLinks: FooterGroup[] = [
       { label: 'Individual Flowers', href: '/flowers' },
       { label: 'Bouquet Collections', href: '/bouquets' },
       { label: 'Featured', href: '/' },
-    ],
-  },
-  {
-    title: 'Support',
-    links: [
-      { label: 'Contact Us', href: '#' },
-      { label: 'Shipping Info', href: '#' },
-      { label: 'Returns', href: '#' },
-      { label: 'FAQ', href: '#' },
-    ],
-  },
-  {
-    title: 'Company',
-    links: [
-      { label: 'About Us', href: '#' },
-      { label: 'Our Story', href: '#' },
-      { label: 'Blog', href: '#' },
+      { label: 'About Us', href: '/#why-emilys-flowers' },
+      { label: 'FAQ', href: '/faq' },
     ],
   },
   {
@@ -56,7 +41,7 @@ export default function Footer() {
       <div className="relative z-10">
         {/* Links */}
         <Container className="py-12">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* Brand */}
             <div>
               <Link
@@ -66,8 +51,7 @@ export default function Footer() {
                 Emily&#39;s Flowers
               </Link>
               <p className="mt-3 font-sans text-sm text-[#7A6868] leading-relaxed">
-                Handcrafted ribbon flowers and bouquets made with love and
-                attention to detail. Each piece is a timeless work of art.
+                Handcrafted ribbon flowers and bouquets made with love.
               </p>
             </div>
 
