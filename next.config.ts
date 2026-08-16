@@ -51,11 +51,7 @@ const securityHeaders = [
 ];
 
 export default async function nextConfig(): Promise<NextConfig> {
-  // Evaluate the Flagship `enable-flowers-page` flag exactly once per build,
-  // in the main process, before static-generation workers spawn. The result
-  // is stored in process.env.FLOWERS_ENABLED, which every worker thread
-  // inherits — so the flag is fetched once per build instead of once per
-  // static page render.
+  // Evaluate the flag once per build; workers inherit the result via env.
   if (process.env.FLOWERS_ENABLED === undefined) {
     process.env.FLOWERS_ENABLED = String(await evaluateFlowersEnabled());
   }

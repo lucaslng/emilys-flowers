@@ -11,10 +11,8 @@ export function flowersEnabledFromEvaluateResponse(data: unknown): boolean {
   return (data as { value?: unknown }).value !== false;
 }
 
-// Uses Node's `https` module instead of the global `fetch` so Next.js's Data
-// Cache never intercepts the request. A cached fetch would serve a stale flag
-// value from a previous build (the Data Cache persists across builds with a
-// 1-year revalidate); the flag must be re-evaluated fresh on every build.
+// Use `https`, not `fetch`, so Next.js's Data Cache never serves a stale
+// flag value from a previous build.
 function evaluateFlag(url: string, apiToken: string): Promise<boolean> {
   return new Promise((resolve) => {
     const req = https.get(
@@ -48,10 +46,8 @@ function evaluateFlag(url: string, apiToken: string): Promise<boolean> {
   });
 }
 
-// Evaluated exactly once per build, in next.config.ts (the main build process,
-// before static-generation workers spawn). The result is stored in
-// process.env.FLOWERS_ENABLED, which every worker thread inherits — so the
-// flag is fetched once per build instead of once per static page render.
+// Called once per build from next.config.ts; result stored in
+// process.env.FLOWERS_ENABLED for all static-gen workers.
 export async function evaluateFlowersEnabled(): Promise<boolean> {
   const appId = process.env.FLAGSHIP_APP_ID;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -63,8 +59,7 @@ export async function evaluateFlowersEnabled(): Promise<boolean> {
   return evaluateFlag(flagshipEvaluateUrl(accountId, appId), apiToken);
 }
 
-// Synchronous read of the build-time value set by next.config.ts. Defaults to
-// enabled when unset (e.g. unit tests, or a build that skipped evaluation).
+// Reads the build-time value set by next.config.ts (defaults to enabled).
 export function isFlowersEnabled(): boolean {
   return process.env.FLOWERS_ENABLED !== "false";
 }
