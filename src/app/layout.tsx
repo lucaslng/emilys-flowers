@@ -2,7 +2,7 @@
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Martian_Mono, Reenie_Beanie } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { PetalBurstProvider } from "@/lib/petal-burst";
 import Navbar from "@/components/layout/Navbar";
@@ -14,13 +14,19 @@ import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// Martian Mono = the geometric/grid voice (structure, labels, UI).
+// Variable font, all weights available.
+const martian = Martian_Mono({
+  variable: "--font-martian",
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+// Reenie Beanie = the hand-drawn/chalk voice (accents, callouts,
+// annotations). Single weight (400) — deliberately NOT used for long copy
+// because of its small x-height.
+const reenie = Reenie_Beanie({
+  weight: "400",
+  variable: "--font-reenie",
   subsets: ["latin"],
 });
 
@@ -66,24 +72,19 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const fontClasses = `${martian.variable} ${reenie.variable}`;
   if (isUnderConstruction()) {
     return (
-      <html
-        lang="en"
-        className={`${inter.variable} ${playfair.variable} h-full antialiased`}
-      >
-        <body className="flex min-h-full flex-col bg-[#FFFAFA] font-sans text-[#4A3B3B]">
+      <html lang="en" className={`${fontClasses} h-full antialiased`}>
+        <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
           <UnderConstruction />
         </body>
       </html>
     );
   }
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${playfair.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col bg-[#FFFAFA] font-sans text-[#4A3B3B]">
+    <html lang="en" className={`${fontClasses} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <CartProvider>
           <a href="#main" className="skip-link">Skip to content</a>
           <PetalBurstProvider />

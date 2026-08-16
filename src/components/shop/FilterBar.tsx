@@ -17,6 +17,11 @@ interface FilterBarProps {
   onSecondaryCategoryChange?: (value: string) => void;
 }
 
+/**
+ * FilterBar — the "catalogue index". A stitched index card where filters
+ * read as stamped tabs: category + color pills, price sliders, and a sort
+ * select. Sharp corners and warm stamps — the geometric voice.
+ */
 export default function FilterBar({
   categories,
   selectedCategory,
@@ -31,27 +36,31 @@ export default function FilterBar({
   selectedSecondaryCategory,
   onSecondaryCategoryChange,
 }: FilterBarProps) {
+  const pillBase =
+    'rounded-none px-3 py-1.5 font-sans text-xs font-medium uppercase tracking-[0.1em] transition-colors';
+  const pillActive = 'bg-rose-deep text-white';
+  const pillIdle =
+    'bg-background text-foreground hover:bg-blush';
+
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[#F0E0E0] bg-[#FFF5F5] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="stitch relative flex flex-col gap-5 bg-surface p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
       {/* Category Filters (primary + optional secondary) */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <div
           role="group"
           aria-label="Filter by category"
           className="flex flex-wrap items-center gap-2"
         >
-          <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#7A6868]">
-            Category:
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
+            Category
           </span>
           {categories.map((cat) => (
             <button
               key={cat.value}
               onClick={() => onCategoryChange(cat.value)}
               aria-pressed={selectedCategory === cat.value}
-              className={`rounded-lg px-3 py-1.5 font-sans text-sm font-medium transition-colors ${
-                selectedCategory === cat.value
-                  ? 'bg-[#9E5E5E] text-white'
-                  : 'bg-[#FFFAFA] text-[#4A3B3B] hover:bg-[#F9E4E4]'
+              className={`${pillBase} ${
+                selectedCategory === cat.value ? pillActive : pillIdle
               }`}
             >
               {cat.label}
@@ -66,18 +75,16 @@ export default function FilterBar({
             aria-label="Filter by color"
             className="flex flex-wrap items-center gap-2"
           >
-            <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#7A6868]">
-              Color:
+            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
+              Color
             </span>
             {secondaryCategories.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => onSecondaryCategoryChange(cat.value)}
                 aria-pressed={selectedSecondaryCategory === cat.value}
-                className={`rounded-lg px-3 py-1.5 font-sans text-sm font-medium transition-colors ${
-                  selectedSecondaryCategory === cat.value
-                    ? 'bg-[#9E5E5E] text-white'
-                    : 'bg-[#FFFAFA] text-[#4A3B3B] hover:bg-[#F9E4E4]'
+                className={`${pillBase} ${
+                  selectedSecondaryCategory === cat.value ? pillActive : pillIdle
                 }`}
               >
                 {cat.label}
@@ -91,10 +98,10 @@ export default function FilterBar({
       <div
         role="group"
         aria-label="Filter by price"
-        className="flex items-center gap-2"
+        className="flex flex-wrap items-center gap-2"
       >
-        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#7A6868]">
-          Price:
+        <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
+          Price
         </span>
         <input
           type="range"
@@ -108,13 +115,13 @@ export default function FilterBar({
               selectedPriceRange[1],
             ])
           }
-          className="h-2 w-20 cursor-pointer appearance-none rounded-lg bg-[#F0E0E0] accent-[#D4A5A5]"
+          className="h-2 w-20 cursor-pointer appearance-none rounded-none bg-border accent-rose"
           aria-label="Minimum price"
         />
-        <span className="font-sans text-xs text-[#7A6868]">
+        <span className="font-sans text-xs text-muted">
           ${(selectedPriceRange[0] / 100).toFixed(0)}
         </span>
-        <span className="font-sans text-xs text-[#7A6868]">—</span>
+        <span className="font-sans text-xs text-muted">—</span>
         <input
           type="range"
           min={priceRange[0]}
@@ -127,10 +134,10 @@ export default function FilterBar({
               parseInt(e.target.value),
             ])
           }
-          className="h-2 w-20 cursor-pointer appearance-none rounded-lg bg-[#F0E0E0] accent-[#D4A5A5]"
+          className="h-2 w-20 cursor-pointer appearance-none rounded-none bg-border accent-rose"
           aria-label="Maximum price"
         />
-        <span className="font-sans text-xs text-[#7A6868]">
+        <span className="font-sans text-xs text-muted">
           ${(selectedPriceRange[1] / 100).toFixed(0)}
         </span>
       </div>
@@ -141,14 +148,14 @@ export default function FilterBar({
         aria-label="Sort products"
         className="flex items-center gap-2"
       >
-        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#7A6868]">
-          Sort:
+        <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
+          Sort
         </span>
         <select
           value={selectedSort}
           onChange={(e) => onSortChange(e.target.value)}
           aria-label="Sort products"
-          className="rounded-lg border border-[#F0E0E0] bg-[#FFFAFA] px-3 py-1.5 font-sans text-sm text-[#4A3B3B] transition-colors focus:border-[#B16E6E]"
+          className="rounded-none border border-border bg-background px-3 py-1.5 font-sans text-xs text-foreground transition-colors focus:border-rose-line"
         >
           {sortOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>

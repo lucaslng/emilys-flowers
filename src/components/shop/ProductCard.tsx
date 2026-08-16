@@ -23,6 +23,11 @@ interface ProductCardProps {
   headingLevel?: 'h2' | 'h3';
 }
 
+/**
+ * ProductCard — the "gift tag". A warm paper card (sharp corners, hairline
+ * border, no shadow) with the product image sitting on a frosted wrapping-
+ * paper ground, a stamped Martian Mono name, and a rose underline on hover.
+ */
 export default function ProductCard({
   product,
   emphasized = false,
@@ -35,16 +40,17 @@ export default function ProductCard({
 
   return (
     <div
-      className={`plaque-card group flex h-full flex-col ${
+      className={`gift-card group flex h-full flex-col ${
         emphasized ? 'is-emphasized' : ''
       } ${className}`.trim()}
     >
-      {/* Image — edge-to-edge, sharp corners */}
+      {/* Image — edge-to-edge, sharp corners, wrapping-paper ground */}
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-[#F9E4E4]/40"
+        className="relative block aspect-square overflow-hidden bg-blush/30"
         aria-label={product.name}
       >
+        <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-70" />
         <ProductImage
           product={product}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -54,32 +60,32 @@ export default function ProductCard({
         {emphasized && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-3 select-none border border-[#B16E6E]/70 bg-[#FFFAFA]/85 px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.2em] text-[#9E5E5E]"
+            className="pointer-events-none absolute left-3 top-3 select-none border border-rose-line/70 bg-background/85 px-2 py-0.5 font-sans text-[10px] uppercase tracking-[0.2em] text-rose-deep"
           >
             Featured
           </span>
         )}
         {!product.inStock && (
-          <div className="absolute inset-0 z-[2] flex items-center justify-center bg-[#FFFAFA]/80">
-            <span className="rounded-lg bg-[#4A3B3B] px-4 py-2 font-sans text-sm font-semibold text-white">
+          <div className="absolute inset-0 z-[2] flex items-center justify-center bg-background/80">
+            <span className="border border-rose-line bg-foreground px-4 py-2 font-sans text-sm font-semibold uppercase tracking-[0.12em] text-background">
               Out of Stock
             </span>
           </div>
         )}
       </Link>
 
-      {/* Specimen label */}
+      {/* Gift-tag label */}
       <div className="flex flex-1 flex-col p-5">
-        <div className="plaque-divider -mx-5 mb-4" />
-        <Heading className="plaque-name font-serif text-lg font-semibold text-[#4A3B3B]">
+        <div className="gift-divider -mx-5 mb-4" />
+        <Heading className="gift-name font-sans text-base font-bold uppercase tracking-[0.08em] text-foreground">
           <Link href={`/products/${product.slug}`}>{product.name}</Link>
         </Heading>
-        <p className="mt-1 line-clamp-2 font-sans text-sm text-[#7A6868]">
+        <p className="mt-1.5 line-clamp-2 font-sans text-sm leading-relaxed text-muted">
           {product.description}
         </p>
 
         <div className="mt-auto flex items-center justify-between pt-4">
-          <span className="font-serif text-xl font-bold tabular-nums text-[#4A3B3B]">
+          <span className="font-sans text-lg font-bold tabular-nums text-foreground">
             ${formatPrice(product.price)}
           </span>
           <Button

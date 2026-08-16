@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 
@@ -12,12 +11,17 @@ const navLinks = [
   { href: '/bouquets', label: 'Bouquets' },
 ];
 
+/**
+ * Navbar — the "gift tag" band. A paper strip with a stitched bottom seam;
+ * the logo sits on a slightly-tilted gift tag, the links read as stamped
+ * labels, and the cart is a round gift-button. Keeps every a11y contract:
+ * sticky nav landmark, visible focus, mobile menu focus management, and
+ * Escape-to-close.
+ */
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
-  const pathname = usePathname();
-  const isHome = pathname === '/';
 
   const toggleRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
@@ -49,31 +53,34 @@ export default function Navbar() {
   }, [mobileOpen, closeMenu]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[#F0E0E0] bg-[#FFFAFA]/95 backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
+      {/* Stitched seam — the paper band's bottom edge */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#E4C9B8]/70" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-[#E4C9B8]/40" />
+
       {/* Subtle ambient petals — behind all nav content (z -1), non-interactive */}
-      <span className="petal-nav text-[#B16E6E] text-xs"  style={{ left: '8%',  top: '12px', animationDuration: '9s',  animationDelay: '0s' }}   aria-hidden="true">❀</span>
-      <span className="petal-nav text-[#B16E6E] text-sm"  style={{ left: '24%', top: '38px', animationDuration: '12s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
-      <span className="petal-nav text-[#B16E6E] text-base" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }}   aria-hidden="true">❀</span>
-      <span className="petal-nav text-[#B16E6E] text-xs"  style={{ left: '56%', top: '34px', animationDuration: '13s', animationDelay: '1s' }}   aria-hidden="true">✿</span>
-      <span className="petal-nav text-[#B16E6E] text-sm"  style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
-      <span className="petal-nav text-[#B16E6E] text-xs"  style={{ left: '82%', top: '40px', animationDuration: '14s', animationDelay: '3s' }}   aria-hidden="true">✿</span>
-      <span className="petal-nav text-[#B16E6E] text-sm"  style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }}   aria-hidden="true">❀</span>
+      <span className="petal-nav text-rose-line text-xs"  style={{ left: '8%',  top: '12px', animationDuration: '9s',  animationDelay: '0s' }}   aria-hidden="true">❀</span>
+      <span className="petal-nav text-rose-line text-sm"  style={{ left: '24%', top: '38px', animationDuration: '12s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
+      <span className="petal-nav text-rose-line text-base" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }}   aria-hidden="true">❀</span>
+      <span className="petal-nav text-rose-line text-xs"  style={{ left: '56%', top: '34px', animationDuration: '13s', animationDelay: '1s' }}   aria-hidden="true">✿</span>
+      <span className="petal-nav text-rose-line text-sm"  style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
+      <span className="petal-nav text-rose-line text-xs"  style={{ left: '82%', top: '40px', animationDuration: '14s', animationDelay: '3s' }}   aria-hidden="true">✿</span>
+      <span className="petal-nav text-rose-line text-sm"  style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }}   aria-hidden="true">❀</span>
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
-          {/* Logo — H1 on homepage for SEO, Link on other pages */}
-          {isHome ? (
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]">
-              <Link href="/">Emily&#39;s Flowers</Link>
-            </h1>
-          ) : (
-            <Link
-              href="/"
-              className="font-serif text-2xl font-bold tracking-tight text-[#4A3B3B]"
-            >
-              Emily&#39;s Flowers
-            </Link>
-          )}
+          {/* Logo — a tilted gift tag. Always a Link (the page h1 lives in
+              each page's content, keeping the heading outline clean). */}
+          <Link
+            href="/"
+            className="group relative -rotate-1 rounded-none border border-rose-line/60 bg-surface px-3 py-1.5 font-sans text-sm font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:border-rose-line hover:text-rose-deep sm:text-base"
+          >
+            Emily&#39;s Flowers
+            {/* Tiny hand-drawn heart pinned to the tag */}
+            <span aria-hidden="true" className="absolute -right-2.5 -top-2.5 text-xs text-rose-deep transition-transform duration-300 group-hover:scale-125">
+              ♡
+            </span>
+          </Link>
 
           {/* Desktop Nav — centered relative to the full row width */}
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
@@ -81,7 +88,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative font-sans text-sm font-medium text-[#4A3B3B] transition-colors hover:text-[#9E5E5E] after:absolute after:-bottom-1 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[#B16E6E] after:transition-all after:duration-300 hover:after:w-full"
+                className="relative font-sans text-sm font-medium uppercase tracking-[0.14em] text-foreground transition-colors hover:text-rose-deep after:absolute after:-bottom-1 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-rose-line after:transition-all after:duration-300 hover:after:w-full"
               >
                 {link.label}
               </Link>
@@ -93,7 +100,7 @@ export default function Navbar() {
             <Link
               href="/cart"
               id="cart-icon"
-              className="relative flex items-center text-[#4A3B3B] transition-colors hover:text-[#9E5E5E]"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-colors hover:border-rose-line hover:text-rose-deep"
               aria-label={
                 itemCount > 0
                   ? `Shopping cart, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`
@@ -102,7 +109,7 @@ export default function Navbar() {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
+                className="h-5 w-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -117,7 +124,7 @@ export default function Navbar() {
               {itemCount > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#9E5E5E] text-xs font-bold text-white"
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-deep text-xs font-bold text-white"
                 >
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
@@ -127,7 +134,7 @@ export default function Navbar() {
             {/* Mobile Hamburger */}
             <button
               ref={toggleRef}
-              className="flex items-center text-[#4A3B3B] md:hidden"
+              className="flex items-center text-foreground md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
@@ -168,18 +175,18 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — drops open like a gift box lid */}
         {mobileOpen && (
           <div
             id="mobile-nav-menu"
-            className="border-t border-[#F0E0E0] pb-4 pt-2 md:hidden"
+            className="border-t border-border pb-4 pt-2 md:hidden"
           >
             {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 ref={index === 0 ? firstLinkRef : undefined}
                 href={link.href}
-                className="block rounded-lg px-3 py-2 font-sans text-sm font-medium text-[#4A3B3B] transition-colors hover:bg-[#FFF5F5]"
+                className="block rounded-none px-3 py-2 font-sans text-sm font-medium uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-surface"
                 onClick={closeMenu}
               >
                 {link.label}

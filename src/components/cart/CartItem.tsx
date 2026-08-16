@@ -12,6 +12,11 @@ interface CartItemProps {
   item: CartItemType;
 }
 
+/**
+ * CartItem — a "gift tag" hanging in the cart. Warm paper card, sharp
+ * corners, dashed seam under the name. All quantity/remove behaviour and
+ * micro-animations are unchanged.
+ */
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCart();
   const { product, quantity } = item;
@@ -110,10 +115,11 @@ export default function CartItem({ item }: CartItemProps) {
     <div
       ref={rootRef}
       data-cart-item
-      className="plaque-card cart-item-card group flex gap-4 p-4 sm:gap-6 sm:p-6"
+      className="gift-card cart-item-card group flex gap-4 p-4 sm:gap-6 sm:p-6"
     >
-      {/* Image — sharp corners, surface backdrop */}
-      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden bg-[#FFF5F5] sm:h-28 sm:w-28">
+      {/* Image — sharp corners, wrapping-paper ground */}
+      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden bg-blush/30 sm:h-28 sm:w-28">
+        <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
         <ProductImage
           product={product}
           sizes="112px"
@@ -125,17 +131,17 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="plaque-name font-serif text-base font-semibold text-[#4A3B3B]">
+            <h2 className="gift-name font-sans text-base font-bold uppercase tracking-[0.08em] text-foreground">
               {product.name}
             </h2>
-            <p className="mt-0.5 font-sans text-sm text-[#7A6868]">
+            <p className="mt-0.5 font-sans text-sm text-muted">
               ${formatPrice(product.price)} each
             </p>
           </div>
           <button
             onClick={handleRemove}
             disabled={isRemoving}
-            className="ml-4 flex-shrink-0 p-1 text-[#7A6868] transition-colors hover:text-[#9E5E5E] disabled:cursor-not-allowed disabled:opacity-40"
+            className="ml-4 flex-shrink-0 p-1 text-muted transition-colors hover:text-rose-deep disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={`Remove ${product.name} from cart`}
           >
             <svg
@@ -161,7 +167,7 @@ export default function CartItem({ item }: CartItemProps) {
             <button
               onClick={handleDecrement}
               disabled={isRemoving || quantity <= 1}
-              className="flex h-8 w-8 items-center justify-center border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-blush disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Decrease quantity"
             >
               <svg
@@ -182,14 +188,14 @@ export default function CartItem({ item }: CartItemProps) {
             <span
               ref={qtyRef}
               data-testid="cart-item-quantity"
-              className="flex h-8 w-10 items-center justify-center font-sans text-sm font-medium tabular-nums text-[#4A3B3B]"
+              className="flex h-8 w-10 items-center justify-center font-sans text-sm font-medium tabular-nums text-foreground"
             >
               {quantity}
             </span>
             <button
               onClick={handleIncrement}
               disabled={isRemoving}
-              className="flex h-8 w-8 items-center justify-center border border-[#F0E0E0] bg-[#FFF5F5] text-[#4A3B3B] transition-colors hover:bg-[#F9E4E4] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center border border-border bg-surface text-foreground transition-colors hover:bg-blush disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Increase quantity"
             >
               <svg
@@ -212,7 +218,7 @@ export default function CartItem({ item }: CartItemProps) {
           {/* Line Total */}
           <span
             ref={totalRef}
-            className="font-serif text-lg font-bold tabular-nums text-[#4A3B3B]"
+            className="font-sans text-lg font-bold tabular-nums text-foreground"
           >
             ${formatPrice(product.price * quantity)}
           </span>

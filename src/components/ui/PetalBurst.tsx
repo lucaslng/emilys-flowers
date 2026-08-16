@@ -37,8 +37,8 @@ export interface PetalBurstLayerProps {
   className?: string;
 }
 
-/** Brand petal colors — randomized per petal. */
-const PETAL_COLORS = ['#F9E4E4', '#D4A5A5', '#E8D5E8'] as const;
+/** Brand petal colors — randomized per petal (warm only: blush, rose, champagne). */
+const PETAL_COLORS = ['#F9E4E4', '#D4A5A5', '#F3E4D3'] as const;
 
 /** A single petal SVG (teardrop/leaf shape) wrapped in a positioning element. */
 function createPetal(color: string): HTMLDivElement {

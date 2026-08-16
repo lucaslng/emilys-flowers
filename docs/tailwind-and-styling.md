@@ -49,12 +49,19 @@ Declaring a theme variable auto-generates utilities:
 Defined in `src/app/globals.css`:
 
 **Colors** (CSS vars in `:root`, mapped via `@theme inline`):
-`--background`, `--foreground`, `--surface`, `--blush`, `--lavender`, `--rose`,
-`--border`, `--muted`.
+`--background`, `--foreground`, `--surface`, `--blush`, `--champagne`,
+`--rose`, `--rose-deep`, `--rose-line`, `--border`, `--muted`.
+
+The palette is warm-only: cream/champagne grounds with pink as the single
+chromatic accent. No cool tones (no blues, greens, or cool lavenders).
 
 **Fonts** (set by `next/font` in `layout.tsx`, mapped via `@theme inline`):
-- `--font-sans` → Inter (variable)
-- `--font-serif` → Playfair Display (variable)
+- `--font-sans` → Martian Mono (variable) — the geometric/grid voice for UI,
+  labels, and body
+- `--font-hand` → Reanie Beanie (single weight 400) — the hand-drawn/chalk
+  voice for accents, callouts, and annotations. Small x-height: never use it
+  for long body copy.
+- `--font-serif` → aliased to the Martian Mono stack (kept for compatibility)
 
 ### Adding a new color token
 
@@ -97,24 +104,35 @@ If your training data is v3, note:
 | Default colors use OKLCH | Modern color space; no action needed |
 | `@apply` still works | But less needed with CSS-first config |
 
-## The museum-plaque card language
+## The gift-tag card language
 
-Product-facing cards use a **"museum-plaque"** style defined by `.plaque-card`
+Product-facing cards use a warm **"gift-tag"** style defined by `.gift-card`
 in `globals.css`. This is an intentional design language — **match it for new
 product-facing cards** rather than introducing generic rounded/shadowed cards.
 
-### `.plaque-card` properties
+### `.gift-card` properties
 
 - **Sharp corners** (no `border-radius`)
-- **1px hairline border** (`#F0E0E0`)
+- **1px warm hairline border** (`#EDE0D4`)
 - **No shadow** by default
-- **Hover**: draws a rose underline under the name (via `.plaque-name::after`,
-  a 2px rose bar that grows from 0 → 100% width on `.group:hover`)
-- **`.is-emphasized`** variant: adds rose border + shadow (used by the center
-  card in the featured triptych)
-- **`.plaque-divider`**: hairline top-border separator
+- **Hover**: warms the border to `#B16E6E` and draws a rose underline under
+  the name (via `.gift-name::after`, a 2px rose bar that grows 0 → 100% on
+  `.group:hover`)
+- **`.is-emphasized`** variant: adds rose border + soft shadow (used by the
+  center card in the featured collage)
+- **`.gift-divider`**: dashed top-border seam (stitching)
 
-### When to use `.plaque-card`
+### Texture & motif utilities
+
+- `.wrapping-grid` — faint rose grid, like frosted wrapping paper
+- `.vignette` — soft diffused warm light
+- `.stitch` — dashed border (hand-sewn seam)
+- `.washi` — semi-transparent tape strip
+- `.specimen-wall` — staggered product grid (columns 2 & 4 sit lower)
+- `StarMotif` (`src/components/ui/StarMotif.tsx`) — the origami-star motif
+- `RibbonRose` (`src/components/ui/RibbonRose.tsx`) — decorative ribbon rose
+
+### When to use `.gift-card`
 
 - Product cards (`ProductCard` uses it)
 - Any new card that presents a product or product-like entity

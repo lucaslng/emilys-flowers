@@ -10,6 +10,11 @@ interface ProductGridProps {
   headingLevel?: 'h2' | 'h3';
 }
 
+/**
+ * ProductGrid — the "specimen wall". Cards are pinned to a staggered grid
+ * (columns 2 & 4 sit lower, like specimens on a board) instead of a flat
+ * symmetric wall.
+ */
 export default function ProductGrid({
   products,
   emptyMessage = 'No products found.',
@@ -17,14 +22,14 @@ export default function ProductGrid({
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center rounded-xl border border-[#F0E0E0] bg-[#FFF5F5]">
-        <p className="font-sans text-base text-[#7A6868]">{emptyMessage}</p>
+      <div className="flex min-h-[300px] items-center justify-center border border-dashed border-rose-line/60 bg-surface px-6">
+        <p className="font-sans text-base text-muted">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <Reveal stagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <Reveal stagger className="specimen-wall">
       {products.map((product) => (
         <ProductCard
           key={product.id}

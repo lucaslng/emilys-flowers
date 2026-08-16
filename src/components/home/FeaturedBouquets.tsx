@@ -2,54 +2,82 @@ import { getFeaturedProducts } from '@/lib/stripe-catalog';
 import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';
-import SquiggleUnderline from '@/components/ui/SquiggleUnderline';
+import StarMotif from '@/components/ui/StarMotif';
 
+/**
+ * FeaturedBouquets — "the bouquet wall". NOT a symmetric triptych: three
+ * gift-tag cards overlap at different heights and tilts, like keepsakes
+ * pinned to a board. The center card is emphasized (rose border + soft
+ * shadow) and lifted above its neighbours. Reveal animates the outer
+ * wrappers; the tilts live on inner divs so GSAP and CSS transforms never
+ * fight.
+ */
 export default async function FeaturedBouquets() {
   const featured = await getFeaturedProducts();
 
   return (
-    <section className="flex min-h-[calc(100vh-4rem)] flex-col justify-center bg-[#FFFAFA] py-8 sm:py-12">
-      <Container>
+    <section className="relative isolate overflow-hidden bg-background py-16 sm:py-24">
+      {/* Faint warm wash behind the wall */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 55% 45% at 50% 20%, rgba(249, 228, 228, 0.4), rgba(254, 250, 245, 0) 70%)',
+        }}
+      />
+
+      <Container className="relative z-10">
         <Reveal>
-          <div className="text-center">
-            <h2 className="font-serif text-3xl font-bold text-[#4A3B3B] sm:text-4xl">
+          <div className="relative max-w-xl">
+            <StarMotif size={44} className="absolute -left-8 -top-6 text-rose opacity-70" />
+            <p className="font-hand text-3xl leading-none text-rose-deep">
+              the ones everyone asks about ♡
+            </p>
+            <h2 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               Featured Bouquets
             </h2>
-            <p className="mt-2 font-sans text-base text-[#7A6868]">
-              Our most beloved handcrafted arrangements
+            <p className="mt-3 font-sans text-sm leading-relaxed text-muted">
+              Our most beloved handcrafted arrangements — each one folded to
+              order.
             </p>
-            <div className="mt-2 flex justify-center">
-              <SquiggleUnderline />
-            </div>
           </div>
         </Reveal>
 
-        {/* Center-emphasis triptych: the middle card is wider (so its square
-            image is genuinely larger), lifted slightly, and emphasized.
-            Mobile: center first via source order. Tablet: center spans full
-            width on top. Desktop: 1fr / 1.35fr / 1fr with a small lift. */}
+        {/* Asymmetric collage: wide center, tilted flanks, varied heights */}
         <Reveal
           stagger
-          className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start lg:grid-cols-[1fr_1.35fr_1fr] lg:items-end"
+          className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-12 lg:items-start lg:gap-6"
         >
           {featured.map((product, i) => {
             const isCenter = i === 1;
             return (
-              <ProductCard
+              <div
                 key={product.id}
-                product={product}
-                emphasized={isCenter}
-                // All three featured bouquets sit above the fold — fetch them eagerly.
-                priority
-                // Mobile: natural stack (center is index 1, between the sides).
-                // Tablet (2-col): center spans both columns and leads on top.
-                // Desktop (3-col): center track is wider; lift it slightly.
                 className={
                   isCenter
-                    ? 'md:order-first md:col-span-2 lg:order-none lg:col-span-1 lg:-mt-2'
-                    : ''
+                    ? 'md:order-first md:col-span-2 lg:order-none lg:col-span-6 lg:z-10 lg:-mt-8'
+                    : i === 0
+                      ? 'lg:col-span-3 lg:mt-12'
+                      : 'lg:col-span-3 lg:mt-20'
                 }
-              />
+              >
+                <div
+                  className={
+                    isCenter
+                      ? 'lg:rotate-[0.6deg]'
+                      : i === 0
+                        ? 'lg:-rotate-2'
+                        : 'lg:rotate-[1.6deg]'
+                  }
+                >
+                  <ProductCard
+                    product={product}
+                    emphasized={isCenter}
+                    priority
+                  />
+                </div>
+              </div>
             );
           })}
         </Reveal>
