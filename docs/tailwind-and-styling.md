@@ -142,6 +142,39 @@ product-facing cards** rather than introducing generic rounded/shadowed cards.
 - UI chrome (buttons, nav, cart line items) — use the standard `Button` /
   layout components instead.
 
+## Non-standard layouts — the "handmade" composition rule
+
+The warm-handmade aesthetic deliberately avoids standard, symmetric, centered
+layouts. A conventional template grid (centered heading, evenly spaced
+columns, symmetric rows) reads as "manufactured" and flattens the design.
+When building or extending a section, compose it like something arranged by
+hand:
+
+- **Off-center compositions** — the hero's headline sits left while the rose
+  panel rests right; the featured section is an overlapping collage, not a
+  symmetric triptych.
+- **Tilts** — cards and panels lean slightly (`rotate-1`, `-rotate-2`,
+  `rotate-2`) like keepsakes pinned to a board. Keep tilts small (≤ ~2°) so
+  they read as intentional, not broken.
+- **Overlaps & stagger** — footer link groups are overlapping note cards; the
+  product wall uses `.specimen-wall` (columns 2 & 4 sit lower); the featured
+  center card is lifted above its neighbours.
+- **Hand-placed accents** — washi tape, hand-drawn arrows/annotations,
+  `StarMotif` / `RibbonRose` motifs, ruled notebook lines, dashed seams.
+  These are the "satin" details that make a section feel made, not
+  manufactured.
+
+Rules of thumb:
+
+- If a layout looks like a default template (centered symmetric grid), treat
+  it as unfinished and redesign it before shipping.
+- Keep the satin-vs-crisp tension: the composition can be loose and
+  hand-arranged, but the geometric voice (Martian Mono, sharp corners,
+  hairlines) stays crisp.
+- Don't flatten existing compositions when editing — preserve tilts, overlaps,
+  and stagger unless the change explicitly requires it.
+- Keep decorative elements `aria-hidden` and respect the reduced-motion guard.
+
 ## Reduced motion — the global CSS guard
 
 `globals.css` includes a global `@media (prefers-reduced-motion: reduce)` block
