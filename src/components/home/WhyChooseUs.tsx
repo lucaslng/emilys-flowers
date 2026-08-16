@@ -5,7 +5,7 @@ const reasons = [
   {
     title: 'Made by Hand',
     description:
-      'I cut, fold, and assemble every petal by hand.',
+      'My BF and I cut, fold, and assemble every petal by hand.',
   },
   {
     title: 'Made to Keep',
