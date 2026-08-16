@@ -38,7 +38,7 @@ describe("evaluateUnderConstruction", () => {
   const original = {
     appId: process.env.FLAGSHIP_APP_ID,
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
-    apiToken: process.env.FLAGSHIP_API_TOKEN,
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
     enabled: process.env.UNDER_CONSTRUCTION_ENABLED,
   };
 
@@ -47,8 +47,8 @@ describe("evaluateUnderConstruction", () => {
     else process.env.FLAGSHIP_APP_ID = original.appId;
     if (original.accountId === undefined) delete process.env.CLOUDFLARE_ACCOUNT_ID;
     else process.env.CLOUDFLARE_ACCOUNT_ID = original.accountId;
-    if (original.apiToken === undefined) delete process.env.FLAGSHIP_API_TOKEN;
-    else process.env.FLAGSHIP_API_TOKEN = original.apiToken;
+    if (original.apiToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN;
+    else process.env.CLOUDFLARE_API_TOKEN = original.apiToken;
     if (original.enabled === undefined) delete process.env.UNDER_CONSTRUCTION_ENABLED;
     else process.env.UNDER_CONSTRUCTION_ENABLED = original.enabled;
   });
@@ -57,7 +57,7 @@ describe("evaluateUnderConstruction", () => {
     delete process.env.UNDER_CONSTRUCTION_ENABLED;
     process.env.FLAGSHIP_APP_ID = "app";
     process.env.CLOUDFLARE_ACCOUNT_ID = "acct";
-    process.env.FLAGSHIP_API_TOKEN = "token";
+    process.env.CLOUDFLARE_API_TOKEN = "token";
     expect(await evaluateUnderConstruction()).toBe(false);
   });
 
@@ -65,7 +65,7 @@ describe("evaluateUnderConstruction", () => {
     process.env.UNDER_CONSTRUCTION_ENABLED = "true";
     delete process.env.FLAGSHIP_APP_ID;
     delete process.env.CLOUDFLARE_ACCOUNT_ID;
-    delete process.env.FLAGSHIP_API_TOKEN;
+    delete process.env.CLOUDFLARE_API_TOKEN;
     expect(await evaluateUnderConstruction()).toBe(false);
   });
 });

@@ -161,7 +161,7 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_LIVE }}
           UNDER_CONSTRUCTION_ENABLED: "true"
           FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
-          FLAGSHIP_API_TOKEN: ${{ secrets.FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
@@ -204,7 +204,7 @@ jobs:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
           FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
-          FLAGSHIP_API_TOKEN: ${{ secrets.FLAGSHIP_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 

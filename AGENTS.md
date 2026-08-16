@@ -118,8 +118,9 @@ a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
 
 Credentials are passed to **both** `Build (OpenNext)` steps in `deploy.yml`
 (production and preview evaluate the same flag): `FLAGSHIP_APP_ID`,
-`FLAGSHIP_API_TOKEN` (API token with Flagship read/evaluate permission), and
-`CLOUDFLARE_ACCOUNT_ID` (reused from the deploy secrets).
+`CLOUDFLARE_API_TOKEN` (the same single API token used for the wrangler deploys —
+it must carry Flagship read/evaluate permission plus the Workers deploy
+permissions), and `CLOUDFLARE_ACCOUNT_ID`.
 
 **Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
 
@@ -143,14 +144,13 @@ The preview job uses `upload` (which calls `wrangler versions upload`) rather th
 
 | Secret | Used by | Notes |
 |---|---|---|
-| `CLOUDFLARE_API_TOKEN` | both deploys | scoped to Workers deploys for this account |
+| `CLOUDFLARE_API_TOKEN` | both deploys + both builds | single API token: Workers deploys (scripts, assets, custom-domain routes) + Flagship read/evaluate for the build-time flag checks |
 | `CLOUDFLARE_ACCOUNT_ID` | both deploys | |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` | production build | `pk_live_...`, inlined by Next.js at build time |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
 | `STRIPE_SECRET_KEY_LIVE` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
 | `STRIPE_SECRET_KEY_TEST` | preview build | `sk_test_...`, used at build time to fetch the Stripe product catalog |
 | `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` and `under-construction` |
-| `FLAGSHIP_API_TOKEN` | both builds | API token with Flagship read/evaluate permission, used at build time to evaluate `enable-flowers-page` and `under-construction` |
 
 `STRIPE_SECRET_KEY` is now needed in **two** places:
 
