@@ -7,7 +7,12 @@
 //
 // The catalog is fetched once per build (memoized with React `cache`) and
 // statically prerendered, so there is no per-request Stripe call on the Worker.
+// Product images are scanned from `public/products/<slug>/` at build time by
+// `imagesForProduct`, falling back to a per-category SVG placeholder when the
+// folder is missing.
 
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import Stripe from 'stripe';
 import { cache } from 'react';
 import type { Product } from '@/types';
@@ -74,6 +79,25 @@ export function mapStripeProduct(
   };
 }
 
+/**
+ * Resolve the real product images for a slug from `public/products/<slug>/`.
+ * Returns URL paths (e.g. `/products/cream-white/01-main.jpg`), not fs paths.
+ * Falls back to the category placeholder SVG when the folder is missing.
+ * `baseDir` is injectable for tests; it defaults to the app's `public/products`.
+ */
+export function imagesForProduct(
+  slug: string,
+  category: Product['category'],
+  baseDir: string = path.join(process.cwd(), 'public', 'products')
+): string[] {
+  const dir = path.join(baseDir, slug);
+  if (!existsSync(dir)) return [PLACEHOLDER_IMAGES[category]];
+  return readdirSync(dir)
+    .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+    .sort()
+    .map((f) => `/products/${slug}/${f}`);
+}
+
 async function fetchCatalog(): Promise<Product[]> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
@@ -104,7 +128,11 @@ async function fetchCatalog(): Promise<Product[]> {
       );
       continue;
     }
-    products.push(mapStripeProduct(p, dp));
+    const mapped = mapStripeProduct(p, dp);
+    products.push({
+      ...mapped,
+      images: imagesForProduct(mapped.slug, mapped.category),
+    });
   }
 
   return dedupeSlugs(products);

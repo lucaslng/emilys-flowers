@@ -1,9 +1,10 @@
 'use client';
 
-// Renders the product's primary image (product.images[0]) via next/image.
-// On load error, falls back to the per-category local SVG placeholder
-// (/placeholders/flower.svg or /placeholders/bouquet.svg) so future
-// real-image failures degrade gracefully without broken 404 sprites.
+// Renders one of the product's images (product.images[imageIndex], default
+// the primary at index 0) via next/image. On load error, falls back to the
+// per-category local SVG placeholder (/placeholders/flower.svg or
+// /placeholders/bouquet.svg) so future real-image failures degrade
+// gracefully without broken 404 sprites.
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -16,6 +17,8 @@ interface ProductImageProps {
   className?: string; // applied to both the next/Image and the fallback <img>
   /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
   priority?: boolean;
+  /** Index into product.images to render (default 0 — the primary image). */
+  imageIndex?: number;
 }
 
 export default function ProductImage({
@@ -24,6 +27,7 @@ export default function ProductImage({
   sizes,
   className = '',
   priority = false,
+  imageIndex = 0,
 }: ProductImageProps) {
   const [errored, setErrored] = useState(false);
 
@@ -39,7 +43,7 @@ export default function ProductImage({
 
   return (
     <Image
-      src={product.images[0]}
+      src={product.images[imageIndex]}
       alt={alt ?? product.name}
       fill
       sizes={sizes}

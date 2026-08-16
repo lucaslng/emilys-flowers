@@ -1,7 +1,11 @@
-import { test, expect, describe } from "bun:test";
+import { test, expect, describe, beforeAll, afterAll } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   slugify,
   mapStripeProduct,
+  imagesForProduct,
   PLACEHOLDER_DESCRIPTION,
 } from "@/lib/stripe-catalog";
 import type Stripe from "stripe";
@@ -98,5 +102,56 @@ describe("mapStripeProduct", () => {
   test("uses the price unit_amount as integer cents", () => {
     const p = mapStripeProduct(makeProduct(), makePrice(2499));
     expect(p.price).toBe(2499);
+  });
+});
+
+describe("imagesForProduct", () => {
+  let baseDir: string;
+
+  beforeAll(() => {
+    baseDir = mkdtempSync(path.join(tmpdir(), "products-"));
+  });
+
+  afterAll(() => {
+    rmSync(baseDir, { recursive: true, force: true });
+  });
+
+  test("returns sorted image paths in filename order", () => {
+    const slug = "sorted";
+    const dir = path.join(baseDir, slug);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "02-detail.jpg"), "");
+    writeFileSync(path.join(dir, "01-main.jpg"), "");
+    writeFileSync(path.join(dir, "03-lifestyle.jpg"), "");
+
+    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+      "/products/sorted/01-main.jpg",
+      "/products/sorted/02-detail.jpg",
+      "/products/sorted/03-lifestyle.jpg",
+    ]);
+  });
+
+  test("filters non-image files but keeps case-insensitive image extensions", () => {
+    const slug = "filtered";
+    const dir = path.join(baseDir, slug);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "01-main.jpg"), "");
+    writeFileSync(path.join(dir, "cover.PNG"), "");
+    writeFileSync(path.join(dir, ".DS_Store"), "");
+    writeFileSync(path.join(dir, "notes.txt"), "");
+
+    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+      "/products/filtered/01-main.jpg",
+      "/products/filtered/cover.PNG",
+    ]);
+  });
+
+  test("falls back to the category placeholder when the folder is missing", () => {
+    expect(imagesForProduct("no-such-product", "flower", baseDir)).toEqual([
+      "/placeholders/flower.svg",
+    ]);
+    expect(imagesForProduct("no-such-product", "bouquet", baseDir)).toEqual([
+      "/placeholders/bouquet.svg",
+    ]);
   });
 });

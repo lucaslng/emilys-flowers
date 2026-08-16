@@ -42,7 +42,7 @@ export function productSchema(product: Product) {
     '@type': 'Product',
     name: product.name,
     description: product.description,
-    image: `${SITE_URL}${product.images[0]}`,
+    image: product.images.map((i) => `${SITE_URL}${i}`),
     brand: {
       '@type': 'Brand',
       name: "Emily's Flowers",

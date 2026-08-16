@@ -80,7 +80,7 @@ describe("productSchema", () => {
     expect(schema["@context"]).toBe("https://schema.org");
     expect(schema["@type"]).toBe("Product");
     expect(schema.name).toBe("P");
-    expect(schema.image).toBe(`${SITE_URL}/placeholders/flower.svg`);
+    expect(schema.image).toEqual([`${SITE_URL}/placeholders/flower.svg`]);
     expect(schema.brand).toEqual({ "@type": "Brand", name: "Emily's Flowers" });
     expect(schema.offers.priceCurrency).toBe("CAD");
     expect(schema.offers.price).toBe("24.99");
