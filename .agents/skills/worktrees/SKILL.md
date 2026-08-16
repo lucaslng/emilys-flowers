@@ -73,11 +73,11 @@ A new worktree has no `node_modules` and no env files. Before building or
 typechecking inside the lane:
 
 ```bash
-bun install                 # installs from bun.lock (~1 min)
-cp ../main/.env .env.local  # Stripe test key for the build-time catalog fetch
+bun install
+cp ../main/.env .env
 ```
 
-`.env.local` is gitignored. The build-time Stripe catalog fetch needs
+`.env` is gitignored. The build-time Stripe catalog fetch needs
 `STRIPE_SECRET_KEY` (the test key lives in `main/.env`); without it
 `bun run build` fails at the catalog step.
 
