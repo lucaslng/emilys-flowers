@@ -3,19 +3,19 @@ import Reveal from '@/components/ui/Reveal';
 
 const reasons = [
   {
-    title: 'Cut and Shaped by Hand',
+    title: 'Made by Hand',
     description:
-      'Every bloom is cut, folded, and assembled by a single maker — not a production line. The small irregularities are the point: they are how you know a person made it.',
+      'I cut, fold, and assemble every petal by hand.',
   },
   {
     title: 'Made to Keep',
     description:
-      'Ribbon and wire hold their shape long after fresh flowers would fade. A spot out of direct sun and the occasional gentle dust is all they ask.',
+      'Unlike regular flowers, my ribbon flowers will last you for the rest of time.',
   },
   {
     title: 'Made to Your Palette',
     description:
-      'Custom color, scale, and arrangement requests are welcome for weddings, interiors, and gifts. Tell us what you have in mind and we will tell you honestly what is possible.',
+      'Custom color, style, and arrangement requests are welcome for weddings, interiors, and gifts. Feel free to message me on Instagram @emilysflowers_!',
   },
 ];
 
@@ -30,13 +30,9 @@ export default function WhyChooseUs() {
               Why Emily&rsquo;s Flowers
             </h2>
             <p className="mt-4 max-w-sm font-sans text-base leading-relaxed text-[#7A6868]">
-              Three standards behind every arrangement that leaves our studio.
+              Three standards behind every arrangement.
             </p>
-            {/* Short hairline rule — restrained replacement for the squiggle */}
             <div className="mt-6 h-px w-16 bg-[#D4A5A5]" aria-hidden="true" />
-            <p className="mt-8 max-w-sm font-sans text-sm leading-relaxed text-[#7A6868]">
-              Made in small batches, then wrapped in tissue and tied with ribbon.
-            </p>
           </Reveal>
 
           {/* Specimen list — right column, framed by hairlines */}
