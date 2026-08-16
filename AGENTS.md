@@ -48,8 +48,11 @@ The site can be put "under construction" so nothing is browsable or purchasable
 while the storefront is being prepared. This is driven by a Cloudflare
 **Flagship** feature flag: the `under-construction` boolean flag in the
 `emilysflowers` Flagship app. When the flag is **on**, the production build
-renders the construction screen on every page; when **off** (or when Flagship
-credentials are absent — local dev, E2E), the store renders normally.
+renders the construction screen on every page; when **off**, the store renders
+normally. Local dev, preview builds, and E2E are never affected by this flag:
+`evaluateUnderConstruction()` returns `false` whenever the
+`UNDER_CONSTRUCTION_ENABLED` marker is absent (only the production build sets
+it — see below), independent of whether Flagship credentials are present.
 
 The check happens **at build time, exactly once per build**, exactly like
 `enable-flowers-page`: `next.config.ts` (an async config function) calls
@@ -96,7 +99,9 @@ the flag is **off**, `/flowers` and every flower product page render 404, the
 nav/footer/hero/404 "browse flowers" links disappear, featured products on the
 home page exclude flowers, and the sitemap drops the `/flowers` and flower
 product URLs. When **on** (or when Flagship credentials are absent — local dev,
-E2E), everything renders as normal.
+E2E), everything renders as normal. Unlike `under-construction`, this flag is
+**not** gated to production builds: a developer with Flagship credentials in
+`.env.local` will see the flag applied locally.
 
 The check happens **at build time, exactly once per build**: `next.config.ts`
 (an async config function) calls `evaluateFlowersEnabled()` from
