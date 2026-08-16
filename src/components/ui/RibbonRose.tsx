@@ -70,13 +70,10 @@ export default function RibbonRose({ className = '', size = 220 }: RibbonRosePro
 
       {/* Ribbon knot + tails — the crisp geometric counterpoint */}
       <rect x="92" y="104" width="16" height="12" rx="2" fill="#D4A5A5" />
-      {/* Knot tails — hand-drawn ribbon ends; boil like ink settling */}
-      <g className="line-boil">
-        <path d="M94 116 C 88 128 80 138 74 146" stroke="#D4A5A5" strokeWidth="3" strokeLinecap="round" fill="none" />
-        <path d="M106 116 C 112 128 120 138 126 146" stroke="#D4A5A5" strokeWidth="3" strokeLinecap="round" fill="none" />
-        <path d="M96 116 C 90 126 84 132 80 138" stroke="#B16E6E" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.6" />
-        <path d="M104 116 C 110 126 116 132 120 138" stroke="#B16E6E" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.6" />
-      </g>
+      <path d="M94 116 C 88 128 80 138 74 146" stroke="#D4A5A5" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path d="M106 116 C 112 128 120 138 126 146" stroke="#D4A5A5" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <path d="M96 116 C 90 126 84 132 80 138" stroke="#B16E6E" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.6" />
+      <path d="M104 116 C 110 126 116 132 120 138" stroke="#B16E6E" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.6" />
     </svg>
   );
 }

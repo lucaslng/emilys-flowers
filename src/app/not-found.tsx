@@ -148,42 +148,37 @@ export default function NotFound() {
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
-              {/* Hand-drawn specimen strokes — boil like ink settling.
-                  GSAP's stem draw-in animates stroke-dashoffset (not
-                  transform), so the two compose without conflict. */}
-              <g className="line-boil">
-                {/* Stem + leaves — draw in on mount (warm tan, not green) */}
-                <path
-                  data-stem
-                  d="M100 115 Q 97 180 100 270"
-                  stroke="#B99A72"
-                  strokeWidth={2.5}
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <path
-                  data-stem
-                  d="M100 175 Q 78 168 70 150 Q 86 158 100 175"
-                  stroke="#B99A72"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  fill="#B99A72"
-                  fillOpacity={0.25}
-                />
-                <path
-                  data-stem
-                  d="M100 210 Q 122 203 130 185 Q 114 193 100 210"
-                  stroke="#B99A72"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  fill="#B99A72"
-                  fillOpacity={0.25}
-                />
+              {/* Stem + leaves — draw in on mount (warm tan, not green) */}
+              <path
+                data-stem
+                d="M100 115 Q 97 180 100 270"
+                stroke="#B99A72"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                fill="none"
+              />
+              <path
+                data-stem
+                d="M100 175 Q 78 168 70 150 Q 86 158 100 175"
+                stroke="#B99A72"
+                strokeWidth={2}
+                strokeLinecap="round"
+                fill="#B99A72"
+                fillOpacity={0.25}
+              />
+              <path
+                data-stem
+                d="M100 210 Q 122 203 130 185 Q 114 193 100 210"
+                stroke="#B99A72"
+                strokeWidth={2}
+                strokeLinecap="round"
+                fill="#B99A72"
+                fillOpacity={0.25}
+              />
 
-                {/* Ribbon tails — the "ribbon" in ribbon flower */}
-                <path d="M95 115 Q 86 140 82 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
-                <path d="M105 115 Q 114 140 118 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
-              </g>
+              {/* Ribbon tails + knot — the "ribbon" in ribbon flower */}
+              <path d="M95 115 Q 86 140 82 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
+              <path d="M105 115 Q 114 140 118 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
               <rect x={95} y={111} width={10} height={9} rx={1.5} fill="#D4A5A5" />
 
               {/* Flower head — blooms open from center */}
