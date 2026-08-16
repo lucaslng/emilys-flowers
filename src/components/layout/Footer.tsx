@@ -12,16 +12,16 @@ const footerLinks: FooterGroup[] = [
       { label: 'Individual Flowers', href: '/flowers' },
       { label: 'Bouquet Collections', href: '/bouquets' },
       { label: 'Featured', href: '/' },
+      { label: 'About Us', href: '/#why-emilys-flowers' },
+      { label: 'FAQ', href: '/faq' },
     ],
   },
   {
     title: 'Contact',
     links: [
-      { label: 'About Us', href: '/#why-emilys-flowers' },
       { label: 'contact@emilysflowers.ca', href: 'mailto:contact@emilysflowers.ca' },
       { label: 'Instagram: @emilysflowers_', href: 'https://instagram.com/emilysflowers_', external: true },
       { label: 'TikTok: @emilyysflowers', href: 'https://www.tiktok.com/@emilyysflowers', external: true },
-      { label: 'FAQ', href: '/faq' },
     ],
   },
 ];
