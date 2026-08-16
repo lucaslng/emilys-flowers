@@ -50,7 +50,10 @@ unprefixed — do not rename them; apply prefixes to new work only.
 
 ## Creating a worktree
 
-From the repo root:
+Run from the repo root — the parent of `main/`, i.e. `/Users/lucas/Documents/emilys-flowers`.
+The shell's working directory is usually `main/`, so a relative path like
+`bugfix/<slug>` would create the lane *inside* `main/`. Use an absolute path or
+`git -C` from the parent:
 
 ```bash
 git worktree add -b <prefix>/<slug> <prefix>/<slug> <base>
@@ -63,6 +66,20 @@ git worktree add -b docs/worktree-convention docs/worktree-convention main
 ```
 
 This creates the directory `<prefix>/<slug>/` checked out on the new branch.
+
+## Lane setup (fresh worktree)
+
+A new worktree has no `node_modules` and no env files. Before building or
+typechecking inside the lane:
+
+```bash
+bun install                 # installs from bun.lock (~1 min)
+cp ../main/.env .env.local  # Stripe test key for the build-time catalog fetch
+```
+
+`.env.local` is gitignored. The build-time Stripe catalog fetch needs
+`STRIPE_SECRET_KEY` (the test key lives in `main/.env`); without it
+`bun run build` fails at the catalog step.
 
 ## Moving uncommitted changes into a lane
 
