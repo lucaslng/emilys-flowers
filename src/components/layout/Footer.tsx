@@ -51,8 +51,7 @@ export default function Footer() {
                 Emily&#39;s Flowers
               </Link>
               <p className="mt-3 font-sans text-sm text-[#7A6868] leading-relaxed">
-                Handcrafted ribbon flowers and bouquets made with love and
-                attention to detail. Each piece is a timeless work of art.
+                Handcrafted ribbon flowers and bouquets made with love.
               </p>
             </div>
 
