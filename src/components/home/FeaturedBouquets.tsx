@@ -1,4 +1,5 @@
 import { getFeaturedProducts } from '@/lib/stripe-catalog';
+import { isFlowersEnabled } from '@/lib/flowers-flag';
 import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';
@@ -13,7 +14,10 @@ import StarMotif from '@/components/ui/StarMotif';
  * fight.
  */
 export default async function FeaturedBouquets() {
-  const featured = await getFeaturedProducts();
+  const showFlowers = await isFlowersEnabled();
+  const featured = (await getFeaturedProducts()).filter(
+    (p) => showFlowers || p.category !== 'flower'
+  );
 
   return (
     <section className="relative isolate overflow-hidden bg-background py-16 sm:py-24">

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllProducts, getProductBySlug } from '@/lib/stripe-catalog';
+import { isFlowersEnabled } from '@/lib/flowers-flag';
 import JsonLd from '@/components/JsonLd';
 import { productSchema, breadcrumbSchema } from '@/lib/json-ld';
 import { SITE_URL } from '@/lib/site';
@@ -32,6 +33,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
+  if (product.category === "flower" && !(await isFlowersEnabled())) notFound();
   return (
     <>
       <JsonLd data={productSchema(product)} />

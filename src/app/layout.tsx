@@ -8,6 +8,7 @@ import { PetalBurstProvider } from "@/lib/petal-burst";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { isUnderConstruction } from "@/lib/under-construction";
+import { isFlowersEnabled } from "@/lib/flowers-flag";
 import UnderConstruction from "@/components/under-construction";
 import JsonLd from "@/components/JsonLd";
 import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
@@ -67,7 +68,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
@@ -82,13 +83,14 @@ export default function RootLayout({
       </html>
     );
   }
+  const showFlowers = await isFlowersEnabled();
   return (
     <html lang="en" className={`${fontClasses} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <CartProvider>
           <a href="#main" className="skip-link">Skip to content</a>
           <PetalBurstProvider />
-          <Navbar />
+          <Navbar showFlowers={showFlowers} />
           <main id="main" className="flex-1">{children}</main>
           <Footer />
         </CartProvider>

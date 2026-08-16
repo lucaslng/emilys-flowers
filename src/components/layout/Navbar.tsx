@@ -18,10 +18,14 @@ const navLinks = [
  * sticky nav landmark, visible focus, mobile menu focus management, and
  * Escape-to-close.
  */
-export default function Navbar() {
+export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
+
+  const visibleLinks = navLinks.filter(
+    (link) => showFlowers || link.href !== '/flowers'
+  );
 
   const toggleRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
@@ -84,7 +88,7 @@ export default function Navbar() {
 
           {/* Desktop Nav — centered relative to the full row width */}
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
-            {navLinks.map((link) => (
+            {visibleLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -181,7 +185,7 @@ export default function Navbar() {
             id="mobile-nav-menu"
             className="border-t border-border pb-4 pt-2 md:hidden"
           >
-            {navLinks.map((link, index) => (
+            {visibleLinks.map((link, index) => (
               <Link
                 key={link.href}
                 ref={index === 0 ? firstLinkRef : undefined}

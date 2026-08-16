@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
+import { isFlowersEnabled } from '@/lib/flowers-flag';
 
 type FooterLink = { label: string; href: string; external?: boolean };
 
@@ -36,7 +37,14 @@ const footerLinks: FooterGroup[] = [
  * overlapping note cards at the right, and the bottom bar carries a
  * handwritten sign-off.
  */
-export default function Footer() {
+export default async function Footer() {
+  const showFlowers = await isFlowersEnabled();
+  const visibleFooterLinks = footerLinks.map((group) => ({
+    ...group,
+    links: group.links.filter(
+      (link) => showFlowers || link.href !== '/flowers'
+    ),
+  }));
   return (
     <footer className="relative isolate border-t border-border bg-surface">
       {/* Washi tape attaching the card to the page — straddles the top seam */}
@@ -113,7 +121,7 @@ export default function Footer() {
 
             {/* Link groups — two overlapping note cards */}
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-end sm:gap-6">
-              {footerLinks.map((group, i) => (
+              {visibleFooterLinks.map((group, i) => (
                 <div
                   key={group.title}
                   className={`relative w-full border border-border bg-background p-4 sm:p-5 ${
