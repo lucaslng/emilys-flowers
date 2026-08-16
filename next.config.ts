@@ -2,6 +2,7 @@
 
 import type { NextConfig } from "next";
 import { evaluateFlowersEnabled } from "./src/lib/flowers-flag";
+import { evaluateUnderConstruction } from "./src/lib/under-construction";
 
 // Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it
 // only in development. Production builds keep a strict CSP.
@@ -54,6 +55,11 @@ export default async function nextConfig(): Promise<NextConfig> {
   // Evaluate the flag once per build; workers inherit the result via env.
   if (process.env.FLOWERS_ENABLED === undefined) {
     process.env.FLOWERS_ENABLED = String(await evaluateFlowersEnabled());
+  }
+
+  // Evaluate the flag once per build; workers inherit the result via env.
+  if (process.env.UNDER_CONSTRUCTION === undefined) {
+    process.env.UNDER_CONSTRUCTION = String(await evaluateUnderConstruction());
   }
 
   return {

@@ -42,41 +42,51 @@ Cloudflare Workers has no built-in per-project Preview/Production env-var toggle
 - `env.production` → Worker `emilys-flowers-production` (live Stripe keys)
 - `env.preview` → Worker `emilys-flowers-preview` (test Stripe keys)
 
-### Under-construction gate (production only)
+### Under-construction gate (Flagship)
 
-The site can be put "under construction" so nothing is browsable or purchasable in
-production while the storefront is being prepared. This is driven by a single
-`UNDER_CONSTRUCTION` env flag that is `"true"` **only** for production and unset
-everywhere else (dev, preview, E2E).
+The site can be put "under construction" so nothing is browsable or purchasable
+while the storefront is being prepared. This is driven by a Cloudflare
+**Flagship** feature flag: the `under-construction` boolean flag in the
+`emilysflowers` Flagship app. When the flag is **on**, the production build
+renders the construction screen on every page; when **off** (or when Flagship
+credentials are absent — local dev, E2E), the store renders normally.
 
-Because most pages are statically prerendered at build time (served as Cloudflare
-assets, never running worker code per request), the flag must be set in **two
-places** for full coverage:
+The check happens **at build time, exactly once per build**, exactly like
+`enable-flowers-page`: `next.config.ts` (an async config function) calls
+`evaluateUnderConstruction()` from `src/lib/under-construction.ts` in the main
+build process and stores the result in `process.env.UNDER_CONSTRUCTION`, which
+every static-gen worker inherits. The app reads it synchronously via
+`isUnderConstruction()` (`process.env.UNDER_CONSTRUCTION === "true"` — fails
+open to **not** under construction, the opposite direction of the flowers
+flag). The evaluate call uses Node's `https` module (not the global `fetch`) so
+Next.js's Data Cache never serves a stale flag value from a previous build; the
+flag is re-evaluated fresh on every build, and flipping it in the dashboard
+does **not** change already-deployed pages until the next CI build. No Flagship
+SDK dependency. **Only the production build evaluates the flag**: `deploy.yml`
+sets `UNDER_CONSTRUCTION_ENABLED: "true"` in the production `Build (OpenNext)`
+step env, and `evaluateUnderConstruction()` returns `false` when that marker is
+absent — so preview builds always render the store, never the construction
+screen. (The Flagship credentials are still passed to both builds because
+`enable-flowers-page` is evaluated in both.)
 
-1. **`deploy.yml` `deploy-production` → `Build (OpenNext)` step env** sets
-   `UNDER_CONSTRUCTION: "true"`. Static pages baked by that build render the
-   construction screen; the preview build (no flag) bakes the normal site.
-2. **`wrangler.jsonc` → `env.production.vars.UNDER_CONSTRUCTION = "true"`**.
-   Request-time code on the production Worker sees it via `process.env`, so the
-   `POST /api/checkout` route returns `503` even on a direct API call. Preview
-   inherits the top-level config (no flag) → checkout works there.
+When the flag is on, `src/app/layout.tsx` renders the standalone
+`UnderConstruction` component (`src/components/under-construction.tsx`) instead
+of the app tree (no Navbar/Footer/cart/providers). `src/app/robots.ts` returns
+`disallow: '/'` while construction is on (blocks all crawling so the
+construction page isn't indexed, while still advertising the sitemap);
+otherwise it returns the normal rules (`allow: '/'`, `disallow: ['/cart',
+'/checkout', '/api/']`).
 
-The gate itself is `isUnderConstruction()` in `src/lib/under-construction.ts`
-(`process.env.UNDER_CONSTRUCTION === "true"` — plain env, no Cloudflare
-context needed, unit-tested). When it's on, `src/app/layout.tsx` renders the
-standalone `UnderConstruction` component (`src/components/under-construction.tsx`)
-instead of the app tree (no Navbar/Footer/cart/providers).
+There is **no runtime API gate**: the `POST /api/checkout` route no longer
+returns `503` while construction is on (the old `wrangler.jsonc`
+`env.production.vars.UNDER_CONSTRUCTION` runtime var was removed with the
+env-var mechanism). The construction screen hides the cart/checkout UI, but a
+direct API call can still create a Stripe session while the flag is on.
 
-`src/app/robots.ts` handles robots.txt. While construction is on it returns
-`disallow: '/'` (blocks all crawling so the construction page isn't indexed,
-while still advertising the sitemap); otherwise it returns the normal rules
-(`allow: '/'`, `disallow: ['/cart', '/checkout', '/api/']`). Note: this branch
-also introduces `robots.ts` itself — the committed base had no robots file.
-
-**To open the store later:** remove the `UNDER_CONSTRUCTION: "true"` line from
-the `deploy.yml` production build step and flip/remove
-`env.production.vars.UNDER_CONSTRUCTION`, then redeploy. (The API gate would
-still be armed by the wrangler var alone, so flip both together.)
+**To open the store later:** flip the `under-construction` flag **off** in the
+Flagship dashboard, then redeploy. Locally, a developer can force the
+construction screen with `UNDER_CONSTRUCTION=true` in `.env.local` — the
+`next.config.ts` guard skips evaluation when the var is already set.
 
 ### Flowers catalogue flag (Flagship)
 
@@ -99,9 +109,9 @@ stale flag value from a previous build — the Data Cache persists across builds
 with a 1-year revalidate) and per-page-render fetches. The evaluate call uses
 Node's `https` module (not the global `fetch`) so the Data Cache never
 intercepts it; the flag is re-evaluated fresh on every build. The result is
-baked into the static pages — like `UNDER_CONSTRUCTION`, flipping the flag in
-the dashboard does **not** change already-deployed pages until the next CI
-build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
+baked into the static pages — like the `under-construction` flag, flipping the
+flag in the dashboard does **not** change already-deployed pages until the next
+CI build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
 from server components (layout, pages, Footer, not-found, FeaturedBouquets,
 sitemap) — never from client components; client components receive the value as
 a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
@@ -139,8 +149,8 @@ The preview job uses `upload` (which calls `wrangler versions upload`) rather th
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
 | `STRIPE_SECRET_KEY_LIVE` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
 | `STRIPE_SECRET_KEY_TEST` | preview build | `sk_test_...`, used at build time to fetch the Stripe product catalog |
-| `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` |
-| `FLAGSHIP_API_TOKEN` | both builds | API token with Flagship read/evaluate permission, used at build time to evaluate `enable-flowers-page` |
+| `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` and `under-construction` |
+| `FLAGSHIP_API_TOKEN` | both builds | API token with Flagship read/evaluate permission, used at build time to evaluate `enable-flowers-page` and `under-construction` |
 
 `STRIPE_SECRET_KEY` is now needed in **two** places:
 
@@ -174,7 +184,7 @@ echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
 
 - App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, and `POST /api/checkout`.
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not for state that must persist across navigations.
-- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`. When the `UNDER_CONSTRUCTION` flag is on (see Deployment), it instead renders only the standalone `UnderConstruction` component — no providers, no nav, no footer.
+- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`. When the `under-construction` Flagship flag is on (see Deployment), it instead renders only the standalone `UnderConstruction` component — no providers, no nav, no footer.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 
 ## Data & state
@@ -200,7 +210,7 @@ Two layers: **bun test** for unit tests and **Playwright** for E2E. Both are wir
 
 - **Unit tests** live in `src/lib/__tests__/*.test.ts` and are pure-logic (no DOM, no TSX rendering) — they test the Stripe→`Product` mapping and slug derivation (`stripe-catalog.test.ts`), the client-safe listing helpers (`product-utils.test.ts`), the exported \`cartReducer\`, the \`toLineItems\` seam, and the extracted pure helpers (\`formatPrice\` in \`src/lib/format.ts\`; \`computeLineItemTotal\` / \`computeLineItemCount\` / \`computeShipping\` and \`validateLineItems\` in \`src/lib/order.ts\`). Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias resolves automatically (bun reads `tsconfig.json` paths). No happy-dom / testing-library — keep unit tests dependency-free; if a component needs DOM rendering, that belongs in E2E, not here.
 - **E2E tests** live in `e2e/*.spec.ts` and use `@playwright/test`. `playwright.config.ts` runs `bun run build && bun run start` on `:3000` (production build, per Next.js guidance) with a chromium project and `baseURL http://localhost:3000`. Prefer web-first assertions (`expect(locator).toBeVisible()` / `toContainText()`) — they auto-wait and absorb the `template.tsx` page-enter animation. To put items in the cart, drive the real UI (navigate to `/bouquets`, click "Add to Cart") rather than injecting `localStorage`, except for narrow edge cases where `page.addInitScript` is clearer.
-- **Checkout E2E runs in simulated mode** — `playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=` (empty) so `/api/checkout` always uses its simulated success path (redirects to `/checkout/success?success=true&order=...&items=...` and `CheckoutSuccessContent` clears the cart), even when a developer has a real key in `.env`. Next.js does not override an existing env var (even empty) with `.env` values, so this forces `!secretKey` → simulated path. E2E must never hit the real Stripe API. The API route is also tested directly (empty items → 400 with `error: "No items provided"`, valid items → 200 with `url`). Input validation lives in \`validateLineItems\` (\`src/lib/order.ts\`) and is unit-tested there; the route imports it. The empty-items 400 error string is asserted by E2E — keep it stable. E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update them if the Stripe catalog changes. E2E builds run without Flagship credentials, so `enable-flowers-page` fails open to enabled and the flowers catalogue is visible in E2E.
+- **Checkout E2E runs in simulated mode** — `playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=` (empty) so `/api/checkout` always uses its simulated success path (redirects to `/checkout/success?success=true&order=...&items=...` and `CheckoutSuccessContent` clears the cart), even when a developer has a real key in `.env`. Next.js does not override an existing env var (even empty) with `.env` values, so this forces `!secretKey` → simulated path. E2E must never hit the real Stripe API. The API route is also tested directly (empty items → 400 with `error: "No items provided"`, valid items → 200 with `url`). Input validation lives in \`validateLineItems\` (\`src/lib/order.ts\`) and is unit-tested there; the route imports it. The empty-items 400 error string is asserted by E2E — keep it stable. E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update them if the Stripe catalog changes. E2E builds run without Flagship credentials, so `enable-flowers-page` fails open to enabled (flowers catalogue visible) and `under-construction` fails open to off (store renders normally) in E2E.
 - **Accessibility (WCAG 2.2 AA) is scanned with axe-core** — `e2e/accessibility.spec.ts` uses `@axe-core/playwright` (devDependency) to scan every public route (`/`, `/flowers`, `/bouquets`, a product page, `/cart`, `/checkout`, `/checkout/success`) plus the open mobile nav, asserting zero violations with the five WCAG tags (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). No axe rules are disabled. The same spec also covers keyboard-only and focus-not-obscured checks. Running it needs `STRIPE_SECRET_KEY_TEST` in the process env (Playwright auto-loads `.env` from the test root; the config reads the `_TEST` name specifically) or the build fails. Axe scans must wait for the `template.tsx` page-enter animation and ScrollTrigger reveals to settle — the `settlePage` helper scrolls in steps with pauses, because an instant jump down the page misses mid-page reveals and never settles. Note: axe-core has no rule for 2.4.11 Focus Not Obscured; that SC is covered by the manual focus-obscured check in the same spec.
 - **`bunfig.toml`** excludes `e2e/**` from `bun test` discovery so the two runners don't collide. `bun test` runs only unit tests; `bun run test:e2e` runs only Playwright.
 - **Generated dirs** `test-results/` and `playwright-report/` are gitignored. Browser binaries live outside the repo (installed via `bunx playwright install chromium`).

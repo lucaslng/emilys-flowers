@@ -151,11 +151,15 @@ jobs:
       # key must be present during the OpenNext build. STRIPE_SECRET_KEY is also
       # needed at build time now that the product catalog is fetched from Stripe
       # during static generation (live key for the production build).
+      # UNDER_CONSTRUCTION_ENABLED marks this as the production build: only it
+      # evaluates the Flagship `under-construction` flag. Preview builds skip
+      # evaluation, so previews always render the store, never the construction
+      # screen.
       - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_LIVE }}
-          UNDER_CONSTRUCTION: "true"
+          UNDER_CONSTRUCTION_ENABLED: "true"
           FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
           FLAGSHIP_API_TOKEN: ${{ secrets.FLAGSHIP_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -3,12 +3,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { validateLineItems, encodeOrderItems, generateOrderNumber, type LineItem } from '@/lib/order';
-import { isUnderConstruction } from '@/lib/under-construction';
 
 export async function POST(request: Request) {
-  if (isUnderConstruction()) {
-    return NextResponse.json({ error: "We're under construction" }, { status: 503 });
-  }
   const origin = new URL(request.url).origin;
   try {
     const body = await request.json();
