@@ -166,6 +166,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
+      # Populate the static-assets incremental cache (open-next.config.ts):
+      # copies the build-time prerendered pages into the assets at
+      # `cdn-cgi/_next_cache/` so the worker serves them instead of re-rendering
+      # at runtime. Without this, the build-time Flagship flag values (baked
+      # into the prerendered pages) are lost and every page fails open.
+      - name: Populate static-assets cache
+        run: bunx opennextjs-cloudflare populateCache local
+
       # `--keep-vars` preserves dashboard-set runtime secrets (STRIPE_SECRET_KEY)
       # that aren't declared in wrangler.jsonc. Without it, wrangler deletes them.
       - name: Deploy to production Worker
@@ -208,6 +216,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
+
+      # Populate the static-assets incremental cache (open-next.config.ts) so
+      # previews serve the prerendered pages too (flowers flag honored; the
+      # under-construction flag is never evaluated for preview builds).
+      - name: Populate static-assets cache
+        run: bunx opennextjs-cloudflare populateCache local
 
       # Use `upload` (wrangler versions upload) instead of `deploy` so each
       # branch gets its own preview version with a stable URL, rather than
