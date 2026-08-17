@@ -7,15 +7,15 @@ versions in use here.
 
 ## Relationship to `AGENTS.md`
 
-[`AGENTS.md`](../AGENTS.md) is the **source of truth** for commands,
-architecture, data/state, Stripe wiring, and styling/animation conventions. It
-is intentionally short and authoritative. Edit it when you change anything it
+[`AGENTS.md`](../AGENTS.md) is a **high-level overview** — commands, architecture
+sketch, and pointers to these docs. It is intentionally short so it stays cheap
+to inject into every agent's context. Edit it when you change anything it
 documents.
 
-These `docs/` files are **expansion packs**. They explain *why* the conventions
-exist and flag the breaking changes an agent with older training data would get
-wrong. If a doc here ever conflicts with `AGENTS.md`, `AGENTS.md` wins — fix the
-doc.
+These `docs/` files are the **depth**: the full deployment/testing/data details
+plus the *why* behind the conventions and the breaking changes an agent with
+older training data would get wrong. If a doc here ever conflicts with
+`AGENTS.md`, `AGENTS.md` wins — fix the doc.
 
 ## Stack versions (as of July 2026)
 
@@ -35,6 +35,9 @@ writing code that touches any of these areas.
 
 | Doc | When to read |
 |---|---|
+| [deployment.md](./deployment.md) | Before touching `wrangler.jsonc`, `open-next.config.ts`, `deploy.yml`/`test.yml`, Flagship flags, or secrets. Covers the two-worker model, build-time Flagship flags, CI/CD, GitHub Secrets, and the `--keep-vars` requirement. |
+| [testing.md](./testing.md) | Before adding or modifying tests. Covers `bun test` unit tests, Playwright E2E (simulated checkout mode), axe-core WCAG 2.2 AA scans, and runner separation. |
+| [data-and-state.md](./data-and-state.md) | Before touching product data, the cart, prices, or order math. Covers the Stripe catalog fetch, integer-cents prices, cart context, and `src/lib/order.ts` helpers. |
 | [nextjs-and-react.md](./nextjs-and-react.md) | Before touching routes, layouts, data fetching, metadata, route handlers, or React hooks/components. Covers Next.js 16 + React 19 breaking changes. |
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the warm gift-tag card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
@@ -49,8 +52,10 @@ writing code that touches any of these areas.
   typecheck: `bunx tsc --noEmit`.
 - **Path alias:** `@/*` → `./src/*`.
 - **TypeScript:** `strict`, `noEmit`, `moduleResolution: bundler`.
-- **Products** are hardcoded in `src/lib/products.ts` — no DB/CMS.
+- **Products** come from the Stripe catalog, fetched at build time by
+  `src/lib/stripe-catalog.ts` — no DB/CMS.
 - **Prices** are integer cents everywhere (`2499` = $24.99).
 - **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`,
   persisted to `localStorage` key `emilys-flowers-cart`.
-- **Stripe** creates real Checkout Sessions when `STRIPE_SECRET_KEY` is set to live keys, sandbox when set to test keys
+- **Stripe** creates real Checkout Sessions when `STRIPE_SECRET_KEY` is set
+  (live or test mode); falls back to a simulated success URL when absent.

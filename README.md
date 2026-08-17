@@ -30,14 +30,14 @@ bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
-There is no `lint`, `typecheck`, or `test` script.
+There is no `lint` or `typecheck` script. `bun test` runs the unit tests.
 
 ## Deployment — Cloudflare Workers
 
 This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext), not Vercel.
 
 - `wrangler.jsonc` — Workers config (`main`, `nodejs_compat`, `IMAGES` binding for `next/image`, `WORKER_SELF_REFERENCE` service binding).
-- `open-next.config.ts` — OpenNext adapter config (default is sufficient; R2 cache commented out).
+- `open-next.config.ts` — OpenNext adapter config (enables `staticAssetsIncrementalCache` so the worker serves build-time prerendered pages).
 - `bun run preview` — build + serve locally in the Workers runtime (Miniflare) to verify before deploying.
 - `bun run deploy` — build + deploy to Cloudflare Workers.
 
@@ -65,7 +65,7 @@ Secrets (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`) are set via 
 
 - `src/app/` — App Router pages, layouts, API routes
 - `src/components/` — UI, layout, cart, and shop components
-- `src/lib/` — products data, cart context, GSAP setup, Stripe client, PetalBurst singleton
+- `src/lib/` — Stripe catalog, cart context, GSAP setup, Stripe client, PetalBurst singleton
 - `src/types/` — shared TypeScript types
 
-Products are hardcoded in `src/lib/products.ts` (no database or CMS). Prices are integer cents (Stripe convention).
+Products come from the Stripe catalog, fetched at build time by `src/lib/stripe-catalog.ts` (no database or CMS). Prices are integer cents (Stripe convention).

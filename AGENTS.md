@@ -10,7 +10,7 @@ This repo uses a **bare-repo + sibling-worktree** layout — not `.slim/worktree
 
 # Emily's Flowers
 
-Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScript (strict), Tailwind v4, GSAP animations, Stripe. Single package, no monorepo.
+Handcrafted-ribbon-flower storefront. Next.js 16 App Router + React 19, TypeScript (strict), Tailwind v4, GSAP animations, Stripe, Cloudflare Workers. Single package, no monorepo.
 
 ## Commands
 
@@ -21,256 +21,61 @@ bun start         # serve the production build (Node.js runtime — NOT Workers)
 bun test          # unit tests (bun's built-in runner)
 bun run test:e2e  # Playwright E2E (builds + serves on :3000 first)
 bun run preview   # build + serve in the local Workers runtime (Miniflare via wrangler)
-bun run deploy   # build + deploy to Cloudflare Workers
+bun run deploy    # build + deploy to Cloudflare Workers
 bun run upload    # build + upload Worker without activating (wrangler upload)
 bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
-There is **no `lint` or `typecheck` script** — do not assume they work. `bun test` and `bun run test:e2e` are defined; see the Testing section below for the full stack.
+There is **no `lint` or `typecheck` script** — do not assume they work. `bun test` and `bun run test:e2e` are defined. Package manager is **bun** (`bun.lock` tracked; `package-lock.json` removed — do not reintroduce it or switch to npm).
 
-Package manager is **bun**. `bun.lock` is the tracked lockfile; `package-lock.json` has been removed — do not reintroduce it or switch to npm.
+## Documentation
 
-## Deployment — Cloudflare Workers
+`docs/README.md` is the index of topic docs. Read the relevant one before touching its area:
 
-This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext). It is **not** a Vercel project — `vercel.json` was removed and no Vercel env vars (`VERCEL_ENV`, `VERCEL_URL`, `NEXT_PUBLIC_VERCEL_URL`) are referenced anywhere. Do not reintroduce them.
-
-### Two-Worker model (production + preview)
-
-Cloudflare Workers has no built-in per-project Preview/Production env-var toggle like Vercel — a single Worker's preview versions share its secret namespace with production. To get env isolation (live Stripe keys on `main`, test keys elsewhere), `wrangler.jsonc` defines **two Wrangler `[env.*]` environments**, each of which is a **separate Worker** with its own name, secrets, vars, and bindings:
-
-- `env.production` → Worker `emilys-flowers-production` (live Stripe keys)
-- `env.preview` → Worker `emilys-flowers-preview` (test Stripe keys)
-
-### Under-construction gate (Flagship)
-
-The site can be put "under construction" so nothing is browsable or purchasable
-while the storefront is being prepared. This is driven by a Cloudflare
-**Flagship** feature flag: the `under-construction` boolean flag in the
-`emilysflowers` Flagship app. When the flag is **on**, the production build
-renders the construction screen on every page; when **off**, the store renders
-normally. Local dev, preview builds, and E2E are never affected by this flag:
-`evaluateUnderConstruction()` returns `false` whenever the
-`UNDER_CONSTRUCTION_ENABLED` marker is absent (only the production build sets
-it — see below), independent of whether Flagship credentials are present.
-
-The check happens **at build time, exactly once per build**, exactly like
-`enable-flowers-page`: `next.config.ts` (an async config function) calls
-`evaluateUnderConstruction()` from `src/lib/under-construction.ts` in the main
-build process and stores the result in `process.env.UNDER_CONSTRUCTION`, which
-every static-gen worker inherits. The app reads it synchronously via
-`isUnderConstruction()` (`process.env.UNDER_CONSTRUCTION === "true"` — fails
-open to **not** under construction, the opposite direction of the flowers
-flag). The evaluate call uses Node's `https` module (not the global `fetch`) so
-Next.js's Data Cache never serves a stale flag value from a previous build; the
-flag is re-evaluated fresh on every build, and flipping it in the dashboard
-does **not** change already-deployed pages until the next CI build. No Flagship
-SDK dependency. **Only the production build evaluates the flag**: `deploy.yml`
-sets `UNDER_CONSTRUCTION_ENABLED: "true"` in the production `Build (OpenNext)`
-step env, and `evaluateUnderConstruction()` returns `false` when that marker is
-absent — so preview builds always render the store, never the construction
-screen. (The Flagship credentials are still passed to both builds because
-`enable-flowers-page` is evaluated in both.)
-
-**The flag values only reach users because the prerendered pages are actually
-served**: `open-next.config.ts` uses `staticAssetsIncrementalCache` and
-`deploy.yml` runs `populateCache local` after the build, so the worker serves
-the build-time prerendered HTML (flags baked in) instead of re-rendering at
-runtime. If you ever remove the static-assets cache, the flags will silently
-fail open in production again — the build-time `process.env` values do not
-exist on the Worker at runtime.
-
-When the flag is on, `src/app/layout.tsx` renders the standalone
-`UnderConstruction` component (`src/components/under-construction.tsx`) instead
-of the app tree (no Navbar/Footer/cart/providers). `src/app/robots.ts` returns
-`disallow: '/'` while construction is on (blocks all crawling so the
-construction page isn't indexed, while still advertising the sitemap);
-otherwise it returns the normal rules (`allow: '/'`, `disallow: ['/cart',
-'/checkout', '/api/']`).
-
-There is **no runtime API gate**: the `POST /api/checkout` route no longer
-returns `503` while construction is on (the old `wrangler.jsonc`
-`env.production.vars.UNDER_CONSTRUCTION` runtime var was removed with the
-env-var mechanism). The construction screen hides the cart/checkout UI, but a
-direct API call can still create a Stripe session while the flag is on.
-
-**To open the store later:** flip the `under-construction` flag **off** in the
-Flagship dashboard, then redeploy. Locally, a developer can force the
-construction screen with `UNDER_CONSTRUCTION=true` in `.env.local` — the
-`next.config.ts` guard skips evaluation when the var is already set.
-
-### Flowers catalogue flag (Flagship)
-
-The entire flowers catalogue can be hidden behind a Cloudflare **Flagship**
-feature flag: `enable-flowers-page` in the `emilysflowers` Flagship app. When
-the flag is **off**, `/flowers` and every flower product page render 404, the
-nav/footer/hero/404 "browse flowers" links disappear, featured products on the
-home page exclude flowers, and the sitemap drops the `/flowers` and flower
-product URLs. When **on** (or when Flagship credentials are absent — local dev,
-E2E), everything renders as normal. Unlike `under-construction`, this flag is
-**not** gated to production builds: a developer with Flagship credentials in
-`.env.local` will see the flag applied locally.
-
-The check happens **at build time, exactly once per build**: `next.config.ts`
-(an async config function) calls `evaluateFlowersEnabled()` from
-`src/lib/flowers-flag.ts` in the main build process — before static-generation
-workers spawn — and stores the result in `process.env.FLOWERS_ENABLED`, which
-every worker thread inherits. The app then reads it synchronously via
-`isFlowersEnabled()` (`process.env.FLOWERS_ENABLED !== "false"`, fails open to
-enabled). This avoids both Next.js's Data Cache (a cached fetch would serve a
-stale flag value from a previous build — the Data Cache persists across builds
-with a 1-year revalidate) and per-page-render fetches. The evaluate call uses
-Node's `https` module (not the global `fetch`) so the Data Cache never
-intercepts it; the flag is re-evaluated fresh on every build. The result is
-baked into the static pages — like the `under-construction` flag, flipping the
-flag in the dashboard does **not** change already-deployed pages until the next
-CI build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
-from server components (layout, pages, Footer, not-found, FeaturedBouquets,
-sitemap) — never from client components; client components receive the value as
-a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
-Like `under-construction`, this only works because the prerendered pages are
-served via `staticAssetsIncrementalCache` + `populateCache local` (see the
-under-construction section).
-
-Credentials are passed to **both** `Build (OpenNext)` steps in `deploy.yml`
-(production and preview evaluate the same flag): `FLAGSHIP_APP_ID`,
-`CLOUDFLARE_API_TOKEN` (the same single API token used for the wrangler deploys —
-it must carry Flagship read/evaluate permission plus the Workers deploy
-permissions), and `CLOUDFLARE_ACCOUNT_ID`.
-
-**Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are repeated in each `[env.*]` stanza — Wrangler environments do not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in each env points to **that env's Worker name** (`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks. The top-level config (including the `WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for `bun run preview` / local dev.
-
-### CI/CD — GitHub Actions
-
-Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in Workers Builds):
-
-- **`.github/workflows/test.yml`** — PR-only CI feedback. Runs unit tests always; E2E only when a `changes` job detects app/e2e-affecting files (`src/`, `e2e/`, `public/`, `playwright.config.ts`, `next.config.ts`, `tsconfig.json`, `package.json`, `bun.lock`, `.github/workflows/`). Docs/config-only PRs skip E2E. Does **not** trigger on push (avoids duplicating tests that `deploy.yml` already runs).
-- **`.github/workflows/deploy.yml`** — push-triggered. Runs unit tests always; E2E via the same `changes` path-filter. Deploys based on branch:
-  - `main` push → `deploy-production` job → `opennextjs-cloudflare deploy --env production -- --keep-vars` (promotes to the production Worker's production URL)
-  - any other branch push → `deploy-preview` job → `opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias <sanitized-branch>` (creates a per-branch preview version with a stable URL like `<branch>-emilys-flowers-preview.<subdomain>.workers.dev`, without overwriting other branches' previews)
-  - **gating differs by deploy target:** `deploy-preview` gates on `needs: [unit]` only (previews are disposable, deploy fast); `deploy-production` gates on `needs: [unit, e2e]` but uses `!cancelled()` + explicit `needs.*.result` checks so it proceeds when E2E was path-filtered out (skipped) while still blocking on a failed or non-skipped E2E. A red unit suite blocks both.
-  - `concurrency` cancels superseded preview runs but never cancels a production deploy mid-flight
-  - `deploy-preview` also posts a **sticky PR comment** with the preview URL: a `github-script` step looks up the PR for the head SHA via `listPullRequestsAssociatedWithCommit` (the workflow is `push`-triggered, so `github.event.pull_request` is unavailable), then `marocchino/sticky-pull-request-comment@v3` creates or updates a single comment keyed by the `cloudflare-preview-url` header. Re-pushes update the same comment instead of stacking duplicates. The job carries a job-scoped `pull-requests: write` permission for this; branches with no open PR skip the comment step.
-
-`--keep-vars` is **required** on every deploy: without it, `wrangler deploy`/`wrangler versions upload` deletes dashboard-set runtime secrets (`STRIPE_SECRET_KEY`) that aren't declared in `wrangler.jsonc`. The `--` separator is required by the OpenNext CLI's yargs setup to forward `--keep-vars` (and `--preview-alias`) to `wrangler` as positional args.
-
-The preview job uses `upload` (which calls `wrangler versions upload`) rather than `deploy` so each branch gets its own preview version instead of overwriting the preview Worker's production deployment. All preview versions share the `emilys-flowers-preview` Worker's secret namespace (test Stripe keys), which is exactly what's wanted — every preview branch should use test keys.
-
-### Required GitHub Secrets
-
-| Secret | Used by | Notes |
-|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | both deploys + both builds | single API token: Workers deploys (scripts, assets, custom-domain routes) + Flagship read/evaluate for the build-time flag checks |
-| `CLOUDFLARE_ACCOUNT_ID` | both deploys | |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` | production build | `pk_live_...`, inlined by Next.js at build time |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
-| `STRIPE_SECRET_KEY_LIVE` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
-| `STRIPE_SECRET_KEY_TEST` | preview build | `sk_test_...`, used at build time to fetch the Stripe product catalog |
-| `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` and `under-construction` |
-
-`STRIPE_SECRET_KEY` is now needed in **two** places:
-
-1. **At build time** (to fetch the product catalog during static generation) — provided as the GitHub Secrets `STRIPE_SECRET_KEY_LIVE` / `STRIPE_SECRET_KEY_TEST`, passed into the `Build (OpenNext)` step env in `deploy.yml`.
-2. **At runtime** (for the checkout route) — a runtime secret set once per Worker via `wrangler secret put STRIPE_SECRET_KEY --env production` / `--env preview` (or the dashboard's Variables & Secrets for each Worker). This is a *different* value from the build-time secret and is never a GitHub Secret.
-
-### One-time setup
-
-```bash
-# 1. Create both Workers (run from a worktree):
-bunx opennextjs-cloudflare build
-bunx wrangler deploy --env production
-bunx wrangler deploy --env preview
-
-# 2. Set runtime secrets per Worker (one-time):
-echo "sk_live_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env production
-echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
-
-# 3. Add the six GitHub Secrets above to the repo, then push.
-```
-
-### Other config
-
-- **`wrangler.jsonc`** is the Workers config: `main: .open-next/worker.js`, `nodejs_compat` flag, `IMAGES` binding (Cloudflare Images for `next/image`), and `WORKER_SELF_REFERENCE` service binding (required by OpenNext for ISR revalidation, even though this app has no ISR today — keep it).
-- **`open-next.config.ts`** is the OpenNext adapter config. It enables `staticAssetsIncrementalCache` (read-only Workers Static Assets cache): the worker serves the build-time prerendered pages from the assets instead of re-rendering every page at runtime. This is what makes the build-time Flagship flag values actually reach users — without it, the default "dummy" cache re-renders every page on the Worker, where the build-time `process.env` flag values don't exist, so every flag check fails open (flowers visible, no under-construction). The cache is populated by `populateCache local` in `deploy.yml` after `build` and before `deploy`/`upload` (copies `.open-next/cache` into the assets at `cdn-cgi/_next_cache/`). R2 incremental cache is the alternative if you add cached data fetching with revalidation.
-- **`next.config.ts`** ends with an unconditional `import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev())` — this is the official pattern; it injects `wrangler.jsonc` bindings into `next dev` so `getCloudflareContext()` works locally. It self-guards outside dev.
-- **Generated dirs** `.open-next/` (build output) and `.wrangler/` (local state) are gitignored. `cloudflare-env.d.ts` (from `bun run cf-typegen`) is also gitignored — regenerate it locally when you start referencing `CloudflareEnv` in code, then commit it once code depends on its types.
-- **Local Workers secrets** go in `.dev.vars` (gitignored). A `.dev.vars.example` template is tracked. Runtime secrets on production are set via `wrangler secret put` or the Cloudflare dashboard — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only).
+- [docs/deployment.md](docs/deployment.md) — Cloudflare Workers deployment, Flagship flags, CI/CD, secrets
+- [docs/testing.md](docs/testing.md) — unit + E2E + accessibility testing
+- [docs/data-and-state.md](docs/data-and-state.md) — Stripe catalog, cart, order math
+- [docs/nextjs-and-react.md](docs/nextjs-and-react.md) — Next.js 16 + React 19 conventions
+- [docs/tailwind-and-styling.md](docs/tailwind-and-styling.md) — Tailwind v4 + styling
+- [docs/animations.md](docs/animations.md) — GSAP, PetalBurst, reduced motion
+- [docs/stripe-checkout.md](docs/stripe-checkout.md) — checkout route + Stripe env wiring
 
 ## Architecture
 
 - App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, and `POST /api/checkout`.
-- `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not for state that must persist across navigations.
-- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`. When the `under-construction` Flagship flag is on (see Deployment), it instead renders only the standalone `UnderConstruction` component — no providers, no nav, no footer.
+- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer` — persists across navigations.
+- `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not state that must persist.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 
 ## Data & state
 
-- **Products come from the Stripe catalog**, fetched at build time by the server-only module `src/lib/stripe-catalog.ts` (no DB/CMS). It calls `stripe.products.list({ expand: ['data.default_price'] })`, maps each product + price onto the `Product` shape (slug derived from name, category from `metadata.category`, `flower_type`/`color` from metadata, `featured`/`featuredOrder` from `metadata.featured`, price from `default_price.unit_amount`), and memoizes the result with React `cache` so the catalog is fetched once per build. A single universal `PLACEHOLDER_DESCRIPTION` is used when a Stripe product has no description. Helpers: `getAllProducts`, `getProductBySlug`, `getProductsByCategory`, `getFeaturedProducts`. Client-safe pure helpers (`getPriceRange`, `getFlowerTypes`, `getFlowerColors`, `formatLabel`) live in `src/lib/product-utils.ts`. Images are scanned at build time from per-product folders under `public/products/<slug>/` by `imagesForProduct` (`src/lib/stripe-catalog.ts`), falling back to the per-category SVG placeholder (`/placeholders/flower.svg`, `/placeholders/bouquet.svg`) when the folder is missing; the product detail page shows a gallery of all images. `ProductImage` (`src/components/shop/ProductImage.tsx`) still falls back to the category SVG on image-load error. `next.config.ts` `images.remotePatterns` is empty (no remote hosts). Because the catalog is fetched at build time, `STRIPE_SECRET_KEY` must be present during `next build` (see the Deployment section).
-- **Prices are integer cents** (Stripe convention): `2499` = $24.99. All order/cart math stays in cents; the pure helpers live in \`src/lib/order.ts\` (see below). Display formatting goes through `formatPrice` (`src/lib/format.ts`), which returns the decimal string (no `$`); callers add the symbol. The free-shipping threshold ($50 = 5000¢, else flat $5.99 = 599¢) lives in \`computeShipping\` (\`src/lib/order.ts\`) — \`CartSummary\`, \`checkout/page.tsx\`, and \`checkout/success/page.tsx\` all call it, so don't re-inline the ternary.
-- **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount). Hydrated payloads pass through `sanitizeStoredCart` (exported, unit-tested) so a corrupted/hand-edited store drops malformed items instead of poisoning totals; `UPDATE_QUANTITY` keeps only positive-integer quantities (anything else removes the line). `useCart()` throws if used outside `CartProvider` (which lives in the root layout, so this is normally fine). The \`cartReducer\`, the \`toLineItems\` seam, and \`sanitizeStoredCart\` are exported from that module for isolated unit testing. The order math (\`computeLineItemTotal\`, \`computeLineItemCount\`, \`computeShipping\`) and \`validateLineItems\` live in \`src/lib/order.ts\` and operate on the flat \`LineItem\` shape; the provider's \`getTotal\`/\`getItemCount\` flatten \`CartItem[]\` to \`LineItem[]\` via \`toLineItems\` and delegate to them. \`decodeOrderItems\` enforces the same semantic shape as \`validateLineItems\` (non-empty id/name, positive-integer price/quantity), so a crafted \`items\` URL param can't surface negative/fractional totals on the success page.
+Products come from the **Stripe catalog**, fetched at build time by the server-only `src/lib/stripe-catalog.ts` (no DB/CMS) and memoized with React `cache`; images are scanned from `public/products/<slug>/`. Prices are **integer cents** (`2499` = $24.99); display via `formatPrice` (`src/lib/format.ts`), order math via `computeShipping`/`computeLineItemTotal`/`computeLineItemCount`/`validateLineItems` in `src/lib/order.ts` (free-shipping threshold $50 = 5000¢, else 599¢). Cart is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` with `sanitizeStoredCart` on hydration. See [docs/data-and-state.md](docs/data-and-state.md).
+
+## Deployment
+
+Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext) — **not** Vercel (`vercel.json` removed; no `VERCEL_*` vars). Two Wrangler `[env.*]` environments, each a separate Worker: `env.production` → `emilys-flowers-production` (live Stripe keys), `env.preview` → `emilys-flowers-preview` (test keys). Build-time Flagship flags (`under-construction` + `enable-flowers-page`) are evaluated once per build in `next.config.ts` and baked into prerendered pages. `--keep-vars` is **required** on every deploy. See [docs/deployment.md](docs/deployment.md).
 
 ## Stripe
 
-`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; when the key is absent (e.g. local dev without `.env.local`) it falls back to a simulated success URL so `bun run dev` still works. The route derives `origin` from `request.url` (no `NEXT_PUBLIC_BASE_URL` / `NEXT_PUBLIC_VERCEL_URL` fallback chain — those were removed with the Vercel migration).
-
-Required env vars:
-
-- `STRIPE_SECRET_KEY` (server) — live key for production, test key for preview/dev
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (client) — currently unused by code (no client-side Stripe SDK call site); reserved for future Embedded Checkout / Elements use. Must match the secret key's mode when wired in.
-
-On Cloudflare Workers, `STRIPE_SECRET_KEY` is a runtime secret set **per Worker** via `wrangler secret put STRIPE_SECRET_KEY --env production` (live) or `--env preview` (test) — never in `wrangler.jsonc` `vars` (that's for non-sensitive config only). Separately, `STRIPE_SECRET_KEY` is also needed **at build time** to fetch the product catalog; that value is a GitHub Secret (`STRIPE_SECRET_KEY_LIVE` / `STRIPE_SECRET_KEY_TEST`) passed into the build step — see the Deployment section's GitHub Secrets table. `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is currently unused by code (no client-side Stripe SDK call site), but the matching publishable key is still provided to the build as a GitHub Secret (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` for `main`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` for other branches). Locally, the build-time key comes from `.env.local` (read by `next build`/`next dev`) or `.dev.vars` (read by `wrangler dev` / `bun run preview`).
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. `STRIPE_SECRET_KEY` is needed **at build time** (GitHub secret `STRIPE_SECRET_KEY_LIVE`/`_TEST`) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md) and [docs/deployment.md](docs/deployment.md).
 
 ## Testing
 
-Two layers: **bun test** for unit tests and **Playwright** for E2E. Both are wired and must stay green.
+`bun test` runs pure-logic unit tests (`src/lib/__tests__/*.test.ts`, no DOM); Playwright E2E (`e2e/*.spec.ts`) builds + serves the production build on `:3000`; axe-core scans every public route for WCAG 2.2 AA. See [docs/testing.md](docs/testing.md).
 
-- **Unit tests** live in `src/lib/__tests__/*.test.ts` and are pure-logic (no DOM, no TSX rendering) — they test the Stripe→`Product` mapping and slug derivation (`stripe-catalog.test.ts`), the client-safe listing helpers (`product-utils.test.ts`), the exported \`cartReducer\`, the \`toLineItems\` seam, and the extracted pure helpers (\`formatPrice\` in \`src/lib/format.ts\`; \`computeLineItemTotal\` / \`computeLineItemCount\` / \`computeShipping\` and \`validateLineItems\` in \`src/lib/order.ts\`). Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias resolves automatically (bun reads `tsconfig.json` paths). No happy-dom / testing-library — keep unit tests dependency-free; if a component needs DOM rendering, that belongs in E2E, not here.
-- **E2E tests** live in `e2e/*.spec.ts` and use `@playwright/test`. `playwright.config.ts` runs `bun run build && bun run start` on `:3000` (production build, per Next.js guidance) with a chromium project and `baseURL http://localhost:3000`. Prefer web-first assertions (`expect(locator).toBeVisible()` / `toContainText()`) — they auto-wait and absorb the `template.tsx` page-enter animation. To put items in the cart, drive the real UI (navigate to `/bouquets`, click "Add to Cart") rather than injecting `localStorage`, except for narrow edge cases where `page.addInitScript` is clearer.
-- **Checkout E2E runs in simulated mode** — `playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=` (empty) so `/api/checkout` always uses its simulated success path (redirects to `/checkout/success?success=true&order=...&items=...` and `CheckoutSuccessContent` clears the cart), even when a developer has a real key in `.env`. Next.js does not override an existing env var (even empty) with `.env` values, so this forces `!secretKey` → simulated path. E2E must never hit the real Stripe API. The API route is also tested directly (empty items → 400 with `error: "No items provided"`, valid items → 200 with `url`). Input validation lives in \`validateLineItems\` (\`src/lib/order.ts\`) and is unit-tested there; the route imports it. The empty-items 400 error string is asserted by E2E — keep it stable. E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update them if the Stripe catalog changes. E2E builds run without Flagship credentials, so `enable-flowers-page` fails open to enabled (flowers catalogue visible) and `under-construction` fails open to off (store renders normally) in E2E.
-- **Accessibility (WCAG 2.2 AA) is scanned with axe-core** — `e2e/accessibility.spec.ts` uses `@axe-core/playwright` (devDependency) to scan every public route (`/`, `/flowers`, `/bouquets`, a product page, `/cart`, `/checkout`, `/checkout/success`) plus the open mobile nav, asserting zero violations with the five WCAG tags (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). No axe rules are disabled. The same spec also covers keyboard-only and focus-not-obscured checks. Running it needs `STRIPE_SECRET_KEY_TEST` in the process env (Playwright auto-loads `.env` from the test root; the config reads the `_TEST` name specifically) or the build fails. Axe scans must wait for the `template.tsx` page-enter animation and ScrollTrigger reveals to settle — the `settlePage` helper scrolls in steps with pauses, because an instant jump down the page misses mid-page reveals and never settles. Note: axe-core has no rule for 2.4.11 Focus Not Obscured; that SC is covered by the manual focus-obscured check in the same spec.
-- **`bunfig.toml`** excludes `e2e/**` from `bun test` discovery so the two runners don't collide. `bun test` runs only unit tests; `bun run test:e2e` runs only Playwright.
-- **Generated dirs** `test-results/` and `playwright-report/` are gitignored. Browser binaries live outside the repo (installed via `bunx playwright install chromium`).
-- When adding source that should be unit-testable as pure logic, export the function (as `cartReducer`, `formatPrice`, `computeCartTotal`, `computeCartItemCount`, `computeShipping`, and `validateLineItems` are exported) rather than reaching for a DOM test harness. Price formatting goes through `formatPrice` (`src/lib/format.ts`); cart/order math and the free-shipping threshold ($50 = 5000¢) go through the \`compute*\` helpers in \`src/lib/order.ts\` — don't re-inline \`(x / 100).toFixed(2)\` or \`subtotal >= 5000 ? 0 : 599\` in components. \`formatPrice\` (\`src/lib/format.ts\`) is the only price formatter.
+## Styling & animation
 
-## Styling & animation conventions
-
-- **Tailwind v4, CSS-first config**: there is no `tailwind.config.js`. Theme tokens are declared with `@theme inline` in `src/app/globals.css`. Custom color tokens: `background`, `foreground`, `surface`, `blush`, `champagne`, `rose`, `rose-deep`, `rose-line`, `border`, `muted`. Fonts map to `--font-sans` (Martian Mono — the geometric/grid voice for UI, labels, and body) and `--font-hand` (Reanie Beanie — the hand-drawn/chalk voice for accents, callouts, and annotations; never use it for long body copy, its x-height is small). The contrast-critical values are: muted text `#7A6868`, text/hover rose `#9E5E5E` (both 4.5:1 on the light surfaces `#FEFAF5` / `#FCF5EF`), and non-text rose `#B16E6E` (3:1). Don't lighten these back without re-checking WCAG contrast.
-- **GSAP**: import `gsap`, `ScrollTrigger`, and `useGSAP` from `@/lib/gsap` — not directly from `gsap`/`@gsap/react`. That module registers the plugins once and clears a `body.style` write that otherwise triggers a Next.js hydration warning. It is client-only.
-- **PetalBurst** is a global singleton: `PetalBurstProvider` is mounted once in the root layout; call `firePetalBurst(from, to)` from any client component (viewport coords) — no prop drilling.
-- **Reduced motion**: `globals.css` collapses animations to ~instant and hides decorative petals/hearts under `prefers-reduced-motion: reduce`. New animations/motion components must respect this guard.
-- **Non-standard layouts**: the aesthetic deliberately avoids standard symmetric/centered layouts — a default template grid reads as "manufactured" and flattens the design. Compose sections asymmetrically: off-center grids, small tilts (`rotate-1` / `-rotate-2`), overlapping cards, staggered walls (`.specimen-wall`), and hand-placed accents (washi tape, hand-drawn arrows, `StarMotif` / `RibbonRose`). If a layout looks like a default template, redesign it. See `docs/tailwind-and-styling.md`.
-- **Product cards use a warm "gift-tag" language** (`.gift-card` in globals.css): sharp corners, 1px warm hairline border, no shadow, hover warms the border and draws a rose underline under the name (`.gift-name`). Match this language for new product-facing cards rather than introducing generic rounded/shadowed cards. The product wall uses the `.specimen-wall` staggered grid (columns 2 & 4 sit lower). Texture utilities: `.wrapping-grid` (frosted wrapping-paper grid), `.vignette` (soft warm light), `.stitch` (dashed seam), `.washi` (tape strip). Decorative motifs: `StarMotif` (origami star), `RibbonRose` (hand-folded rose SVG).
-- **Visible focus (WCAG 2.4.7)**: `globals.css` sets a global `:focus-visible` rule (`2px` `outline` in `currentColor`, `2px` offset) on all interactive elements, plus `scroll-padding-top`/`scroll-margin-top` so keyboard focus is never obscured by the sticky nav (WCAG 2.4.11). Don't add `outline-none` to interactive elements — it removes the focus indicator.
+Tailwind v4, CSS-first: theme tokens via `@theme inline` in `src/app/globals.css` (no `tailwind.config.js`). Warm "gift-tag" card language (`.gift-card`) and deliberately non-standard/asymmetric layouts. Import GSAP only from `@/lib/gsap`; respect the `prefers-reduced-motion` guard. See [docs/tailwind-and-styling.md](docs/tailwind-and-styling.md) and [docs/animations.md](docs/animations.md).
 
 ## Git conventions
 
-- **Branch prefixes (required from now on):** name every new branch with one of these prefixes:
-  - `feature/` — new functionality or enhancements (e.g. `feature/gift-wrap-option`)
-  - `bugfix/` — defect fixes (e.g. `bugfix/cart-cents-rounding`)
-  - `docs/` — documentation-only changes (e.g. `docs/branch-prefix-policy`)
-- Do not branch off `main` with a bare name or an ad-hoc prefix. If an existing branch predates this policy, leave it as-is; apply the prefixes to new work going forward.
-- **Don't reference external repos' issues/PRs/commits** in this repo's issues, PRs, or commit messages. No "fixes vercel/next.js#1234", no "based on facebook/react#5678", no citing upstream issue/PR numbers you can't verify belong to this codebase. Only reference this repo's own issues/PRs/commits.
+- Branch prefixes **required**: `feature/` (new functionality, e.g. `feature/gift-wrap-option`), `bugfix/` (defects, e.g. `bugfix/cart-cents-rounding`), `docs/` (docs-only, e.g. `docs/branch-prefix-policy`). No bare/ad-hoc branch names off `main`; leave pre-policy branches as-is.
+- **Don't reference external repos' issues/PRs/commits** in this repo's issues, PRs, or commit messages — only this repo's own.
 
 ## Worktree workflow
 
-This repo uses a **bare-repo + sibling-worktree** layout — not `.slim/worktrees/`. The repo root is a bare repository (`.bare/` + a `.git` file pointing at it); each worktree is a sibling directory at the root, organized by branch prefix:
-
-```text
-emilys-flowers/
-├── .bare/            # shared bare store
-├── main/             # worktree on `main`
-├── feature/<slug>/   # worktree on `feature/<slug>`
-├── bugfix/<slug>/    # worktree on `bugfix/<slug>`
-└── docs/<slug>/      # worktree on `docs/<slug>`
-```
-
-To start a lane from the repo root:
-
-```bash
-git worktree add -b <prefix>/<slug> <prefix>/<slug> main
-```
-
-Do all lane work inside the worktree directory, not `main/`. There is no `.slim/` and no metadata manifest — do not create them. See `.agents/skills/worktrees/SKILL.md` for the full protocol (pre-flight, integration, cleanup, user-confirmation guards).
+Bare-repo + sibling-worktree layout — **not** `.slim/worktrees/`. The repo root is a bare repo (`.bare/` + a `.git` file); worktrees are sibling dirs by branch prefix (`main/`, `feature/<slug>/`, `bugfix/<slug>/`, `docs/<slug>/`). Start a lane with `git worktree add -b <prefix>/<slug> <prefix>/<slug> main`; do all lane work inside the worktree, not `main/`. See `.agents/skills/worktrees/SKILL.md` for the full protocol.
 
 ## Notes
 
