@@ -134,14 +134,18 @@ permissions), and `CLOUDFLARE_ACCOUNT_ID`.
 Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in
 Workers Builds):
 
-- **`.github/workflows/test.yml`** — PR-only CI feedback. Runs unit tests
-  always; E2E only when a `changes` job detects app/e2e-affecting files
-  (`src/`, `e2e/`, `public/`, `playwright.config.ts`, `next.config.ts`,
-  `tsconfig.json`, `package.json`, `bun.lock`, `.github/workflows/`).
-  Docs/config-only PRs skip E2E. Does **not** trigger on push (avoids
-  duplicating tests that `deploy.yml` already runs).
-- **`.github/workflows/deploy.yml`** — push-triggered. Runs unit tests always;
-  E2E via the same `changes` path-filter. Deploys based on branch:
+- **`.github/workflows/test.yml`** — the single source of truth for the test
+  jobs (`changes`/`unit`/`e2e`). Runs standalone on `pull_request` for fast PR
+  feedback, and is called as a **reusable workflow** by `deploy.yml` on push.
+  Unit tests always run; E2E only when the `changes` job detects
+  app/e2e-affecting files (`src/`, `e2e/`, `public/`, `playwright.config.ts`,
+  `next.config.ts`, `tsconfig.json`, `package.json`, `bun.lock`,
+  `.github/workflows/`). Docs/config-only PRs skip E2E. Exposes
+  `unit-result` / `e2e-result` outputs for `deploy.yml` gating (set via
+  `job.status` report steps — the `jobs.<job>.result` expression in output
+  values is buggy and resolves empty).
+- **`.github/workflows/deploy.yml`** — push-triggered. Calls `test.yml` with
+  `secrets: inherit` (the `tests` job), then deploys based on branch:
   - `main` push → `deploy-production` job →
     `opennextjs-cloudflare deploy --env production -- --keep-vars` (promotes to
     the production Worker's production URL)
@@ -150,12 +154,13 @@ Workers Builds):
     (creates a per-branch preview version with a stable URL like
     `<branch>-emilys-flowers-preview.<subdomain>.workers.dev`, without
     overwriting other branches' previews)
-  - **gating differs by deploy target:** `deploy-preview` gates on
-    `needs: [unit]` only (previews are disposable, deploy fast);
-    `deploy-production` gates on `needs: [unit, e2e]` but uses `!cancelled()` +
-    explicit `needs.*.result` checks so it proceeds when E2E was path-filtered
-    out (skipped) while still blocking on a failed or non-skipped E2E. A red
-    unit suite blocks both.
+  - **gating differs by deploy target:** `deploy-preview` gates on the
+    `unit-result` output only (previews are disposable, deploy fast; e2e never
+    blocks them); `deploy-production` requires the whole tests run to succeed —
+    unit passed AND e2e passed or was skipped (path-filtered out). A red unit
+    suite blocks both; a failed e2e blocks production only. Because both deploy
+    jobs depend on the single `tests` job, preview now waits for the full tests
+    run (including e2e) to finish before deploying.
   - `concurrency` cancels superseded preview runs but never cancels a
     production deploy mid-flight
   - `deploy-preview` also posts a **sticky PR comment** with the preview URL: a

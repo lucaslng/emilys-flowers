@@ -1,20 +1,12 @@
 name: Deploy
 
-# Vercel-like branch model: `main` → production Worker (live Stripe keys),
-# every other branch → preview Worker (test Stripe keys). Runtime secrets
-# (STRIPE_SECRET_KEY) are set per Worker via `wrangler secret put --env <name>`
-# and never enter GitHub — only the publishable keys (safe to expose) and the
-# Cloudflare API token live in GitHub Secrets. `--keep-vars` prevents deploys
-# from deleting those dashboard-set secrets.
+# Branch model: `main` → production Worker (live Stripe keys), other
+# branches → preview Worker (test keys). Runtime secrets are set per Worker
+# via `wrangler secret put`; `--keep-vars` preserves them on deploy.
 #
-# Tests live here (not in test.yml) so they gate deploys. test.yml handles
-# PR-only feedback; this workflow handles push events (tests + deploy).
-#
-# Unit tests always run and gate both deploys. E2E runs only when app/e2e-
-# affecting files change (see the `changes` job filter). E2E gates production
-# deploys but NOT preview deploys — previews are disposable and deploy fast on
-# unit-gating alone. If E2E is skipped (no relevant files changed), production
-# deploys proceed; if E2E runs and fails, production is blocked.
+# Tests run via the reusable `.github/workflows/test.yml`. Production deploys
+# when the whole tests run succeeds (unit passed AND e2e passed or skipped);
+# previews gate on `unit-result` only.
 
 on:
   workflow_dispatch:
@@ -31,111 +23,17 @@ permissions:
   contents: read
 
 jobs:
-  changes:
-    name: Detect changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    outputs:
-      e2e: ${{ steps.filter.outputs.e2e }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Detect e2e-relevant changes
-        id: filter
-        shell: bash
-        run: |
-          # Diff base: PR base SHA for pull_request, before-SHA for push.
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="${{ github.event.before }}"
-          fi
-
-          # New branch / first push: before is all-zeros → diff against the
-          # default branch (origin/main) instead of guessing. The fail-safe
-          # below covers the case where that diff can't be computed either.
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="origin/main"
-          fi
-
-          # Fail safe: if the diff can't be computed, run E2E.
-          if ! DIFF=$(git diff --name-only "$BASE" 2>/dev/null); then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # E2E runs when any app/e2e-affecting file changes.
-          if echo "$DIFF" | grep -E \
-            '^src/|^e2e/|^public/|^playwright\.config\.ts$|^next\.config\.ts$|^tsconfig\.json$|^package\.json$|^bun\.lock$|^\.github/workflows/' \
-            >/dev/null; then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "e2e=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  unit:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests
-        run: bun test
-
-  e2e:
-    name: E2E tests
-    needs: [changes]
-    if: needs.changes.outputs.e2e == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Playwright browser
-        run: bunx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
-        # Stripe at build time); playwright.config.ts runs the served app with an
-        # empty key so /api/checkout stays in simulated-success mode and never
-        # hits the real Stripe API.
-        env:
-          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
-        run: bun run test:e2e
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+  tests:
+    name: Tests
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
 
   deploy-production:
     name: Deploy → production
-    needs: [unit, e2e]
-    # `!cancelled()` + explicit result checks let production deploy when E2E
-    # was skipped (path-filtered out) while still blocking on a failed E2E or
-    # failed unit. The default `success()` status check would skip this job
-    # whenever E2E is skipped, so it must be overridden here.
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.unit.result == 'success' && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') }}
+    needs: [tests]
+    # Called workflow succeeds only when unit passed AND (e2e passed or skipped).
+    # `!cancelled()` keeps the check explicit when the tests run fails or is cancelled.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.tests.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -148,14 +46,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # NEXT_PUBLIC_* is inlined by Next.js at build time, so the publishable
-      # key must be present during the OpenNext build. STRIPE_SECRET_KEY is also
-      # needed at build time now that the product catalog is fetched from Stripe
-      # during static generation (live key for the production build).
-      # UNDER_CONSTRUCTION_ENABLED marks this as the production build: only it
-      # evaluates the Flagship `under-construction` flag. Preview builds skip
-      # evaluation, so previews always render the store, never the construction
-      # screen.
+      # NEXT_PUBLIC_* is inlined at build time; STRIPE_SECRET_KEY feeds the
+      # build-time Stripe catalog fetch. UNDER_CONSTRUCTION_ENABLED marks the
+      # production build — only it evaluates the Flagship `under-construction` flag.
       - name: Build (OpenNext)
         env:
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
@@ -166,16 +59,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
-      # Populate the static-assets incremental cache (open-next.config.ts):
-      # copies the build-time prerendered pages into the assets at
-      # `cdn-cgi/_next_cache/` so the worker serves them instead of re-rendering
-      # at runtime. Without this, the build-time Flagship flag values (baked
-      # into the prerendered pages) are lost and every page fails open.
+      # Populate the static-assets cache (open-next.config.ts) so the worker
+      # serves the build-time prerendered pages (with baked-in Flagship flags).
       - name: Populate static-assets cache
         run: bunx opennextjs-cloudflare populateCache local
 
-      # `--keep-vars` preserves dashboard-set runtime secrets (STRIPE_SECRET_KEY)
-      # that aren't declared in wrangler.jsonc. Without it, wrangler deletes them.
+      # `--keep-vars` preserves dashboard-set runtime secrets not declared in wrangler.jsonc.
       - name: Deploy to production Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -184,15 +73,11 @@ jobs:
 
   deploy-preview:
     name: Deploy → preview
-    needs: [unit]
-    # Preview deploys gate on unit tests only — E2E no longer blocks previews
-    # (previews are disposable; E2E still gates production). This keeps preview
-    # URLs fast and lets E2E be path-filtered without stalling previews. The
-    # default `success()` check still requires `unit` to pass.
-    if: github.ref != 'refs/heads/main'
-    # Job-scoped (least privilege): the other jobs keep the workflow-level
-    # `contents: read`. `pull-requests: write` lets this job look up the PR
-    # for the head SHA and post/update a sticky preview-URL comment on it.
+    needs: [tests]
+    # Gate on unit tests only — e2e never blocks previews. `!cancelled()` evaluates
+    # the output check even when the tests run failed.
+    if: ${{ !cancelled() && github.ref != 'refs/heads/main' && needs.tests.outputs.unit-result == 'success' }}
+    # `pull-requests: write` lets this job post/update the preview-URL comment.
     permissions:
       contents: read
       pull-requests: write
@@ -217,25 +102,19 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx opennextjs-cloudflare build
 
-      # Populate the static-assets incremental cache (open-next.config.ts) so
-      # previews serve the prerendered pages too (flowers flag honored; the
-      # under-construction flag is never evaluated for preview builds).
+      # Populate the static-assets cache so previews serve the prerendered pages.
       - name: Populate static-assets cache
         run: bunx opennextjs-cloudflare populateCache local
 
-      # Use `upload` (wrangler versions upload) instead of `deploy` so each
-      # branch gets its own preview version with a stable URL, rather than
-      # overwriting the preview Worker's production deployment. The alias
-      # produces a URL like `<alias>-emilys-flowers-preview.<subdomain>.workers.dev`.
+      # `upload` gives each branch its own preview version with a stable URL
+      # (`<alias>-emilys-flowers-preview.<subdomain>.workers.dev`).
       - name: Deploy to preview Worker
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          # Sanitize branch name for DNS: lowercase, replace / _ . with -, squeeze
-          # consecutive hyphens, strip leading/trailing -, truncate to 40 chars
-          # (workers.dev subdomain label limit is 63; worker name is 22 + 1 hyphen).
+          # Sanitize branch name for DNS (lowercase, /_. → -, ≤40 chars).
           ALIAS=$(echo "${{ github.ref_name }}" \
             | tr '[:upper:]' '[:lower:]' \
             | tr '/_.' '-' \
@@ -245,19 +124,13 @@ jobs:
             | sed 's/-$//')
           URL="https://${ALIAS}-emilys-flowers-preview.lucaslng.workers.dev"
           echo "Preview URL: ${URL}"
-          # Surface to the comment step below. $GITHUB_OUTPUT is the supported
-          # channel for step outputs in composite/run steps (set-output is deprecated).
-          # GitHub Actions expressions have no substring operation, so the short
-          # SHA is computed here in bash and passed as an output too.
+          # Surface preview URL and short SHA to the comment step via $GITHUB_OUTPUT.
           echo "preview-url=${URL}" >> "$GITHUB_OUTPUT"
           echo "short-sha=$(echo "${{ github.sha }}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
           bunx opennextjs-cloudflare upload --env preview -- --keep-vars --preview-alias "$ALIAS"
 
-      # This workflow triggers on `push`, not `pull_request`, so
-      # github.event.pull_request is unavailable. Look up the PR (if any) for
-      # the head SHA via the REST API. Returns the PR number as a string step
-      # output, or an empty string when the branch has no open PR — in which
-      # case the comment step is skipped (no PR to comment on).
+      # Push-triggered, so github.event.pull_request is unavailable — look up the
+      # PR for the head SHA via the REST API (empty when none exists).
       - name: Find PR for this commit
         id: pr
         uses: actions/github-script@v9
@@ -273,10 +146,7 @@ jobs:
             const pr = prs.data.find(p => p.state === 'open') ?? prs.data[0];
             return pr ? String(pr.number) : '';
 
-      # Sticky: keyed by `header`, so re-pushes UPDATE the same comment instead
-      # of stacking duplicates. Skipped when no PR was found (e.g. a branch
-      # pushed without an open PR). `if` is a GitHub Actions expression, so the
-      # empty-string check is truthy-only.
+      # Sticky: keyed by `header`, so re-pushes update the same comment.
       - name: Comment preview URL on PR
         if: steps.pr.outputs.result != ''
         uses: marocchino/sticky-pull-request-comment@v3

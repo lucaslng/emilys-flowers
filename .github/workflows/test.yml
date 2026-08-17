@@ -1,17 +1,32 @@
 name: Tests
 
-# PR-only CI feedback. Push events are handled by deploy.yml, which runs the
-# same tests plus the branch-based deploy (so tests don't run twice on push).
+# Test pipeline (changes/unit/e2e). Runs on pull_request and as a reusable
+# workflow called by deploy.yml. The `changes` job's diff base follows the
+# triggering event: PR base SHA for pull_request, before-SHA for push.
 #
-# Unit tests always run (cheap, fast gate). E2E runs only when app/e2e-affecting
-# files change (see the `changes` job filter) — docs/config-only PRs skip E2E.
+# Unit tests always run; E2E runs only when app/e2e-affecting files change
+# (see the `changes` job filter).
 on:
+  workflow_call:
+    outputs:
+      unit-result:
+        description: Result of the unit job (success/failure/cancelled)
+        value: ${{ jobs.unit.outputs.result }}
+      e2e-result:
+        description: Result of the e2e job (success/failure/cancelled; empty when skipped)
+        value: ${{ jobs.e2e.outputs.result }}
+    secrets:
+      STRIPE_SECRET_KEY_TEST:
+        required: true
   pull_request:
     branches: [main]
 
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   changes:
@@ -36,9 +51,7 @@ jobs:
             BASE="${{ github.event.before }}"
           fi
 
-          # New branch / first push: before is all-zeros → diff against the
-          # default branch (origin/main) instead of guessing. The fail-safe
-          # below covers the case where that diff can't be computed either.
+          # First push: before is all-zeros → diff against origin/main.
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="origin/main"
           fi
@@ -62,6 +75,8 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      result: ${{ steps.report.outputs.result }}
     steps:
       - uses: actions/checkout@v7
 
@@ -75,12 +90,22 @@ jobs:
       - name: Run unit tests
         run: bun test
 
+      # Expose the job result as a workflow_call output. `job.status` is used
+      # because `jobs.<job>.result` in output values is buggy (actions/runner#2495).
+      # `always()` sets the output even on failure; a cancelled job leaves it empty.
+      - name: Report job result
+        id: report
+        if: always()
+        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
   e2e:
     name: E2E tests
     needs: [changes]
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      result: ${{ steps.report.outputs.result }}
     steps:
       - uses: actions/checkout@v7
 
@@ -95,10 +120,8 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
-        # Stripe at build time); playwright.config.ts runs the served app with an
-        # empty key so /api/checkout stays in simulated-success mode and never
-        # hits the real Stripe API.
+        # Stripe key feeds the build-time catalog fetch; the served app runs
+        # with an empty key so /api/checkout stays in simulated-success mode.
         env:
           STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
         run: bun run test:e2e
@@ -110,3 +133,10 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+      # Expose the job result as an output. Skipped jobs run no steps,
+      # leaving the output empty.
+      - name: Report job result
+        id: report
+        if: always()
+        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
