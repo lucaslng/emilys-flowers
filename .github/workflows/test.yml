@@ -82,8 +82,23 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Restore bun cache
+        id: bun-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Save bun cache
+        if: always() && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
 
       - name: Typecheck
         run: bun run typecheck
@@ -118,11 +133,44 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Restore bun cache
+        id: bun-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Save bun cache
+        if: always() && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
+
+      - name: Resolve Playwright version
+        run: echo "PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"
+
+      - name: Restore Playwright browsers
+        id: pw-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          restore-keys: ${{ runner.os }}-playwright-
+
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
+
+      - name: Save Playwright browsers
+        if: always() && steps.pw-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.pw-cache.outputs.cache-primary-key }}
 
       - name: Run E2E tests
         # Stripe key feeds the build-time catalog fetch; the served app runs

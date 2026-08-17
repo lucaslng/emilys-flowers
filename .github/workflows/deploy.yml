@@ -41,8 +41,23 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Restore bun cache
+        id: bun-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Save bun cache
+        if: always() && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
 
       # NEXT_PUBLIC_* is inlined at build time; STRIPE_SECRET_KEY feeds the
       # build-time Stripe catalog fetch. UNDER_CONSTRUCTION_ENABLED marks the
@@ -86,8 +101,23 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - name: Restore bun cache
+        id: bun-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Save bun cache
+        if: always() && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
 
       - name: Build (OpenNext)
         env:
