@@ -1,17 +1,35 @@
 name: Tests
 
-# PR-only CI feedback. Push events are handled by deploy.yml, which runs the
-# same tests plus the branch-based deploy (so tests don't run twice on push).
+# Single source of truth for the test jobs (changes/unit/e2e). Runs standalone
+# on pull_request for fast PR feedback AND is called as a reusable workflow by
+# deploy.yml on push, so the tests (and the e2e path-filter) exist in exactly
+# one place. The `changes` job's diff base adapts to the caller's event: PR
+# base SHA when PR-triggered, before-SHA when called from a push-triggered
+# workflow.
 #
 # Unit tests always run (cheap, fast gate). E2E runs only when app/e2e-affecting
 # files change (see the `changes` job filter) — docs/config-only PRs skip E2E.
 on:
+  workflow_call:
+    outputs:
+      unit-result:
+        description: Result of the unit job (success/failure/cancelled)
+        value: ${{ jobs.unit.outputs.result }}
+      e2e-result:
+        description: Result of the e2e job (success/failure/cancelled; empty when skipped)
+        value: ${{ jobs.e2e.outputs.result }}
+    secrets:
+      STRIPE_SECRET_KEY_TEST:
+        required: true
   pull_request:
     branches: [main]
 
 concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   changes:
@@ -62,6 +80,8 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      result: ${{ steps.report.outputs.result }}
     steps:
       - uses: actions/checkout@v7
 
@@ -75,12 +95,24 @@ jobs:
       - name: Run unit tests
         run: bun test
 
+      # Expose the job result as a workflow_call output. `job.status` is the
+      # reliable signal — the `jobs.<job>.result` expression in output values
+      # is buggy (actions/runner#2495/#3087). `always()` so the output is set
+      # even when the tests fail; a cancelled job runs no steps, leaving the
+      # output empty, which callers treat as "blocked".
+      - name: Report job result
+        id: report
+        if: always()
+        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
   e2e:
     name: E2E tests
     needs: [changes]
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      result: ${{ steps.report.outputs.result }}
     steps:
       - uses: actions/checkout@v7
 
@@ -110,3 +142,11 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
+
+      # Same pattern as the unit job: expose the job result as an output. When
+      # this job is skipped (path-filtered out) no steps run, so the output is
+      # empty — callers must not treat empty as "skipped".
+      - name: Report job result
+        id: report
+        if: always()
+        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"

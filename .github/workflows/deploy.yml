@@ -7,14 +7,17 @@ name: Deploy
 # Cloudflare API token live in GitHub Secrets. `--keep-vars` prevents deploys
 # from deleting those dashboard-set secrets.
 #
-# Tests live here (not in test.yml) so they gate deploys. test.yml handles
-# PR-only feedback; this workflow handles push events (tests + deploy).
-#
-# Unit tests always run and gate both deploys. E2E runs only when app/e2e-
-# affecting files change (see the `changes` job filter). E2E gates production
-# deploys but NOT preview deploys — previews are disposable and deploy fast on
-# unit-gating alone. If E2E is skipped (no relevant files changed), production
-# deploys proceed; if E2E runs and fails, production is blocked.
+# Tests are delegated to the reusable `.github/workflows/test.yml` — the single
+# source of truth for the changes/unit/e2e jobs (it also runs standalone on
+# pull_request for PR feedback). This workflow calls it on push and gates the
+# deploys on the outcome:
+#   - deploy-production: requires the whole tests run to succeed — unit passed
+#     AND e2e passed or was skipped (path-filtered out). A failed or cancelled
+#     run blocks production.
+#   - deploy-preview: gates on the `unit-result` output only — e2e never blocks
+#     previews (previews are disposable and deploy fast). Note that preview now
+#     waits for the full tests run (including e2e) to finish before deploying,
+#     since it depends on the single `tests` job.
 
 on:
   workflow_dispatch:
@@ -31,111 +34,19 @@ permissions:
   contents: read
 
 jobs:
-  changes:
-    name: Detect changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    outputs:
-      e2e: ${{ steps.filter.outputs.e2e }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Detect e2e-relevant changes
-        id: filter
-        shell: bash
-        run: |
-          # Diff base: PR base SHA for pull_request, before-SHA for push.
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="${{ github.event.before }}"
-          fi
-
-          # New branch / first push: before is all-zeros → diff against the
-          # default branch (origin/main) instead of guessing. The fail-safe
-          # below covers the case where that diff can't be computed either.
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="origin/main"
-          fi
-
-          # Fail safe: if the diff can't be computed, run E2E.
-          if ! DIFF=$(git diff --name-only "$BASE" 2>/dev/null); then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # E2E runs when any app/e2e-affecting file changes.
-          if echo "$DIFF" | grep -E \
-            '^src/|^e2e/|^public/|^playwright\.config\.ts$|^next\.config\.ts$|^tsconfig\.json$|^package\.json$|^bun\.lock$|^\.github/workflows/' \
-            >/dev/null; then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "e2e=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  unit:
-    name: Unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run unit tests
-        run: bun test
-
-  e2e:
-    name: E2E tests
-    needs: [changes]
-    if: needs.changes.outputs.e2e == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Playwright browser
-        run: bunx playwright install --with-deps chromium
-
-      - name: Run E2E tests
-        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
-        # Stripe at build time); playwright.config.ts runs the served app with an
-        # empty key so /api/checkout stays in simulated-success mode and never
-        # hits the real Stripe API.
-        env:
-          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
-        run: bun run test:e2e
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
+  tests:
+    name: Tests
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
 
   deploy-production:
     name: Deploy → production
-    needs: [unit, e2e]
-    # `!cancelled()` + explicit result checks let production deploy when E2E
-    # was skipped (path-filtered out) while still blocking on a failed E2E or
-    # failed unit. The default `success()` status check would skip this job
-    # whenever E2E is skipped, so it must be overridden here.
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.unit.result == 'success' && (needs.e2e.result == 'success' || needs.e2e.result == 'skipped') }}
+    needs: [tests]
+    # `always()` + explicit result check: the called workflow succeeds only when
+    # unit passed AND (e2e passed OR e2e was skipped), which is exactly the
+    # production gate. `always()` keeps the condition explicit when the tests
+    # run is cancelled or fails.
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.tests.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -184,12 +95,12 @@ jobs:
 
   deploy-preview:
     name: Deploy → preview
-    needs: [unit]
-    # Preview deploys gate on unit tests only — E2E no longer blocks previews
-    # (previews are disposable; E2E still gates production). This keeps preview
-    # URLs fast and lets E2E be path-filtered without stalling previews. The
-    # default `success()` check still requires `unit` to pass.
-    if: github.ref != 'refs/heads/main'
+    needs: [tests]
+    # Preview deploys gate on unit tests only — e2e never blocks previews
+    # (previews are disposable; e2e still gates production). `always()` is
+    # required so the output check is evaluated even when the tests run failed
+    # (e.g. e2e failed while unit passed).
+    if: ${{ always() && github.ref != 'refs/heads/main' && needs.tests.outputs.unit-result == 'success' }}
     # Job-scoped (least privilege): the other jobs keep the workflow-level
     # `contents: read`. `pull-requests: write` lets this job look up the PR
     # for the head SHA and post/update a sticky preview-URL comment on it.
