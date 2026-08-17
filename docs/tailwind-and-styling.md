@@ -63,6 +63,21 @@ chromatic accent. No cool tones (no blues, greens, or cool lavenders).
   for long body copy.
 - `--font-serif` → aliased to the Martian Mono stack (kept for compatibility)
 
+### Contrast-critical values
+
+The contrast-critical values are: muted text `#7A6868`, text/hover rose
+`#9E5E5E` (both 4.5:1 on the light surfaces `#FEFAF5` / `#FCF5EF`), and
+non-text rose `#B16E6E` (3:1). Don't lighten these back without re-checking
+WCAG contrast.
+
+### Visible focus (WCAG 2.4.7 / 2.4.11)
+
+`globals.css` sets a global `:focus-visible` rule (`2px` `outline` in
+`currentColor`, `2px` offset) on all interactive elements, plus
+`scroll-padding-top`/`scroll-margin-top` so keyboard focus is never obscured by
+the sticky nav (WCAG 2.4.11). Don't add `outline-none` to interactive elements
+— it removes the focus indicator.
+
 ### Adding a new color token
 
 1. Add the CSS variable in `:root` in `globals.css`:
