@@ -6,7 +6,7 @@ import { formatPrice } from '@/lib/format';
 import { formatLabel } from '@/lib/product-utils';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
-import ProductImage from '@/components/shop/ProductImage';
+import ProductGallery from '@/components/shop/ProductGallery';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
 import { firePetalBurst } from '@/lib/petal-burst';
@@ -65,21 +65,11 @@ export default function ProductDetail({ product }: ProductDetailProps) {
                 }}
               />
 
-              <div className="relative aspect-square overflow-hidden bg-blush/30">
-                <ProductImage
-                  product={product}
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                  priority
-                />
-                {!product.inStock && (
-                  <div className="absolute inset-0 z-[2] flex items-center justify-center bg-background/80">
-                    <span className="border border-rose-line bg-foreground px-4 py-2 font-sans text-sm font-semibold uppercase tracking-[0.12em] text-background">
-                      Out of Stock
-                    </span>
-                  </div>
-                )}
-              </div>
+              <ProductGallery
+                product={product}
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+              />
             </div>
             <StarMotif
               size={56}
