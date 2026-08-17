@@ -32,8 +32,8 @@ jobs:
     name: Deploy → production
     needs: [tests]
     # Called workflow succeeds only when unit passed AND (e2e passed or skipped).
-    # `always()` keeps the check explicit when the tests run fails or is cancelled.
-    if: ${{ always() && github.ref == 'refs/heads/main' && needs.tests.result == 'success' }}
+    # `!cancelled()` keeps the check explicit when the tests run fails or is cancelled.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.tests.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -74,9 +74,9 @@ jobs:
   deploy-preview:
     name: Deploy → preview
     needs: [tests]
-    # Gate on unit tests only — e2e never blocks previews. `always()` evaluates
+    # Gate on unit tests only — e2e never blocks previews. `!cancelled()` evaluates
     # the output check even when the tests run failed.
-    if: ${{ always() && github.ref != 'refs/heads/main' && needs.tests.outputs.unit-result == 'success' }}
+    if: ${{ !cancelled() && github.ref != 'refs/heads/main' && needs.tests.outputs.unit-result == 'success' }}
     # `pull-requests: write` lets this job post/update the preview-URL comment.
     permissions:
       contents: read
