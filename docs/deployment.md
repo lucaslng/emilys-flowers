@@ -140,7 +140,10 @@ Workers Builds):
   Unit tests always run; E2E only when the `changes` job detects
   app/e2e-affecting files (`src/`, `e2e/`, `public/`, `playwright.config.ts`,
   `next.config.ts`, `tsconfig.json`, `package.json`, `bun.lock`,
-  `.github/workflows/`). Docs/config-only PRs skip E2E. Exposes
+  `.github/workflows/`). Docs/config-only PRs skip E2E. When called from
+  `deploy.yml`, E2E additionally runs only on `main` pushes — the sole consumer
+  of the e2e result is `deploy-production` — so non-main pushes run unit only
+  instead of a discarded ~10 min suite. Exposes
   `unit-result` / `e2e-result` outputs for `deploy.yml` gating (set via
   `job.status` report steps — the `jobs.<job>.result` expression in output
   values is buggy and resolves empty).
@@ -159,8 +162,9 @@ Workers Builds):
     blocks them); `deploy-production` requires the whole tests run to succeed —
     unit passed AND e2e passed or was skipped (path-filtered out). A red unit
     suite blocks both; a failed e2e blocks production only. Because both deploy
-    jobs depend on the single `tests` job, preview now waits for the full tests
-    run (including e2e) to finish before deploying.
+    jobs depend on the single `tests` job, preview waits for the tests run to
+    finish before deploying — on non-main pushes that run is unit-only (e2e is
+    skipped there), so previews no longer wait on a discarded e2e suite.
   - `concurrency` cancels superseded preview runs but never cancels a
     production deploy mid-flight
   - `deploy-preview` also posts a **sticky PR comment** with the preview URL: a
