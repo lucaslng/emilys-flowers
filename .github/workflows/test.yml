@@ -101,7 +101,13 @@ jobs:
   e2e:
     name: E2E tests
     needs: [changes]
-    if: needs.changes.outputs.e2e == 'true'
+    # E2E runs for PR feedback (standalone pull_request trigger) and for
+    # production deploys (workflow_call from deploy.yml on main — the only
+    # consumer of the e2e result). On non-main pushes the deploy.yml call only
+    # needs unit results (previews gate on unit-result), so skip the ~10 min
+    # suite there instead of discarding it. In a called workflow `github.ref`
+    # reflects the caller's ref and `github.event_name` the caller's event.
+    if: ${{ (github.event_name == 'pull_request' || github.ref == 'refs/heads/main') && needs.changes.outputs.e2e == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
