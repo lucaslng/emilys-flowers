@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Emily's Flowers — OpenGraph Image</title>
+<style>
+  @font-face {
+    font-family: "Martian Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url("fonts/martian-mono-400.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Martian Mono";
+    font-style: normal;
+    font-weight: 700;
+    font-display: block;
+    src: url("fonts/martian-mono-700.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Reenie Beanie";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url("fonts/reenie-beanie-400.woff2") format("woff2");
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: #FEFAF5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: "Martian Mono", ui-monospace, Menlo, Consolas, monospace;
+    color: #4A3B3B;
+  }
+
+  /* ── Ground: warm cream + faint rose wrapping-grid + blush satin vignette ── */
+  .ground {
+    position: absolute;
+    inset: 0;
+    background-color: #FEFAF5;
+    background-image:
+      radial-gradient(ellipse 72% 58% at 50% 38%, rgba(249, 228, 228, 0.55), rgba(254, 250, 245, 0) 72%),
+      linear-gradient(to right, rgba(177, 110, 110, 0.055) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(177, 110, 110, 0.055) 1px, transparent 1px);
+    background-size: auto, 26px 26px, 26px 26px;
+  }
+
+  /* ── Gift tag: 1000×470 centered; canvas 1200×630 → 100px LR, 80px TB ── */
+  .card {
+    position: absolute;
+    left: 100px;
+    top: 80px;
+    width: 1000px;
+    height: 470px;
+    background: #FCF5EF;
+    border: 1px solid #EDE0D4;   /* hairline, sharp corners, no shadow */
+  }
+
+  /* Hand-sewn dashed seam, inset 14px (hidden behind the photo on the right) */
+  .stitch {
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    right: 14px;
+    bottom: 14px;
+    border: 1px dashed #E4C9B8;
+    pointer-events: none;
+  }
+
+  /* ── Photo window: right 55% of the card (abs x650–1100), full-bleed ── */
+  .photo {
+    position: absolute;
+    left: 550px;                 /* card-rel → abs x650 */
+    top: 0;
+    bottom: 0;
+    width: 450px;                /* 550 → 1000 = card right edge */
+    overflow: hidden;
+    border-left: 1px solid #EDE0D4;   /* hairline seam between text and photo */
+  }
+  .photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 52% 40%;    /* centered on the main pink cluster — down/right nudge
+                                    reduces the top-left dark void and the stray shape */
+  }
+
+  /* ── Text stack: ragged-left on cream only, never over the photo.
+     Block sits at abs x290 (card-rel 190) so the title survives a
+     centered 630×630 crop (x285–915); never narrower than the photo
+     seam at abs x650. ── */
+  .text {
+    position: absolute;
+    left: 190px;                 /* card-rel → abs x290 */
+    top: 92px;                   /* card-rel → abs y172 */
+    width: 358px;
+  }
+
+  .kicker {
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    line-height: 1.5;
+    color: #9E5E5E;              /* rose-deep */
+  }
+
+  .title {
+    margin-top: 12px;
+    font-size: 60px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.12;
+    color: #4A3B3B;              /* foreground */
+  }
+
+  .accent {
+    margin-top: 29px;
+    font-family: "Reenie Beanie", "Bradley Hand", "Segoe Script", cursive;
+    font-size: 54px;
+    font-weight: 400;
+    line-height: 1.25;
+    color: #9E5E5E;              /* rose-deep */
+  }
+
+  .caption {
+    margin-top: 20px;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
+    color: #7A6868;              /* muted */
+  }
+
+  /* ── Hand-drawn arrow: bridges the title line to the photo seam (abs 650).
+     Enlarged ~10% (90×33), 3px stroke, rose-deep #9E5E5E for contrast.
+     Tip at abs ~644, pointing right at the flower's upper-left. ── */
+  .arrow {
+    position: absolute;
+    left: 458px;                 /* card-rel → abs x558, ~12px clear of "FLOWERS" (ends ~450) */
+    top: 234px;                  /* card-rel → abs y314, riding the FLOWERS baseline */
+    width: 90px;
+    height: 33px;
+  }
+
+  /* ── Washi tape, tabbed onto the card's top-left corner ── */
+  .washi {
+    position: absolute;
+    left: -16px;
+    top: -12px;
+    width: 92px;
+    height: 30px;
+    background: rgba(249, 228, 228, 0.78);
+    transform: rotate(-6deg);
+    box-shadow: 0 1px 3px rgba(74, 59, 59, 0.12);
+  }
+
+  /* ── Decorative corner bloom (site's line-art language), low opacity ── */
+  .bloom {
+    position: absolute;
+    right: 36px;
+    top: 14px;
+    opacity: 0.4;
+    transform: rotate(8deg);
+  }
+</style>
+</head>
+<body>
+  <div class="ground"></div>
+
+  <div class="card">
+    <div class="stitch"></div>
+
+    <div class="photo">
+      <img src="../public/products/pink-evangeline/01-main.jpg" alt="">
+    </div>
+
+    <div class="text">
+      <div class="kicker">HANDCRAFTED RIBBON FLOWERS</div>
+      <div class="title">
+        <div>EMILY'S</div>
+        <div>FLOWERS</div>
+      </div>
+      <div class="accent">forever blooming</div>
+      <div class="caption">RIBBON BOUQUETS · FLOWERS</div>
+    </div>
+
+    <svg class="arrow" width="90" height="33" viewBox="0 0 82 30" fill="none" aria-hidden="true">
+      <path d="M 4 20 C 14 12, 24 13, 34 17 C 46 21, 56 13, 68 15"
+            stroke="#9E5E5E" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 70 9 L 78 15 M 70 21 L 78 15"
+            stroke="#9E5E5E" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+
+    <div class="washi"></div>
+  </div>
+
+  <svg class="bloom" width="72" height="72" viewBox="0 0 84 84" fill="none" aria-hidden="true">
+    <g stroke="#D4A5A5" stroke-width="2.5" fill="#F9E4E4">
+      <ellipse cx="42" cy="18" rx="8" ry="14"/>
+      <ellipse cx="42" cy="18" rx="8" ry="14" transform="rotate(72 42 44)"/>
+      <ellipse cx="42" cy="18" rx="8" ry="14" transform="rotate(144 42 44)"/>
+      <ellipse cx="42" cy="18" rx="8" ry="14" transform="rotate(216 42 44)"/>
+      <ellipse cx="42" cy="18" rx="8" ry="14" transform="rotate(288 42 44)"/>
+    </g>
+    <circle cx="42" cy="44" r="6" fill="#D4A5A5"/>
+  </svg>
+</body>
+</html>

@@ -40,6 +40,7 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 - [docs/tailwind-and-styling.md](docs/tailwind-and-styling.md) — Tailwind v4 + styling
 - [docs/animations.md](docs/animations.md) — GSAP, PetalBurst, reduced motion
 - [docs/stripe-checkout.md](docs/stripe-checkout.md) — checkout route + Stripe env wiring
+- [docs/opengraph-image.md](docs/opengraph-image.md) — editing the social share image (source pipeline, safe zones, brand tokens)
 
 ## Architecture
 

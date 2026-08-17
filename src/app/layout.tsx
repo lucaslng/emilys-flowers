@@ -65,6 +65,21 @@ export const metadata: Metadata = {
     description:
       "Exquisite handcrafted ribbon flowers and bouquets made with love. Forever-blooming beauty for your home.",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Handcrafted pink ribbon rose bouquet — Emily's Flowers, forever blooming",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Emily's Flowers: Handcrafted Ribbon Flowers & Bouquets",
+    description:
+      "Exquisite handcrafted ribbon flowers and bouquets made with love. Forever-blooming beauty for your home.",
+    images: ["/opengraph-image.png"],
   },
 };
 
