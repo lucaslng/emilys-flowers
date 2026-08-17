@@ -49,3 +49,7 @@ cloudflare-env.d.ts
 !.dev.vars.example
 
 !.env.example
+
+# generated image variants (build-time, see scripts/optimize-images.ts)
+public/products/*/variants/
+public/products/.variants-version
