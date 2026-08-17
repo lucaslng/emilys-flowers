@@ -65,6 +65,8 @@ export const metadata: Metadata = {
     description:
       "Exquisite handcrafted ribbon flowers and bouquets made with love. Forever-blooming beauty for your home.",
     type: "website",
+    url: "/",
+    siteName: "Emily's Flowers",
     images: [
       {
         url: "/opengraph-image.png",
