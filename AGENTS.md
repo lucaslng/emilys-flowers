@@ -19,15 +19,15 @@ bun run dev       # dev server on :3000 (Next.js, with OpenNext bindings injecte
 bun run build     # production build (Next.js)
 bun start         # serve the production build (Node.js runtime — NOT Workers)
 bun test          # unit tests (bun's built-in runner)
+bun run typecheck # TypeScript typecheck (tsc --noEmit)
 bun run test:e2e  # Playwright E2E (builds + serves on :3000 first)
 bun run preview   # build + serve in the local Workers runtime (Miniflare via wrangler)
 bun run deploy    # build + deploy to Cloudflare Workers
 bun run upload    # build + upload Worker without activating (wrangler upload)
 bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
-bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
-There is **no `lint` or `typecheck` script** — do not assume they work. `bun test` and `bun run test:e2e` are defined. Package manager is **bun** (`bun.lock` tracked; `package-lock.json` removed — do not reintroduce it or switch to npm).
+There is **no `lint` script** — do not assume it works. `bun test`, `bun run typecheck`, and `bun run test:e2e` are defined. Package manager is **bun** (`bun.lock` tracked; `package-lock.json` removed — do not reintroduce it or switch to npm).
 
 ## Documentation
 
