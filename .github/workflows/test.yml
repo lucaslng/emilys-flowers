@@ -1,14 +1,11 @@
 name: Tests
 
-# Single source of truth for the test jobs (changes/unit/e2e). Runs standalone
-# on pull_request for fast PR feedback AND is called as a reusable workflow by
-# deploy.yml on push, so the tests (and the e2e path-filter) exist in exactly
-# one place. The `changes` job's diff base adapts to the caller's event: PR
-# base SHA when PR-triggered, before-SHA when called from a push-triggered
-# workflow.
+# Test pipeline (changes/unit/e2e). Runs on pull_request and as a reusable
+# workflow called by deploy.yml. The `changes` job's diff base follows the
+# triggering event: PR base SHA for pull_request, before-SHA for push.
 #
-# Unit tests always run (cheap, fast gate). E2E runs only when app/e2e-affecting
-# files change (see the `changes` job filter) — docs/config-only PRs skip E2E.
+# Unit tests always run; E2E runs only when app/e2e-affecting files change
+# (see the `changes` job filter).
 on:
   workflow_call:
     outputs:
@@ -54,9 +51,7 @@ jobs:
             BASE="${{ github.event.before }}"
           fi
 
-          # New branch / first push: before is all-zeros → diff against the
-          # default branch (origin/main) instead of guessing. The fail-safe
-          # below covers the case where that diff can't be computed either.
+          # First push: before is all-zeros → diff against origin/main.
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="origin/main"
           fi
@@ -95,11 +90,9 @@ jobs:
       - name: Run unit tests
         run: bun test
 
-      # Expose the job result as a workflow_call output. `job.status` is the
-      # reliable signal — the `jobs.<job>.result` expression in output values
-      # is buggy (actions/runner#2495/#3087). `always()` so the output is set
-      # even when the tests fail; a cancelled job runs no steps, leaving the
-      # output empty, which callers treat as "blocked".
+      # Expose the job result as a workflow_call output. `job.status` is used
+      # because `jobs.<job>.result` in output values is buggy (actions/runner#2495).
+      # `always()` sets the output even on failure; a cancelled job leaves it empty.
       - name: Report job result
         id: report
         if: always()
@@ -127,10 +120,8 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        # STRIPE_SECRET_KEY_TEST feeds the build (the catalog is fetched from
-        # Stripe at build time); playwright.config.ts runs the served app with an
-        # empty key so /api/checkout stays in simulated-success mode and never
-        # hits the real Stripe API.
+        # Stripe key feeds the build-time catalog fetch; the served app runs
+        # with an empty key so /api/checkout stays in simulated-success mode.
         env:
           STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
         run: bun run test:e2e
@@ -143,9 +134,8 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # Same pattern as the unit job: expose the job result as an output. When
-      # this job is skipped (path-filtered out) no steps run, so the output is
-      # empty — callers must not treat empty as "skipped".
+      # Expose the job result as an output. Skipped jobs run no steps,
+      # leaving the output empty.
       - name: Report job result
         id: report
         if: always()
