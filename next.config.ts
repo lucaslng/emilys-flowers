@@ -72,6 +72,10 @@ export default async function nextConfig(): Promise<NextConfig> {
       ];
     },
     images: {
+      loader: "custom",
+      loaderFile: "./src/lib/image-loader.ts",
+      deviceSizes: [320, 480, 640, 960, 1280, 1600], // must match VARIANT_WIDTHS in src/lib/image-variants.ts
+      imageSizes: [],
       remotePatterns: [],
     },
     experimental: {
