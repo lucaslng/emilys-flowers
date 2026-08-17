@@ -155,8 +155,6 @@ jobs:
           path: ~/.bun/install/cache
           key: ${{ steps.bun-cache.outputs.cache-primary-key }}
 
-      # Keyed on the resolved @playwright/test version (caret range, resolved via
-      # bun.lock) — that, not the exact playwright-core pin, drives `playwright install`.
       - name: Resolve Playwright version
         run: echo "PLAYWRIGHT_VERSION=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_ENV"
 
