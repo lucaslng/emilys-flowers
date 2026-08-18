@@ -146,7 +146,7 @@ function buildOrderConfirmationText(data: OrderConfirmationData): string {
   return [
     `${greeting(data.customerName)}`,
     '',
-    `Thank you for your order! Your order #${data.orderNumber} is confirmed, and we're wrapping every stem by hand.`,
+    `Thank you for your order! Your order #${data.orderNumber} is confirmed, and we are shipping it now. We will send another email shortly with your estimated shipping time.`,
     '',
     'Items:',
     ...lines,
@@ -158,7 +158,7 @@ function buildOrderConfirmationText(data: OrderConfirmationData): string {
       ? ['', 'Shipping to:', data.shippingAddress]
       : []),
     '',
-    "Every ribbon is tied with care, and we can't wait for your flowers to arrive. Thank you for supporting a small handmade shop.",
+    "Thank you for supporting Emily's Flowers!",
     '',
     'Warmly,',
     "Emily's Flowers",
@@ -173,7 +173,7 @@ function buildShippedHtml(data: {
   return emailShell(`
     <p style="margin:0 0 16px;">${escapeHtml(greeting(data.customerName))}</p>
     <p style="margin:0 0 16px;">
-      Great news — your order <strong>#${escapeHtml(data.orderNumber)}</strong> is on its way!
+      Great news - your order <strong>#${escapeHtml(data.orderNumber)}</strong> is on its way!
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; border:1px solid ${EMAIL_BORDER}; border-radius:8px; padding:16px; margin:0 0 16px;">
       <tr>
@@ -184,8 +184,7 @@ function buildShippedHtml(data: {
       </tr>
     </table>
     <p style="margin:0 0 16px;">
-      Your flowers are travelling in good hands. Keep an eye on your doorstep —
-      they're wrapped and ready to brighten someone's day.
+      Keep an eye on your doorstep. Thank you for supporting Emily's Flowers!
     </p>
     <p style="margin:16px 0 0; color:${EMAIL_MUTED}; font-size:13px;">
       Warmly,<br/>Emily's Flowers
