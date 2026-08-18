@@ -74,8 +74,12 @@ typechecking inside the lane:
 
 ```bash
 bun install
-cp ../main/.env .env
+cp ../../main/.env .env
 ```
+
+The lane lives at `<prefix>/<slug>/`, so `main/` is two levels up — `../main/`
+would resolve to `<prefix>/main/` and fail. Use `../../main/.env` (or an
+absolute path like `/Users/lucas/Documents/emilys-flowers/main/.env`).
 
 `.env` is gitignored. The build-time Stripe catalog fetch needs
 `STRIPE_SECRET_KEY` (the test key lives in `main/.env`); without it
@@ -131,9 +135,9 @@ Gotchas:
 
 Before merging a lane back:
 
-1. Run build/typecheck inside the worktree directory. This project has no
-   `lint`/`typecheck`/`test` script — use `bun run build` and
-   `bunx tsc --noEmit`.
+1. Run build/typecheck inside the worktree directory. This project has
+   `bun run typecheck` (tsc --noEmit), `bun test`, and `bun run test:e2e`
+   scripts — see `AGENTS.md` Commands. There is no `lint` script.
 2. Generate a diff against the base: `git diff main..<branch> --stat`.
 3. Ask the user for confirmation to integrate.
 4. Perform the approved integration (merge, cherry-pick, or PR) from the
@@ -170,9 +174,12 @@ Before merging a lane back:
 
 5. Fast-forward local `main` to `origin/main` so the safe `-d` recognizes the
    merge (when a PR was merged on the remote, local `main` lags behind and `-d`
-   would otherwise refuse the branch as "not merged to HEAD"):
+   would otherwise refuse the branch as "not merged to HEAD"). Fetch first —
+   a stale `origin/main` tracking ref makes the merge report "Already up to
+   date" even though the remote has moved:
 
    ```bash
+   git fetch origin main
    git -C main merge --ff-only origin/main
    ```
 
@@ -185,6 +192,14 @@ Before merging a lane back:
    Avoid `git branch -D`: the `cc-safety-net` plugin blocks force-delete, and
    it's unnecessary once `main` is fast-forwarded — `-d` succeeds and confirms
    the branch was actually merged.
+
+7. Prune stale remote-tracking refs. GitHub auto-deletes the branch on merge,
+   so `origin/<prefix>/<slug>` lingers locally and `git push origin --delete`
+   fails with "remote ref does not exist":
+
+   ```bash
+   git remote prune origin
+   ```
 
 ## Mandatory user confirmation
 
