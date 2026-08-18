@@ -59,6 +59,17 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+    // App-level idempotency: a session with `shipped_at` already sent its
+    // shipped email. Return 200 (not 409) on purpose — the client treats any
+    // non-ok response as an error, and an already-shipped state is a benign
+    // no-op.
+    if (session.metadata?.shipped_at) {
+      console.log(
+        `[Admin ship] Session ${sessionId} already shipped; skipping duplicate send`
+      );
+      return NextResponse.json({ ok: true });
+    }
+
     const to = session.customer_details?.email;
     if (!to) {
       throw new Error(
@@ -74,7 +85,12 @@ export async function POST(
     });
 
     await stripe.checkout.sessions.update(sessionId, {
+      // `sessions.update` REPLACES the entire metadata map, so merge the
+      // existing keys — notably the webhook's `confirmation_email_sent_at` /
+      // `confirmation_email_id` stamps, which are the app-level dedupe guard
+      // against re-sending confirmation emails on Stripe webhook retries.
       metadata: {
+        ...session.metadata,
         shipped_at: new Date().toISOString(),
         shipping_estimate: estimatedShippingTime,
       },

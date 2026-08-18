@@ -10,7 +10,8 @@
 1. **Checkout completes** → Stripe fires `checkout.session.completed` to
    `POST /api/webhooks/stripe` → the webhook sends the customer an **order
    confirmation** email (via Resend) with their items, totals, and shipping
-   address.
+   address, and stamps `confirmation_email_sent_at` (+
+   `confirmation_email_id`) onto the Stripe session's metadata.
 2. **You review the order** at `/admin/orders` (OIDC-gated). Each paid
    order shows its items, totals, and shipping address.
 3. **You confirm + ship** → you type an estimated shipping time into the
@@ -71,9 +72,22 @@ so they must be deployed as `wrangler secret put` per Worker (see
   dedupes Stripe's webhook retries).
 - If the session has no customer email, the event is logged and skipped
   (200) — nothing to send to.
-- Email send failures are caught and logged; the handler still returns 200 so
-  Stripe doesn't retry a webhook whose email already failed (the idempotency
-  key already dedupes genuine retries).
+- Email send failures are caught and logged, and the handler returns **500** so
+  Stripe auto-retries the webhook delivery with exponential backoff (up to ~3
+  days, sequential). Duplicate sends are prevented two ways: Resend's
+  `idempotencyKey` (24h window, dedupes in-window retries) and the app-level
+  confirmation stamp (see below, dedupes later retries).
+- On a successful send, the webhook stamps the confirmation state onto the
+  session via `stripe.checkout.sessions.update`, setting
+  `confirmation_email_sent_at` + `confirmation_email_id` while **merging** the
+  existing metadata (never wiping `shipped_at` / `shipping_estimate` — the
+  update replaces the whole map, so the current keys are spread in). Before
+  sending, the webhook skips (200) when `metadata.confirmation_email_sent_at`
+  already exists, so Stripe retries after the Resend idempotency window expires
+  don't produce duplicate emails. If the stamp update itself fails after a
+  successful send, the handler logs and still returns 200 — the email was
+  already delivered, and a 500 would make Stripe retry and risk a duplicate
+  once Resend's idempotency window expires.
 - All other event types → `200 { received: true }`.
 
 ### Local testing
@@ -134,8 +148,13 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `metadata.shipped_at` exists) or the inline ship form.
 - Ship form: one labeled input ("Estimated shipping time", placeholder
   "2–4 business days"). On success the route sends the shipped email and
-  persists `metadata: { shipped_at, shipping_estimate }` on the session; the
-  page reloads after a ~1s success message.
+  persists `metadata: { shipped_at, shipping_estimate }` on the session —
+  **merged** with the existing metadata, so the webhook's
+  `confirmation_email_sent_at` / `confirmation_email_id` stamps are preserved
+  (the update replaces the whole map, so the current keys are spread in). The
+  page reloads after a ~1s success message. The route is **idempotent**: if
+  `metadata.shipped_at` already exists it returns 200 without sending a
+  duplicate shipped email (duplicate submits are a benign no-op).
 
 ### OIDC setup
 

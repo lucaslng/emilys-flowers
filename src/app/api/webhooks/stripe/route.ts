@@ -112,6 +112,16 @@ export async function POST(request: Request) {
         expand: ['line_items'],
       });
 
+      // App-level idempotency: once the confirmation is stamped on the session,
+      // never send it again — even after Resend's 24h idempotency-key window
+      // expires (Stripe retries webhooks for up to ~3 days).
+      if (session.metadata?.confirmation_email_sent_at) {
+        console.log(
+          `[Webhook] Confirmation already sent for session ${session.id}; skipping`
+        );
+        return NextResponse.json({ received: true });
+      }
+
       const confirmation = mapCheckoutSessionToConfirmation(session);
       if (!confirmation) {
         console.warn(
@@ -120,16 +130,46 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
+      let result: { id: string };
       try {
-        const result = await sendOrderConfirmationEmail(confirmation, {
+        result = await sendOrderConfirmationEmail(confirmation, {
           idempotencyKey: event.id,
         });
-        console.log(
-          `[Webhook] Confirmation email sent for session ${session.id}: ${result.id}`
-        );
       } catch (error) {
         console.error(
           `[Webhook] Failed to send confirmation email for session ${session.id}:`,
+          error
+        );
+        // Non-2xx makes Stripe retry the delivery with exponential backoff
+        // (same `event.id`, so Resend's idempotency key dedupes in-window
+        // retries; the stamp check above dedupes later retries).
+        return NextResponse.json(
+          { error: 'Failed to send confirmation email' },
+          { status: 500 }
+        );
+      }
+      console.log(
+        `[Webhook] Confirmation email sent for session ${session.id}: ${result.id}`
+      );
+
+      // Stamp confirmation state on the session. `sessions.update` REPLACES
+      // the entire metadata map, so merge the existing keys (e.g.
+      // `shipped_at` / `shipping_estimate` written later by the admin ship
+      // route) rather than wiping them.
+      try {
+        await stripe.checkout.sessions.update(session.id, {
+          metadata: {
+            ...session.metadata,
+            confirmation_email_sent_at: new Date().toISOString(),
+            confirmation_email_id: result.id,
+          },
+        });
+      } catch (error) {
+        // Non-fatal: the email was already delivered, and returning 500 would
+        // make Stripe retry and risk a duplicate confirmation once Resend's
+        // 24h idempotency-key window expires.
+        console.error(
+          `[Webhook] Failed to stamp confirmation metadata for session ${session.id}:`,
           error
         );
       }

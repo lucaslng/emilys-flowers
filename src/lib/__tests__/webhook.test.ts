@@ -1,31 +1,15 @@
-import { test, expect, describe, mock } from 'bun:test';
+import { test, expect, describe, beforeEach } from 'bun:test';
 import type Stripe from 'stripe';
-import { mapCheckoutSessionToConfirmation } from '@/app/api/webhooks/stripe/route';
+import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 
-// Mock the `stripe` module so the route handler never makes real network
-// calls. The route imports `Stripe` as the default export.
-mock.module('stripe', () => {
-  class MockStripe {
-    static createFetchHttpClient() {
-      return {};
-    }
-    webhooks = {
-      constructEventAsync: async () => ({
-        id: 'evt_mock',
-        type: 'payment_intent.succeeded',
-        data: { object: { id: 'pi_123' } },
-      }),
-    };
-    checkout = {
-      sessions: {
-        retrieve: async () => ({}),
-      },
-    };
-  }
-  return { default: MockStripe };
-});
+// NOTE: the `stripe` and `@/lib/email` mocks live in `./order-emails-mocks`,
+// registered exactly once per process. bun's `mock.module` registry is
+// process-global and shared across test files, so registering the same
+// modules here again would silently replace that registration.
 
-const { POST } = await import('@/app/api/webhooks/stripe/route');
+const { POST, mapCheckoutSessionToConfirmation } = await import(
+  '@/app/api/webhooks/stripe/route'
+);
 
 function makeSession(overrides: Record<string, unknown> = {}): Stripe.Checkout.Session {
   return {
@@ -154,22 +138,112 @@ describe('mapCheckoutSessionToConfirmation', () => {
 });
 
 describe('POST /api/webhooks/stripe', () => {
-  test('returns 200 { received: true } for an unknown event type', async () => {
+  beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock';
+    resetOrderEmailMocks();
+  });
 
-    const request = new Request('http://localhost/api/webhooks/stripe', {
+  function completedEvent(): Stripe.Event {
+    return {
+      id: 'evt_cs_1',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_test_123' } },
+    } as unknown as Stripe.Event;
+  }
+
+  function completedRequest(): Request {
+    return new Request('http://localhost/api/webhooks/stripe', {
       method: 'POST',
       headers: { 'stripe-signature': 't=123,v1=abc' },
-      body: JSON.stringify({
-        id: 'evt_mock',
-        type: 'payment_intent.succeeded',
-        data: { object: { id: 'pi_123' } },
-      }),
+      body: JSON.stringify(completedEvent()),
     });
+  }
 
-    const response = await POST(request);
+  test('returns 200 { received: true } for an unknown event type', async () => {
+    const response = await POST(completedRequest());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true });
+  });
+
+  test('sends the confirmation email and stamps metadata on success', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession({
+      // Pre-existing keys (e.g. `shipped_at` written later by the admin ship
+      // route) must survive the stamp — `sessions.update` replaces the whole
+      // metadata map.
+      metadata: { shipped_at: '2026-01-01T00:00:00Z' },
+    });
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls[0].sessionId).toBe('cs_test_123');
+    expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(
+      expect.objectContaining({
+        shipped_at: '2026-01-01T00:00:00Z',
+        confirmation_email_sent_at: expect.any(String),
+        confirmation_email_id: 're_123',
+      })
+    );
+  });
+
+  test('returns 500 when sending the confirmation email fails', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession();
+    orderEmailMocks.emailShouldThrow = true;
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: 'Failed to send confirmation email',
+    });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('returns 200 when the email sends but the metadata stamp fails', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession();
+    orderEmailMocks.stripeUpdateShouldThrow = true;
+
+    const response = await POST(completedRequest());
+
+    // The email was delivered; returning 200 (instead of 500) avoids Stripe
+    // retrying and re-sending once Resend's 24h idempotency window expires.
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('skips re-sending when the session already has a confirmation stamp', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession({
+      metadata: { confirmation_email_sent_at: '2026-01-01T00:00:00Z' },
+    });
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('skips when the session has no customer email', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession({ customer_details: null });
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
   });
 });
