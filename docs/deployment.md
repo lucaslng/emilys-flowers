@@ -216,15 +216,20 @@ keys.
 
 ### Runtime-only secrets (order emails)
 
-Three more secrets are read **only at runtime** on the Worker (never at build
-time), so they are set per Worker via `wrangler secret put` — they are not
-GitHub Secrets and never appear in `deploy.yml`:
+These runtime secrets are read **only at runtime** on the Worker (never at
+build time), so they are set per Worker via `wrangler secret put` — they are
+not GitHub Secrets and never appear in `deploy.yml`:
 
 | Secret | Used by | Notes |
 |---|---|---|
 | `RESEND_API_KEY` | `src/lib/email.ts` | Send-only Resend API key (`re_...`). Missing → email functions throw. |
 | `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` | `whsec_...` from the Stripe dashboard (prod) or `stripe listen` (dev). Missing → dev-mode skips signature verification. |
-| `ADMIN_PASSWORD` | `/admin/orders` + admin API routes | Any non-empty string; gates the order-review page and the ship-notification route. |
+| `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
+| `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
+| `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
+| `OIDC_REDIRECT_URI` | `src/lib/admin-auth.ts` | Required in production; optional in dev (derived from the request origin in dev; never derived from the Host header in prod). Must match the callback URL registered in the provider exactly. |
 
 See [order-emails.md](./order-emails.md) for the flow these power.
 
@@ -243,8 +248,20 @@ echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env production
 echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env preview
 echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env production
 echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env preview
-echo "change-me" | bunx wrangler secret put ADMIN_PASSWORD --env production
-echo "change-me" | bunx wrangler secret put ADMIN_PASSWORD --env preview
+echo "https://accounts.example.com" | bunx wrangler secret put OIDC_ISSUER --env production
+echo "https://accounts.example.com" | bunx wrangler secret put OIDC_ISSUER --env preview
+echo "your-client-id" | bunx wrangler secret put OIDC_CLIENT_ID --env production
+echo "your-client-id" | bunx wrangler secret put OIDC_CLIENT_ID --env preview
+echo "your-client-secret" | bunx wrangler secret put OIDC_CLIENT_SECRET --env production
+echo "your-client-secret" | bunx wrangler secret put OIDC_CLIENT_SECRET --env preview
+# ADMIN_SESSION_SECRET must be >= 32 chars (generate with `openssl rand -base64 32`)
+echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env production
+echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env preview
+echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env production
+echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env preview
+echo "https://emilysflowers.ca/api/admin/callback" | bunx wrangler secret put OIDC_REDIRECT_URI --env production
+# Preview: use the per-branch callback URL (e.g. https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback)
+echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback" | bunx wrangler secret put OIDC_REDIRECT_URI --env preview
 
 # 3. Register the webhook endpoint in the Stripe dashboard:
 #    https://dashboard.stripe.com/webhooks → add endpoint

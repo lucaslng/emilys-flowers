@@ -1,53 +1,49 @@
 // src/app/api/admin/login/route.ts
 //
-// Admin sign-in. Compares the submitted password against
-// `process.env.ADMIN_PASSWORD` and, on success, sets an httpOnly
-// `admin_session` cookie whose value is sha256(password) — the same token
-// the ship route and the admin page recompute from the env var.
+// Admin sign-in (OIDC). Redirects to the provider's authorize endpoint with a
+// PKCE challenge and a random `state`, stashing the verifier + state in
+// short-lived httpOnly cookies for the callback route to verify.
 
 import { NextResponse } from 'next/server';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import {
+  base64url,
+  buildAuthorizeUrl,
+  generatePkcePair,
+  getOidcConfig,
+  getOidcDiscovery,
+  isOidcConfigured,
+  resolveRedirectUri,
+  OIDC_STATE_COOKIE,
+  OIDC_STATE_MAX_AGE_SECONDS,
+  OIDC_VERIFIER_COOKIE,
+} from '@/lib/admin-auth';
 
-/** Constant-time string comparison (lengths must match). */
-function passwordsMatch(submitted: string, expected: string): boolean {
-  const a = Buffer.from(submitted);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
+export async function GET(request: Request) {
+  const redirectUri = resolveRedirectUri(request.url);
 
-export async function POST(request: Request) {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminPassword) {
+  if (!isOidcConfigured()) {
     return NextResponse.json(
-      { error: 'ADMIN_PASSWORD is not configured on the server.' },
+      { error: 'OIDC admin auth is not configured on the server.' },
       { status: 500 }
     );
   }
 
-  let body: { password?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body.' },
-      { status: 400 }
-    );
-  }
+  const config = getOidcConfig(redirectUri);
+  const state = base64url(crypto.getRandomValues(new Uint8Array(32)));
+  const { verifier, challenge } = await generatePkcePair();
 
-  const password = typeof body.password === 'string' ? body.password : '';
-  if (!passwordsMatch(password, adminPassword)) {
-    return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
-  }
+  const discovery = await getOidcDiscovery(config.issuer);
+  const authorizeUrl = buildAuthorizeUrl(config, discovery, state, challenge);
 
-  const token = createHash('sha256').update(password).digest('hex');
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set('admin_session', token, {
+  const response = NextResponse.redirect(authorizeUrl);
+  const oidcCookieOptions = {
     httpOnly: true,
     path: '/',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     secure: process.env.NODE_ENV === 'production',
-  });
+    maxAge: OIDC_STATE_MAX_AGE_SECONDS,
+  };
+  response.cookies.set(OIDC_STATE_COOKIE, state, oidcCookieOptions);
+  response.cookies.set(OIDC_VERIFIER_COOKIE, verifier, oidcCookieOptions);
   return response;
 }

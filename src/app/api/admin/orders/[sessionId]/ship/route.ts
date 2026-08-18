@@ -6,9 +6,9 @@
 // metadata (the admin list reads `shipped_at` / `shipping_estimate`).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'node:crypto';
 import Stripe from 'stripe';
 import { sendShippedEmail } from '@/lib/email';
+import { verifySessionToken } from '@/lib/admin-auth';
 
 export async function POST(
   request: NextRequest,
@@ -17,19 +17,10 @@ export async function POST(
   try {
     const { sessionId } = await params;
 
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-      return NextResponse.json(
-        { error: 'ADMIN_PASSWORD is not configured on the server.' },
-        { status: 500 }
-      );
-    }
-
-    const expectedToken = createHash('sha256')
-      .update(adminPassword)
-      .digest('hex');
-    const sessionCookie = request.cookies.get('admin_session')?.value;
-    if (!sessionCookie || sessionCookie !== expectedToken) {
+    const adminSession = await verifySessionToken(
+      request.cookies.get('admin_session')?.value
+    );
+    if (!adminSession) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 

@@ -45,7 +45,7 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 
 ## Architecture
 
-- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (password-gated order review), and API routes `POST /api/checkout`, `POST /api/webhooks/stripe` (order-confirmation email), `POST /api/admin/login`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
+- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (OIDC-gated order review), and API routes `POST /api/checkout`, `POST /api/webhooks/stripe` (order-confirmation email), `GET /api/admin/login` (OIDC redirect), `GET /api/admin/callback`, `GET /api/admin/logout`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
 - `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer` — persists across navigations.
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not state that must persist.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
@@ -64,7 +64,7 @@ Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennex
 
 ## Order emails (Resend)
 
-On `checkout.session.completed`, `POST /api/webhooks/stripe` sends the customer an order-confirmation email via Resend (`src/lib/email.ts`, from `Emily's Flowers <hello@emilysflowers.ca>`). The owner then reviews orders at `/admin/orders` (gated by `ADMIN_PASSWORD`) and confirms shipping by entering an estimated shipping time, which triggers the shipped email and stamps `shipped_at`/`shipping_estimate` on the Stripe session metadata. Runtime-only secrets: `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `ADMIN_PASSWORD` (`wrangler secret put` per Worker). See [docs/order-emails.md](docs/order-emails.md).
+On `checkout.session.completed`, `POST /api/webhooks/stripe` sends the customer an order-confirmation email via Resend (`src/lib/email.ts`, from `Emily's Flowers <hello@emilysflowers.ca>`). The owner then reviews orders at `/admin/orders` (gated by OIDC — authorization code + PKCE; access restricted to OIDC groups via `ADMIN_OIDC_GROUPS`) and confirms shipping by entering an estimated shipping time, which triggers the shipped email and stamps `shipped_at`/`shipping_estimate` on the Stripe session metadata. Runtime-only secrets: `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `ADMIN_SESSION_SECRET`, `ADMIN_OIDC_GROUPS` (`wrangler secret put` per Worker). See [docs/order-emails.md](docs/order-emails.md).
 
 ## Testing
 

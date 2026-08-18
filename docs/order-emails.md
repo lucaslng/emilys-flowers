@@ -11,7 +11,7 @@
    `POST /api/webhooks/stripe` → the webhook sends the customer an **order
    confirmation** email (via Resend) with their items, totals, and shipping
    address.
-2. **You review the order** at `/admin/orders` (password-gated). Each paid
+2. **You review the order** at `/admin/orders` (OIDC-gated). Each paid
    order shows its items, totals, and shipping address.
 3. **You confirm + ship** → you type an estimated shipping time into the
    order's inline form → `POST /api/admin/orders/[sessionId]/ship` sends the
@@ -28,10 +28,13 @@ Resend domain).
 |---|---|
 | `src/lib/email.ts` | `sendOrderConfirmationEmail` / `sendShippedEmail` — Resend SDK wrappers, HTML/text builders, escaping, `formatPrice` |
 | `src/app/api/webhooks/stripe/route.ts` | Stripe webhook receiver; verifies signature, maps session → confirmation email |
-| `src/app/admin/orders/page.tsx` | Server-rendered admin order list (password-gated, `force-dynamic`) |
-| `src/app/admin/orders/admin-login.tsx` | Client island: password → `POST /api/admin/login` |
+| `src/app/admin/orders/page.tsx` | Server-rendered admin order list (OIDC-gated, `force-dynamic`) |
+| `src/app/admin/orders/admin-login.tsx` | **Removed** — the password login island no longer exists; replaced by the OIDC flow |
 | `src/app/admin/orders/ship-form.tsx` | Client island: estimate input → `POST /api/admin/orders/[sessionId]/ship` |
-| `src/app/api/admin/login/route.ts` | Sets the `admin_session` httpOnly cookie (sha256 of `ADMIN_PASSWORD`) |
+| `src/lib/admin-auth.ts` | OIDC client + session JWT helpers: discovery, PKCE, token exchange, ID-token verification, group check |
+| `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE) |
+| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `admin_session` JWT cookie |
+| `src/app/api/admin/logout/route.ts` | Clears the `admin_session` cookie |
 | `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Sends the shipped email + persists metadata |
 
 ## Environment variables
@@ -40,13 +43,17 @@ Resend domain).
 |---|---|---|
 | `RESEND_API_KEY` | `src/lib/email.ts` | Send-only API key. Missing → email functions throw. |
 | `STRIPE_WEBHOOK_SECRET` | webhook route | `whsec_...`. Missing → dev-mode skips signature verification (with a warning); set it in prod. |
-| `ADMIN_PASSWORD` | admin login + ship route + admin page | Any non-empty string. Missing → admin page shows a config error. |
+| `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
+| `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
+| `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
+| `OIDC_REDIRECT_URI` | `src/lib/admin-auth.ts` | Optional in dev (derived from request origin); **required in production** (never derived from the Host header). Must match the callback URL registered in the provider exactly. |
 
-All three are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY` and
-`ADMIN_PASSWORD` are read at runtime on the Worker, so they must be deployed
-as `wrangler secret put` per Worker (see [deployment.md](./deployment.md)).
-`STRIPE_WEBHOOK_SECRET` is only read by the webhook route at runtime — same
-story.
+All of these are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY`,
+`STRIPE_WEBHOOK_SECRET`, and the OIDC vars are read at runtime on the Worker,
+so they must be deployed as `wrangler secret put` per Worker (see
+[deployment.md](./deployment.md)).
 
 ## Webhook details
 
@@ -111,10 +118,15 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
 - URL: `/admin/orders`. Server component with
   `export const dynamic = 'force-dynamic'` (reads cookies + Stripe at request
   time — must never prerender). `robots` metadata: `index: false`.
-- Auth: the page and the ship route compare the `admin_session` cookie
-  against `sha256(ADMIN_PASSWORD)`. The login route uses a constant-time
-  `timingSafeEqual` compare and sets the cookie `httpOnly`, `sameSite: lax`,
-  `secure` in production.
+- Auth: OIDC (authorization code + PKCE) via a generic provider. `GET
+  /api/admin/login` redirects to the provider; the provider redirects back to
+  `GET /api/admin/callback`, which exchanges the code for tokens, verifies the
+  ID token against the provider's JWKS, and checks the user's `groups` claim
+  against the `ADMIN_OIDC_GROUPS` allowlist. On success it sets the
+  `admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
+  `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
+  `GET /api/admin/logout` clears the cookie. The page and the ship route
+  verify the `admin_session` JWT.
 - Order list: latest 25 paid Checkout Sessions (`expand: ['data.line_items']`),
   filtered to `payment_status === 'paid'`, sorted newest first. Each card
   shows session id, date, customer name/email, line items, totals, shipping
@@ -124,6 +136,26 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   "2–4 business days"). On success the route sends the shipped email and
   persists `metadata: { shipped_at, shipping_estimate }` on the session; the
   page reloads after a ~1s success message.
+
+### OIDC setup
+
+- Register the callback URL in your OIDC provider:
+  `https://emilysflowers.ca/api/admin/callback` in prod.
+- Set `OIDC_REDIRECT_URI` to the registered callback URL in production (e.g.
+  `https://emilysflowers.ca/api/admin/callback`); it is **required** in prod —
+  the callback URL is never derived from the request Host header there — and
+  must match the URL registered in the provider exactly. In dev it's optional
+  and defaults to `<origin>/api/admin/callback`.
+- The provider must return a `groups` claim (in the ID token or userinfo);
+  the signed-in user must belong to at least one group listed in
+  `ADMIN_OIDC_GROUPS`.
+- Generate the session signing key with `openssl rand -base64 32` and put it
+  in `ADMIN_SESSION_SECRET` (≥ 32 chars).
+- Preview Workers have **per-branch URLs**, so the callback URL differs per
+  branch — same gotcha as the per-branch Stripe webhook URLs above. Register
+  the preview branch's callback URL (e.g.
+  `https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback`)
+  in the provider when testing a preview branch.
 
 ## Notes / gotchas
 
