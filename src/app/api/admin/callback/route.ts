@@ -77,12 +77,6 @@ export async function GET(request: NextRequest) {
     claims = { ...userInfo, ...idClaims }; // ID token wins.
 
     if (!isAllowedByGroups(claims, config.allowedGroups)) {
-      console.error(
-        '[Admin OIDC callback] Access denied: no intersection between the ' +
-          'user groups claim and ADMIN_OIDC_GROUPS. ' +
-          `groups=${JSON.stringify(claims.groups)} ` +
-          `allowedGroups=${JSON.stringify(config.allowedGroups)}`
-      );
       return failRedirect('forbidden');
     }
   } catch (error) {
