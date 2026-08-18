@@ -83,6 +83,28 @@ bun run dev
 a test checkout with card `4242 4242 4242 4242` and the confirmation email
 arrives.
 
+### Preview (test-mode) webhooks
+
+Previews use Stripe **test keys**, and Stripe treats test mode as a separate
+webhook world: test-mode events only reach webhook endpoints registered in
+test mode, signed with that endpoint's test-mode `whsec_...` secret.
+
+- Register a **test-mode** webhook endpoint pointing at the preview Worker's
+  URL (e.g.
+  `https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/webhooks/stripe`)
+  and put its `whsec_...` into the preview Worker's `STRIPE_WEBHOOK_SECRET`.
+- Preview URLs are **per-branch**, so the endpoint URL (and its signing
+  secret) changes per branch. All preview branches share one preview Worker
+  secret namespace, so only one `STRIPE_WEBHOOK_SECRET` can be active at a
+  time — update it when switching which branch you're testing.
+- **Never** point test-mode events at the production Worker: its live
+  `whsec_...` won't verify a test-mode signature (400), and its live
+  `STRIPE_SECRET_KEY` can't retrieve test sessions.
+- Resend has no sandbox: preview sends **real** emails. Use a throwaway
+  address in test checkouts.
+- For most dev, `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+  is simpler than registering a per-branch endpoint.
+
 ## Admin page details
 
 - URL: `/admin/orders`. Server component with
