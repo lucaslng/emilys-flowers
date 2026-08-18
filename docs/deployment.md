@@ -135,8 +135,10 @@ Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in
 Workers Builds):
 
 - **`.github/workflows/test.yml`** — the single source of truth for the test
-  jobs (`changes`/`unit`/`e2e`). Runs standalone on `pull_request` for fast PR
-  feedback, and is called as a **reusable workflow** by `deploy.yml` on push.
+  jobs (`changes`/`unit`/`e2e`). Called as a **reusable workflow** by
+  `deploy.yml` on every push — PR checks come from that same run, so there is
+  no standalone `pull_request` trigger (removed to stop the unit suite from
+  running twice on every PR push).
   Unit tests always run; E2E only when the `changes` job detects
   app/e2e-affecting files (`src/`, `e2e/`, `public/`, `playwright.config.ts`,
   `next.config.ts`, `tsconfig.json`, `package.json`, `bun.lock`,
