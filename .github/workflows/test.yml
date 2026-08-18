@@ -1,8 +1,9 @@
 name: Tests
 
-# Test pipeline (changes/unit/e2e). Runs on pull_request and as a reusable
-# workflow called by deploy.yml. The `changes` job's diff base follows the
-# triggering event: PR base SHA for pull_request, before-SHA for push.
+# Test pipeline (changes/unit/e2e). Reusable workflow called by deploy.yml on
+# every push — PR checks come from the deploy run's `tests` job, so there is no
+# standalone `pull_request` trigger (that previously duplicated the unit suite
+# on every PR push).
 #
 # Unit tests always run; E2E runs only when app/e2e-affecting files change
 # (see the `changes` job filter).
@@ -18,8 +19,6 @@ on:
     secrets:
       STRIPE_SECRET_KEY_TEST:
         required: true
-  pull_request:
-    branches: [main]
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -44,12 +43,8 @@ jobs:
         id: filter
         shell: bash
         run: |
-          # Diff base: PR base SHA for pull_request, before-SHA for push.
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE="${{ github.event.before }}"
-          fi
+          # Diff base: the push's before-SHA (deploy.yml is the only caller).
+          BASE="${{ github.event.before }}"
 
           # First push: before is all-zeros → diff against origin/main.
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
@@ -117,13 +112,12 @@ jobs:
   e2e:
     name: E2E tests
     needs: [changes]
-    # E2E runs for PR feedback (standalone pull_request trigger) and for
-    # production deploys (workflow_call from deploy.yml on main — the only
-    # consumer of the e2e result). On non-main pushes the deploy.yml call only
-    # needs unit results (previews gate on unit-result), so skip the ~10 min
-    # suite there instead of discarding it. In a called workflow `github.ref`
-    # reflects the caller's ref and `github.event_name` the caller's event.
-    if: ${{ (github.event_name == 'pull_request' || github.ref == 'refs/heads/main') && needs.changes.outputs.e2e == 'true' }}
+    # E2E gates production deploys (deploy.yml on main — the only consumer of
+    # the e2e result). On non-main pushes the deploy.yml call only needs unit
+    # results (previews gate on unit-result), so skip the ~10 min suite there
+    # instead of discarding it. In a called workflow `github.ref` reflects the
+    # caller's ref.
+    if: ${{ github.ref == 'refs/heads/main' && needs.changes.outputs.e2e == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
