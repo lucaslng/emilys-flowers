@@ -46,7 +46,7 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 ## Architecture
 
 - App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (OIDC-gated order review), and API routes `POST /api/checkout`, `POST /api/webhooks/stripe` (order-confirmation email), `GET /api/admin/login` (OIDC redirect), `GET /api/admin/callback`, `GET /api/admin/logout`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
-- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer` — persists across navigations.
+- `src/app/layout.tsx` is the root: loads fonts, renders `<html>`/`<body>`. The storefront shell (`CartProvider` + `PetalBurstProvider`, `Navbar`/`Footer`) is `src/components/layout/StoreShell.tsx`, mounted by `src/app/(store)/layout.tsx` (storefront routes — hosts the under-construction gate) and `src/app/admin/layout.tsx` (admin routes — exempt from the gate).
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not state that must persist.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 

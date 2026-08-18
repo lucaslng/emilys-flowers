@@ -76,7 +76,7 @@ the SDK must use the `fetch`-based client. This call is a no-op on Node.js
 
 ### Client side — redirect
 
-`src/app/checkout/page.tsx` POSTs the cart to `/api/checkout` and redirects:
+`src/app/(store)/checkout/page.tsx` POSTs the cart to `/api/checkout` and redirects:
 
 ```ts
 const res = await fetch('/api/checkout', {

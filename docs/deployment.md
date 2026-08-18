@@ -71,9 +71,21 @@ runtime. If you ever remove the static-assets cache, the flags will silently
 fail open in production again — the build-time `process.env` values do not
 exist on the Worker at runtime.
 
-When the flag is on, `src/app/layout.tsx` renders the standalone
+Consequently, only **prerendered** routes show the gate: every storefront page,
+and unmatched URLs (the root `src/app/not-found.tsx` is prerendered, so `/foo`
+shows the construction screen too). **On-demand renders fail open**: a route
+that isn't in the static cache (e.g. an unknown `/products/<slug>` that calls
+`notFound()`) is rendered at runtime where the flag value is absent, so it
+serves the normal storefront 404 in the shell rather than the construction
+screen. This is expected and is the same reason there is **no runtime API
+gate** below.
+
+When the flag is on, `src/app/(store)/layout.tsx` renders the standalone
 `UnderConstruction` component (`src/components/under-construction.tsx`) instead
-of the app tree (no Navbar/Footer/cart/providers). `src/app/robots.ts` returns
+of the storefront shell (no Navbar/Footer/cart/providers). The `/admin/*`
+routes are exempt: `src/app/admin/layout.tsx` renders the same storefront shell
+with no gate, so the owner can still review orders and send shipping
+notifications while the storefront is down. `src/app/robots.ts` returns
 `disallow: '/'` while construction is on (blocks all crawling so the
 construction page isn't indexed, while still advertising the sitemap);
 otherwise it returns the normal rules (`allow: '/'`, `disallow: ['/cart',

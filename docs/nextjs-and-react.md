@@ -70,17 +70,18 @@ Use `next/image` only. The project already does this correctly.
 
 | File | This project | Notes |
 |---|---|---|
-| `layout.tsx` | `src/app/layout.tsx` (root) | Server component. Wraps tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer`. **Does not remount** on navigation. |
+| `layout.tsx` | `src/app/layout.tsx` (root), `src/app/(store)/layout.tsx`, `src/app/admin/layout.tsx` | Server components. Root renders `<html>`/`<body>`; the storefront shell (`CartProvider` + `PetalBurstProvider`, `Navbar`/`Footer`) is shared via `src/components/layout/StoreShell.tsx`. **Does not remount** on navigation. |
 | `template.tsx` | `src/app/template.tsx` | Client component. **Remounts on every segment navigation** — `useEffect` re-runs per route. Used for the `.page-enter` animation. Do not put state here that must persist across navigations. |
-| `page.tsx` | `src/app/page.tsx` + route folders | The unique UI for a URL. Some are Server (home), some are Client (`/flowers`, `/bouquets`, `/cart`, `/checkout`). |
+| `page.tsx` | `src/app/(store)/page.tsx` + route folders | The unique UI for a URL. Some are Server (home), some are Client (`/flowers`, `/bouquets`, `/cart`, `/checkout`). |
 | `loading.tsx` | `src/app/loading.tsx` | Suspense fallback — renders `BloomSpinner` + "Blooming…". |
 | `route.ts` | `src/app/api/checkout/route.ts` | API Route Handler. Exports `POST`. |
 
 ### `template.tsx` vs `layout.tsx` — the key distinction
 
 - **`layout.tsx`** persists across navigations. State, providers, and effects
-  survive. The root layout mounts `CartProvider` and `PetalBurstProvider` here
-  precisely so cart state and the petal-burst singleton survive route changes.
+  survive. The storefront shell (`StoreShell`) mounts `CartProvider` and
+  `PetalBurstProvider` precisely so cart state and the petal-burst singleton
+  survive route changes.
 - **`template.tsx`** remounts on every segment navigation. `useEffect` re-runs.
   This is why the page-enter animation lives here — it should fire on each
   navigation, not just once.
@@ -107,7 +108,7 @@ A file must be a Client Component if it uses:
 
 | Client (`'use client'`) | Server (no directive) |
 |---|---|
-| `template.tsx`, `flowers/page.tsx`, `bouquets/page.tsx`, `cart/page.tsx`, `checkout/page.tsx` | `layout.tsx`, `page.tsx` (home), `loading.tsx` |
+| `template.tsx`, `flowers/page.tsx`, `bouquets/page.tsx`, `cart/page.tsx`, `checkout/page.tsx` | `layout.tsx`, `(store)/page.tsx` (home), `loading.tsx` |
 | `Navbar`, `ProductCard`, `FilterBar`, `CartItem`, `CartSummary` | `Footer`, `ProductGrid`, `FeaturedBouquets`, `WhyChooseUs` |
 | `Reveal`, `BloomSpinner`, `SquiggleUnderline`, `PetalBurst` | `Button`, `Container` |
 | `cart-context.tsx`, `gsap.ts`, `petal-burst.tsx` | `products.ts`, `types/index.ts` |

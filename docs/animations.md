@@ -165,8 +165,7 @@ as a **singleton** so any component can trigger it without prop drilling.
 
 - `src/lib/petal-burst.tsx` exports `PetalBurstProvider` (mount once) and
   `firePetalBurst(from, to)` (call from anywhere).
-- `PetalBurstProvider` is mounted in the root `layout.tsx`, so it's available
-  on every page.
+- `PetalBurstProvider` is mounted in `StoreShell` (`src/components/layout/StoreShell.tsx`), used by both the storefront (`(store)`) and admin layouts, so it's available on every page.
 - `firePetalBurst(from, to)` takes viewport coordinates and calls the
   provider's ref. It's a module-level function — no hook needed.
 - Under `prefers-reduced-motion: reduce`, it no-ops.
@@ -192,8 +191,9 @@ function handleAddToCart(e: React.MouseEvent) {
 
 ### Rules
 
-- **Mount `PetalBurstProvider` exactly once**, in the root layout. It's
-  already there — don't add another.
+- **Mount `PetalBurstProvider` exactly once per page**, in `StoreShell`
+  (`src/components/layout/StoreShell.tsx`). It's already there — don't add
+  another.
 - **Call `firePetalBurst` from any client component.** No need to pass it via
   props or context.
 - **Pass viewport coordinates** (clientX/clientY, getBoundingClientRect), not

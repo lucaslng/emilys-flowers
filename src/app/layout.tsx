@@ -3,15 +3,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Martian_Mono, Reenie_Beanie } from "next/font/google";
-import { CartProvider } from "@/lib/cart-context";
-import { PetalBurstProvider } from "@/lib/petal-burst";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { isUnderConstruction } from "@/lib/under-construction";
-import { isFlowersEnabled } from "@/lib/flowers-flag";
-import UnderConstruction from "@/components/under-construction";
-import JsonLd from "@/components/JsonLd";
-import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -91,28 +82,10 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   const fontClasses = `${martian.variable} ${reenie.variable}`;
-  if (isUnderConstruction()) {
-    return (
-      <html lang="en" className={`${fontClasses} h-full antialiased`}>
-        <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
-          <UnderConstruction />
-        </body>
-      </html>
-    );
-  }
-  const showFlowers = isFlowersEnabled();
   return (
     <html lang="en" className={`${fontClasses} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
-        <CartProvider>
-          <a href="#main" className="skip-link">Skip to content</a>
-          <PetalBurstProvider />
-          <Navbar showFlowers={showFlowers} />
-          <main id="main" className="flex-1">{children}</main>
-          <Footer />
-        </CartProvider>
-        <JsonLd data={organizationSchema()} />
-        <JsonLd data={webSiteSchema()} />
+        {children}
       </body>
     </html>
   );
