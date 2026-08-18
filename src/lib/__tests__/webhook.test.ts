@@ -2,7 +2,7 @@ import { test, expect, describe, beforeEach } from 'bun:test';
 import type Stripe from 'stripe';
 import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 
-// NOTE: the `stripe` and `@/lib/email` mocks live in `./order-emails-mocks`,
+// NOTE: the `stripe` and `resend` mocks live in `./order-emails-mocks`,
 // registered exactly once per process. bun's `mock.module` registry is
 // process-global and shared across test files, so registering the same
 // modules here again would silently replace that registration.
@@ -141,6 +141,7 @@ describe('POST /api/webhooks/stripe', () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock';
+    process.env.RESEND_API_KEY = 're_test_mock';
     resetOrderEmailMocks();
   });
 

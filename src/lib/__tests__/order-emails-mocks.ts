@@ -7,7 +7,7 @@
 // Registering the same module from more than one test file silently replaces
 // the registration, so whichever file registers last wins globally and the
 // other file observes the wrong mock. To avoid that, the `stripe` and
-// `@/lib/email` mocks live here and are registered EXACTLY ONCE — the helper
+// `resend` mocks live here and are registered EXACTLY ONCE — the helper
 // module is evaluated a single time per process regardless of how many test
 // files import it.
 //
@@ -78,20 +78,25 @@ mock.module('stripe', () => {
   return { default: MockStripe };
 });
 
-// Mock `@/lib/email` so sends are controllable per test. Both senders are
-// provided so the namespace is complete for whichever route is under test.
-// Type-only imports (`type EmailLineItem` / `type OrderConfirmationData`)
-// are erased at runtime, so exporting just the functions is sufficient.
-mock.module('@/lib/email', () => {
-  const send = async (...args: unknown[]) => {
-    orderEmailMocks.emailSendCalls.push(args);
-    if (orderEmailMocks.emailShouldThrow) {
-      throw new Error('Resend send failed');
-    }
-    return { id: 're_123' };
-  };
-  return {
-    sendOrderConfirmationEmail: send,
-    sendShippedEmail: send,
-  };
+// Mock the `resend` package (the leaf dependency) so sends are controllable
+// per test. `@/lib/email` is deliberately NOT mocked: email.test.ts tests the
+// real senders in the same process, and bun's `mock.module` registry is
+// process-global — mocking `@/lib/email` here replaced the real module for
+// email.test.ts on CI and broke it. The real senders construct the client via
+// `new Resend(requireApiKey())`, so mocking `resend` gives the routes a
+// controllable client while the real email.ts logic (payload building, error
+// wrapping, idempotency option) still runs.
+mock.module('resend', () => {
+  class MockResend {
+    emails = {
+      send: async (...args: unknown[]) => {
+        orderEmailMocks.emailSendCalls.push(args);
+        if (orderEmailMocks.emailShouldThrow) {
+          throw new Error('Resend send failed');
+        }
+        return { data: { id: 're_123' }, error: null, headers: null };
+      },
+    };
+  }
+  return { Resend: MockResend };
 });
