@@ -176,7 +176,7 @@ describe('buildAuthorizeUrl', () => {
     expect(parsed.searchParams.get('response_type')).toBe('code');
     expect(parsed.searchParams.get('client_id')).toBe('client-123');
     expect(parsed.searchParams.get('redirect_uri')).toBe(CALLBACK_URL);
-    expect(parsed.searchParams.get('scope')).toBe('openid email profile');
+    expect(parsed.searchParams.get('scope')).toBe('openid email profile groups');
     expect(parsed.searchParams.get('state')).toBe('state-123');
     expect(parsed.searchParams.get('code_challenge')).toBe('challenge-abc');
     expect(parsed.searchParams.get('code_challenge_method')).toBe('S256');

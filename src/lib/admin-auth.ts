@@ -189,7 +189,7 @@ export function buildAuthorizeUrl(
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
-  url.searchParams.set('scope', 'openid email profile');
+  url.searchParams.set('scope', 'openid email profile groups');
   url.searchParams.set('state', state);
   url.searchParams.set('code_challenge', codeChallenge);
   url.searchParams.set('code_challenge_method', 'S256');
