@@ -120,6 +120,7 @@ async function fetchCatalog(): Promise<Product[]> {
   const { data } = await stripe.products.list({
     limit: 100,
     expand: ['data.default_price'],
+    active: true,
   });
 
   const products: Product[] = [];
