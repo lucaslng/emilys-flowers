@@ -57,7 +57,7 @@ story.
   verification is skipped with a warning so `stripe listen` works without
   copying the secret.
 - On `checkout.session.completed`: retrieves the session with
-  `expand: ['line_items', 'customer_details', 'shipping_details']`, maps it
+  `expand: ['line_items']` (the only expandable property), maps it
   with the exported pure function `mapCheckoutSessionToConfirmation(session)`,
   and sends the confirmation with `Idempotency-Key: <event.id>` (Resend
   dedupes Stripe's webhook retries).
@@ -130,9 +130,10 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   property in the v22 types. Both the webhook route and the admin page use a
   local intersection cast:
   `type SessionWithShippingDetails = Stripe.Checkout.Session & { shipping_details?: { name: string; address: Stripe.Address } | null }`.
-- `customer_details` / `shipping_details` are not actually expandable in the
-  Stripe API — they're always present on a retrieved session; the `expand`
-  entries are harmless and Stripe ignores them.
+- `customer_details` / `shipping_details` are **not** expandable in the Stripe
+  API — they're always present on a retrieved session. Listing them in
+  `expand` makes Stripe reject the request with a 400 ("This property cannot
+  be expanded"), so only `line_items` goes in the `expand` array.
 - Shipping cost comes from `session.total_details?.amount_shipping ?? 0`
   (v22 has no top-level `amount_shipping`).
 - The success page copy ("A confirmation is on its way to your inbox") is now

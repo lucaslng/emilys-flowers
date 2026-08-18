@@ -106,7 +106,10 @@ export async function POST(request: Request) {
 
     if (event.type === 'checkout.session.completed') {
       const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-        expand: ['line_items', 'customer_details', 'shipping_details'],
+        // Only `line_items` is expandable. `customer_details` and
+        // `shipping_details` are always returned on a retrieved session —
+        // listing them in `expand` makes Stripe reject the request with 400.
+        expand: ['line_items'],
       });
 
       const confirmation = mapCheckoutSessionToConfirmation(session);
