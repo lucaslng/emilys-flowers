@@ -226,8 +226,10 @@ function requireApiKey(): string {
  * Send an order confirmation email.
  *
  * @param data  Order details to render into the email.
- * @param opts  Optional idempotency key (sent as the `Idempotency-Key` header
- *              so Stripe webhook retries don't produce duplicate emails).
+ * @param opts  Optional idempotency key. Passed via the SDK's
+ *              `idempotencyKey` request option (sent as the HTTP
+ *              `Idempotency-Key` header) so Stripe webhook retries don't
+ *              produce duplicate emails.
  * @param client  Injectable Resend client (defaults to one built from
  *                `process.env.RESEND_API_KEY`).
  */
@@ -238,18 +240,16 @@ export async function sendOrderConfirmationEmail(
 ): Promise<{ id: string }> {
   requireApiKey();
 
-  const headers: Record<string, string> | undefined = opts?.idempotencyKey
-    ? { 'Idempotency-Key': opts.idempotencyKey }
-    : undefined;
-
-  const response = await client.emails.send({
-    from: FROM_ADDRESS,
-    to: data.to,
-    subject: `Your Emily's Flowers order #${data.orderNumber} is confirmed`,
-    text: buildOrderConfirmationText(data),
-    html: buildOrderConfirmationHtml(data),
-    headers,
-  });
+  const response = await client.emails.send(
+    {
+      from: FROM_ADDRESS,
+      to: data.to,
+      subject: `Your Emily's Flowers order #${data.orderNumber} is confirmed`,
+      text: buildOrderConfirmationText(data),
+      html: buildOrderConfirmationHtml(data),
+    },
+    opts?.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined
+  );
 
   if (response.error) {
     throw new Error(
@@ -264,7 +264,9 @@ export async function sendOrderConfirmationEmail(
  * Send a "your order shipped" email.
  *
  * @param data  Order + shipping details to render into the email.
- * @param opts  Optional idempotency key (sent as the `Idempotency-Key` header).
+ * @param opts  Optional idempotency key. Passed via the SDK's
+ *              `idempotencyKey` request option (sent as the HTTP
+ *              `Idempotency-Key` header).
  * @param client  Injectable Resend client (defaults to one built from
  *                `process.env.RESEND_API_KEY`).
  */
@@ -280,18 +282,16 @@ export async function sendShippedEmail(
 ): Promise<{ id: string }> {
   requireApiKey();
 
-  const headers: Record<string, string> | undefined = opts?.idempotencyKey
-    ? { 'Idempotency-Key': opts.idempotencyKey }
-    : undefined;
-
-  const response = await client.emails.send({
-    from: FROM_ADDRESS,
-    to: data.to,
-    subject: `Your Emily's Flowers order #${data.orderNumber} is on its way`,
-    text: buildShippedText(data),
-    html: buildShippedHtml(data),
-    headers,
-  });
+  const response = await client.emails.send(
+    {
+      from: FROM_ADDRESS,
+      to: data.to,
+      subject: `Your Emily's Flowers order #${data.orderNumber} is on its way`,
+      text: buildShippedText(data),
+      html: buildShippedHtml(data),
+    },
+    opts?.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined
+  );
 
   if (response.error) {
     throw new Error(`Failed to send shipped email: ${response.error.message}`);

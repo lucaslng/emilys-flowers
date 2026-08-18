@@ -59,7 +59,8 @@ story.
 - On `checkout.session.completed`: retrieves the session with
   `expand: ['line_items']` (the only expandable property), maps it
   with the exported pure function `mapCheckoutSessionToConfirmation(session)`,
-  and sends the confirmation with `Idempotency-Key: <event.id>` (Resend
+  and sends the confirmation with the SDK's `idempotencyKey` request option
+  set to `<event.id>` (sent as the HTTP `Idempotency-Key` header; Resend
   dedupes Stripe's webhook retries).
 - If the session has no customer email, the event is logged and skipped
   (200) — nothing to send to.
@@ -134,6 +135,14 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   API — they're always present on a retrieved session. Listing them in
   `expand` makes Stripe reject the request with a 400 ("This property cannot
   be expanded"), so only `line_items` goes in the `expand` array.
+- **Resend idempotency:** the key must be passed as the SDK's
+  `idempotencyKey` **request option** (2nd arg to `emails.send`), NOT inside
+  the payload's `headers` field — payload `headers` become email MIME headers
+  and never reach the HTTP layer, so dedup silently never engages (this
+  caused duplicate confirmation emails). Keys expire after 24h, and two
+  concurrent sends with the same key return `409 concurrent_idempotent_requests`
+  rather than silently deduping (Stripe webhook retries are sequential, so
+  this is not a practical concern here).
 - Shipping cost comes from `session.total_details?.amount_shipping ?? 0`
   (v22 has no top-level `amount_shipping`).
 - The success page copy ("A confirmation is on its way to your inbox") is now

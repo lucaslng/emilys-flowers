@@ -12,7 +12,10 @@ interface FakeSendPayload {
   subject?: string;
   text?: string;
   html?: string;
-  headers?: Record<string, string>;
+}
+
+interface FakeSendOptions {
+  idempotencyKey?: string;
 }
 
 interface FakeError {
@@ -23,10 +26,12 @@ interface FakeError {
 
 function createFakeClient(options?: { error?: FakeError }) {
   const sent: FakeSendPayload[] = [];
+  const sentOptions: FakeSendOptions[] = [];
   const client = {
     emails: {
-      send: async (payload: FakeSendPayload) => {
+      send: async (payload: FakeSendPayload, requestOptions?: FakeSendOptions) => {
         sent.push(payload);
+        sentOptions.push(requestOptions ?? {});
         if (options?.error) {
           return { data: null, error: options.error, headers: null };
         }
@@ -34,7 +39,7 @@ function createFakeClient(options?: { error?: FakeError }) {
       },
     },
   };
-  return { client: client as unknown as Resend, sent };
+  return { client: client as unknown as Resend, sent, sentOptions };
 }
 
 const confirmationData: OrderConfirmationData = {
@@ -85,18 +90,18 @@ describe('sendOrderConfirmationEmail', () => {
     expect(payload.html).toContain('$145.96');
   });
 
-  test('passes the idempotency key through as the Idempotency-Key header', async () => {
-    const { client, sent } = createFakeClient();
+  test('passes the idempotency key through as the SDK request option', async () => {
+    const { client, sentOptions } = createFakeClient();
     await sendOrderConfirmationEmail(confirmationData, { idempotencyKey: 'evt_123' }, client);
 
-    expect(sent[0].headers).toEqual({ 'Idempotency-Key': 'evt_123' });
+    expect(sentOptions[0].idempotencyKey).toBe('evt_123');
   });
 
-  test('omits the Idempotency-Key header when no idempotency key is given', async () => {
-    const { client, sent } = createFakeClient();
+  test('omits the idempotency key option when none is given', async () => {
+    const { client, sentOptions } = createFakeClient();
     await sendOrderConfirmationEmail(confirmationData, undefined, client);
 
-    expect(sent[0].headers).toBeUndefined();
+    expect(sentOptions[0].idempotencyKey).toBeUndefined();
   });
 
   test('throws when RESEND_API_KEY is missing', async () => {
@@ -150,8 +155,8 @@ describe('sendShippedEmail', () => {
     expect(payload.html).toContain('2-4 business days');
   });
 
-  test('passes the idempotency key through as the Idempotency-Key header', async () => {
-    const { client, sent } = createFakeClient();
+  test('passes the idempotency key through as the SDK request option', async () => {
+    const { client, sentOptions } = createFakeClient();
     await sendShippedEmail(
       {
         to: 'customer@example.com',
@@ -162,7 +167,7 @@ describe('sendShippedEmail', () => {
       client
     );
 
-    expect(sent[0].headers).toEqual({ 'Idempotency-Key': 'evt_456' });
+    expect(sentOptions[0].idempotencyKey).toBe('evt_456');
   });
 
   test('throws when RESEND_API_KEY is missing', async () => {
