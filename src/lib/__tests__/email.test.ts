@@ -108,9 +108,10 @@ describe('sendOrderConfirmationEmail', () => {
     const original = process.env.RESEND_API_KEY;
     delete process.env.RESEND_API_KEY;
     try {
-      const { client } = createFakeClient();
+      // No client injected: the default parameter `new Resend(requireApiKey())`
+      // evaluates and must throw because the env var is absent.
       await expect(
-        sendOrderConfirmationEmail(confirmationData, undefined, client)
+        sendOrderConfirmationEmail(confirmationData, undefined)
       ).rejects.toThrow('RESEND_API_KEY');
     } finally {
       if (original !== undefined) {
@@ -174,7 +175,8 @@ describe('sendShippedEmail', () => {
     const original = process.env.RESEND_API_KEY;
     delete process.env.RESEND_API_KEY;
     try {
-      const { client } = createFakeClient();
+      // No client injected: the default parameter `new Resend(requireApiKey())`
+      // evaluates and must throw because the env var is absent.
       await expect(
         sendShippedEmail(
           {
@@ -182,8 +184,7 @@ describe('sendShippedEmail', () => {
             orderNumber: 'EF-ABC123',
             estimatedShippingTime: '2-4 business days',
           },
-          undefined,
-          client
+          undefined
         )
       ).rejects.toThrow('RESEND_API_KEY');
     } finally {

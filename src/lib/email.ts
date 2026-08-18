@@ -236,10 +236,8 @@ function requireApiKey(): string {
 export async function sendOrderConfirmationEmail(
   data: OrderConfirmationData,
   opts?: SendEmailOptions,
-  client: Resend = new Resend(process.env.RESEND_API_KEY)
+  client: Resend = new Resend(requireApiKey())
 ): Promise<{ id: string }> {
-  requireApiKey();
-
   const response = await client.emails.send(
     {
       from: FROM_ADDRESS,
@@ -278,10 +276,8 @@ export async function sendShippedEmail(
     estimatedShippingTime: string;
   },
   opts?: SendEmailOptions,
-  client: Resend = new Resend(process.env.RESEND_API_KEY)
+  client: Resend = new Resend(requireApiKey())
 ): Promise<{ id: string }> {
-  requireApiKey();
-
   const response = await client.emails.send(
     {
       from: FROM_ADDRESS,
