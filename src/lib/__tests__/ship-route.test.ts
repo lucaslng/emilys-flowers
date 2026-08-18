@@ -68,7 +68,10 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     orderEmailMocks.currentSession = {
       id: 'cs_test_123',
       object: 'checkout.session',
-      metadata: { confirmation_email_sent_at: '2026-01-01T00:00:00Z' },
+      metadata: {
+        confirmation_email_sent_at: '2026-01-01T00:00:00Z',
+        order_number: 'EF-ABC123',
+      },
       customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
     };
 
@@ -79,6 +82,9 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(
+      (orderEmailMocks.emailSendCalls[0][0] as { subject: string }).subject
+    ).toContain('#EF-ABC123');
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
     expect(orderEmailMocks.stripeUpdateCalls[0].sessionId).toBe('cs_test_123');
     expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(

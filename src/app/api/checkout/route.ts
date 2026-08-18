@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: successUrl });
     }
 
+    const orderNumber = generateOrderNumber();
     const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
       shipping_address_collection: {
         allowed_countries: ['CA'],
       },
+      metadata: { order_number: orderNumber },
       line_items: items.map((item) => ({
         price_data: {
           currency: 'cad',
@@ -47,7 +49,7 @@ export async function POST(request: Request) {
         },
         quantity: item.quantity,
       })),
-      success_url: `${origin}/checkout/success?success=true&order={CHECKOUT_SESSION_ID}&items=${itemsParam}`,
+      success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&items=${itemsParam}`,
       cancel_url: `${origin}/cart?canceled=true`,
     });
 

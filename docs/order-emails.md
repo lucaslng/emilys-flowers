@@ -143,7 +143,8 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   verify the `admin_session` JWT.
 - Order list: latest 25 paid Checkout Sessions (`expand: ['data.line_items']`),
   filtered to `payment_status === 'paid'`, sorted newest first. Each card
-  shows session id, date, customer name/email, line items, totals, shipping
+  shows the order number (`metadata.order_number`, falling back to the session
+  id), date, customer name/email, line items, totals, shipping
   address, and either a "Shipped — <estimate>" badge (when
   `metadata.shipped_at` exists) or the inline ship form.
 - Ship form: one labeled input ("Estimated shipping time", placeholder

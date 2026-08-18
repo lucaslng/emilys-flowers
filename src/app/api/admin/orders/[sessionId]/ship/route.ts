@@ -79,7 +79,7 @@ export async function POST(
 
     await sendShippedEmail({
       to,
-      orderNumber: session.id,
+      orderNumber: session.metadata?.order_number ?? session.id,
       customerName: session.customer_details?.name ?? undefined,
       estimatedShippingTime,
     });

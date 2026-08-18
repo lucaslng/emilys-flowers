@@ -65,6 +65,7 @@ function makeSession(overrides: Record<string, unknown> = {}): Stripe.Checkout.S
         country: 'CA',
       },
     },
+    metadata: { order_number: 'EF-ABC123' },
     ...overrides,
   } as unknown as Stripe.Checkout.Session;
 }
@@ -75,7 +76,7 @@ describe('mapCheckoutSessionToConfirmation', () => {
 
     expect(result).toEqual({
       to: 'ada@example.com',
-      orderNumber: 'cs_test_123',
+      orderNumber: 'EF-ABC123',
       customerName: 'Ada Lovelace',
       items: [
         { name: 'Blush Romance Bouquet', quantity: 1, unitAmountCents: 8999 },
@@ -134,6 +135,12 @@ describe('mapCheckoutSessionToConfirmation', () => {
     const session = makeSession({ shipping_details: null });
     const result = mapCheckoutSessionToConfirmation(session);
     expect(result?.shippingAddress).toBeUndefined();
+  });
+
+  test('falls back to the session id when metadata has no order_number', () => {
+    const session = makeSession({ metadata: {} });
+    const result = mapCheckoutSessionToConfirmation(session);
+    expect(result?.orderNumber).toBe('cs_test_123');
   });
 });
 

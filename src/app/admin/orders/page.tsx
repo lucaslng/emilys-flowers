@@ -207,7 +207,7 @@ export default async function AdminOrdersPage({
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <h2 className="font-sans text-sm font-bold uppercase tracking-[0.08em] text-foreground">
-                          Order {order.id}
+                          Order {order.metadata?.order_number ?? order.id}
                         </h2>
                         <p className="mt-1 font-sans text-xs text-muted">
                           {formatDate(order.created)}

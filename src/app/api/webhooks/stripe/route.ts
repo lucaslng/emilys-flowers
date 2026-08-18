@@ -57,7 +57,7 @@ export function mapCheckoutSessionToConfirmation(
 
   return {
     to: email,
-    orderNumber: session.id,
+    orderNumber: session.metadata?.order_number ?? session.id,
     customerName: session.customer_details?.name ?? undefined,
     items,
     subtotalCents: session.amount_subtotal ?? 0,
