@@ -145,6 +145,7 @@ convention.
 |---|---|---|
 | `STRIPE_SECRET_KEY` | Server — `route.ts` (`new Stripe(...)`) | `sk_live_...` (production) or `sk_test_...` (preview/dev) |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No code consumer (reserved for future client-side Stripe SDK) | `pk_live_...` or `pk_test_...` — must match the secret key's mode when wired in |
+| `STRIPE_WEBHOOK_SECRET` | Server — `src/app/api/webhooks/stripe/route.ts` | `whsec_...`; signs `checkout.session.completed` events. Optional in dev (verification skipped with a warning), required in prod. See [order-emails.md](./order-emails.md). |
 
 There is **no `NEXT_PUBLIC_BASE_URL`** — the route derives `origin` from
 `request.url`, so success/cancel URLs resolve automatically on every host

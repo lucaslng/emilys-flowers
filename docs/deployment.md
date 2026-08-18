@@ -214,6 +214,20 @@ keys.
    This is a *different* value from the build-time secret and is never a GitHub
    Secret.
 
+### Runtime-only secrets (order emails)
+
+Three more secrets are read **only at runtime** on the Worker (never at build
+time), so they are set per Worker via `wrangler secret put` — they are not
+GitHub Secrets and never appear in `deploy.yml`:
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `RESEND_API_KEY` | `src/lib/email.ts` | Send-only Resend API key (`re_...`). Missing → email functions throw. |
+| `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` | `whsec_...` from the Stripe dashboard (prod) or `stripe listen` (dev). Missing → dev-mode skips signature verification. |
+| `ADMIN_PASSWORD` | `/admin/orders` + admin API routes | Any non-empty string; gates the order-review page and the ship-notification route. |
+
+See [order-emails.md](./order-emails.md) for the flow these power.
+
 ## One-time setup
 
 ```bash
@@ -225,8 +239,20 @@ bunx wrangler deploy --env preview
 # 2. Set runtime secrets per Worker (one-time):
 echo "sk_live_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env production
 echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
+echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env production
+echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env preview
+echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env production
+echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env preview
+echo "change-me" | bunx wrangler secret put ADMIN_PASSWORD --env production
+echo "change-me" | bunx wrangler secret put ADMIN_PASSWORD --env preview
 
-# 3. Add the six GitHub Secrets above to the repo, then push.
+# 3. Register the webhook endpoint in the Stripe dashboard:
+#    https://dashboard.stripe.com/webhooks → add endpoint
+#    URL: https://emilysflowers.ca/api/webhooks/stripe
+#    Events: checkout.session.completed
+#    Copy the whsec_... signing secret into STRIPE_WEBHOOK_SECRET above.
+
+# 4. Add the six GitHub Secrets above to the repo, then push.
 ```
 
 ## Other config
