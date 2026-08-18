@@ -31,7 +31,7 @@
 
 ### Checkout E2E runs in simulated mode
 
-`playwright.config.ts` builds with `STRIPE_SECRET_KEY_TEST` (the catalog is
+`playwright.config.ts` builds with `STRIPE_SECRET_KEY` (the catalog is
 fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=`
 (empty) so `/api/checkout` always uses its simulated success path (redirects to
 `/checkout/success?success=true&order=...&items=...` and
@@ -61,9 +61,9 @@ violations with the five WCAG tags (`wcag2a`, `wcag2aa`, `wcag21a`,
 `wcag21aa`, `wcag22aa`). No axe rules are disabled. The same spec also covers
 keyboard-only and focus-not-obscured checks.
 
-- Running it needs `STRIPE_SECRET_KEY_TEST` in the process env (Playwright
-  auto-loads `.env` from the test root; the config reads the `_TEST` name
-  specifically) or the build fails.
+- Running it needs `STRIPE_SECRET_KEY` in the process env (Playwright
+  auto-loads `.env` from the test root; in CI the e2e job gets it from the
+  `preview` GitHub Environment) or the build fails.
 - Axe scans must wait for the `template.tsx` page-enter animation and
   ScrollTrigger reveals to settle — the `settlePage` helper scrolls in steps
   with pauses, because an instant jump down the page misses mid-page reveals

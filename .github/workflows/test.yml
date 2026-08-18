@@ -6,7 +6,9 @@ name: Tests
 # on every PR push).
 #
 # Unit tests always run; E2E runs only when app/e2e-affecting files change
-# (see the `changes` job filter).
+# (see the `changes` job filter). The e2e job reads the Stripe TEST key from
+# the `preview` GitHub Environment (`deployment: false` — it's a CI job, not a
+# deployment), so no secret is passed from the caller.
 on:
   workflow_call:
     outputs:
@@ -16,9 +18,6 @@ on:
       e2e-result:
         description: Result of the e2e job (success/failure/cancelled; empty when skipped)
         value: ${{ jobs.e2e.outputs.result }}
-    secrets:
-      STRIPE_SECRET_KEY_TEST:
-        required: true
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -118,6 +117,12 @@ jobs:
     # instead of discarding it. In a called workflow `github.ref` reflects the
     # caller's ref.
     if: ${{ github.ref == 'refs/heads/main' && needs.changes.outputs.e2e == 'true' }}
+    # Test Stripe key comes from the `preview` environment. `deployment: false`
+    # keeps this CI job out of the preview environment's deployment history.
+    # The `preview` environment has no protection rules, so this never blocks.
+    environment:
+      name: preview
+      deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -170,7 +175,7 @@ jobs:
         # Stripe key feeds the build-time catalog fetch; the served app runs
         # with an empty key so /api/checkout stays in simulated-success mode.
         env:
-          STRIPE_SECRET_KEY_TEST: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
         run: bun run test:e2e
 
       - name: Upload Playwright report

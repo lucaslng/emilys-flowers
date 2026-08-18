@@ -55,11 +55,11 @@ Products come from the **Stripe catalog**, fetched at build time by the server-o
 
 ## Deployment
 
-Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext) — **not** Vercel (`vercel.json` removed; no `VERCEL_*` vars). Two Wrangler `[env.*]` environments, each a separate Worker: `env.production` → `emilys-flowers-production` (live Stripe keys), `env.preview` → `emilys-flowers-preview` (test keys). Build-time Flagship flags (`under-construction` + `enable-flowers-page`) are evaluated once per build in `next.config.ts` and baked into prerendered pages. `--keep-vars` is **required** on every deploy. See [docs/deployment.md](docs/deployment.md).
+Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext) — **not** Vercel (`vercel.json` removed; no `VERCEL_*` vars). Two Wrangler `[env.*]` environments, each a separate Worker: `env.production` → `emilys-flowers-production` (live Stripe keys), `env.preview` → `emilys-flowers-preview` (test keys). Build-time secrets are scoped by **GitHub Environments** (`production`/`preview` — live/test Stripe keys; shared Cloudflare/Flagship secrets stay repo-level; the `production` environment's deployment-branch rule restricts deploys to `main`). Build-time Flagship flags (`under-construction` + `enable-flowers-page`) are evaluated once per build in `next.config.ts` and baked into prerendered pages. `--keep-vars` is **required** on every deploy. See [docs/deployment.md](docs/deployment.md).
 
 ## Stripe
 
-`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. `STRIPE_SECRET_KEY` is needed **at build time** (GitHub secret `STRIPE_SECRET_KEY_LIVE`/`_TEST`) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md) and [docs/deployment.md](docs/deployment.md).
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. `STRIPE_SECRET_KEY` is needed **at build time** (GitHub Environment secret `STRIPE_SECRET_KEY` in `production`/`preview` — live/test) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md) and [docs/deployment.md](docs/deployment.md).
 
 ## Testing
 
