@@ -229,7 +229,7 @@ not GitHub Secrets and never appear in `deploy.yml`:
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
 | `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
-| `OIDC_REDIRECT_URI` | `src/lib/admin-auth.ts` | Required in production; optional in dev (derived from the request origin in dev; never derived from the Host header in prod). Must match the callback URL registered in the provider exactly. |
+| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback`. Required in production; optional in dev (falls back to the request origin in dev; never derived from the Host header in prod). The derived callback URL must match the one registered in the provider exactly. |
 
 See [order-emails.md](./order-emails.md) for the flow these power.
 
@@ -259,9 +259,9 @@ echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADM
 echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env preview
 echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env production
 echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env preview
-echo "https://emilysflowers.ca/api/admin/callback" | bunx wrangler secret put OIDC_REDIRECT_URI --env production
-# Preview: use the per-branch callback URL (e.g. https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback)
-echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback" | bunx wrangler secret put OIDC_REDIRECT_URI --env preview
+echo "https://emilysflowers.ca" | bunx wrangler secret put BASE_URL --env production
+# Preview: use the per-branch root URL; the callback URL is derived by appending /api/admin/callback
+echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev" | bunx wrangler secret put BASE_URL --env preview
 
 # 3. Register the webhook endpoint in the Stripe dashboard:
 #    https://dashboard.stripe.com/webhooks → add endpoint

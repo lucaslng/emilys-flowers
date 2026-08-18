@@ -81,10 +81,10 @@ function missingRequiredEnvVars(): string[] {
   const missing: string[] = REQUIRED_ENV_VARS.filter(
     (name) => !process.env[name]
   );
-  // Fail closed in production: the redirect URI must never be derived from a
+  // Fail closed in production: the base URL must never be derived from a
   // client-supplied Host header, so it is required there.
-  if (process.env.NODE_ENV === 'production' && !process.env.OIDC_REDIRECT_URI) {
-    missing.push('OIDC_REDIRECT_URI');
+  if (process.env.NODE_ENV === 'production' && !process.env.BASE_URL) {
+    missing.push('BASE_URL');
   }
   return missing;
 }
@@ -119,12 +119,13 @@ export function getOidcConfig(redirectUri: string): OidcConfig {
   };
 }
 
-/** Callback URL: `OIDC_REDIRECT_URI` override, else origin + /api/admin/callback. */
+/** Callback URL: `BASE_URL` + /api/admin/callback, else request origin + the path. */
 export function resolveRedirectUri(requestUrl: string): string {
-  return (
-    process.env.OIDC_REDIRECT_URI ??
-    `${new URL(requestUrl).origin}/api/admin/callback`
+  const base = (process.env.BASE_URL ?? new URL(requestUrl).origin).replace(
+    /\/+$/,
+    ''
   );
+  return `${base}/api/admin/callback`;
 }
 
 // Module-level discovery cache: `{ at, data }`, refetched after 1h.

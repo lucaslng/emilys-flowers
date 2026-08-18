@@ -57,7 +57,7 @@ const REQUIRED_ENV_VARS = [
   'OIDC_CLIENT_SECRET',
   'ADMIN_SESSION_SECRET',
   'ADMIN_OIDC_GROUPS',
-  'OIDC_REDIRECT_URI',
+  'BASE_URL',
 ];
 
 function ConfigErrorCard({

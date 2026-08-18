@@ -48,7 +48,7 @@ Resend domain).
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
 | `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
-| `OIDC_REDIRECT_URI` | `src/lib/admin-auth.ts` | Optional in dev (derived from request origin); **required in production** (never derived from the Host header). Must match the callback URL registered in the provider exactly. |
+| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback` (the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
 
 All of these are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY`,
 `STRIPE_WEBHOOK_SECRET`, and the OIDC vars are read at runtime on the Worker,
@@ -141,21 +141,23 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
 
 - Register the callback URL in your OIDC provider:
   `https://emilysflowers.ca/api/admin/callback` in prod.
-- Set `OIDC_REDIRECT_URI` to the registered callback URL in production (e.g.
-  `https://emilysflowers.ca/api/admin/callback`); it is **required** in prod —
-  the callback URL is never derived from the request Host header there — and
-  must match the URL registered in the provider exactly. In dev it's optional
-  and defaults to `<origin>/api/admin/callback`.
+- Set `BASE_URL` to the site's root URL in production (e.g.
+  `https://emilysflowers.ca`); it is **required** in prod — the callback URL
+  is never derived from the request Host header there. The callback URL is
+  derived as `BASE_URL + /api/admin/callback` and must match the URL
+  registered in the provider exactly. In dev it's optional and falls back to
+  the request origin.
 - The provider must return a `groups` claim (in the ID token or userinfo);
   the signed-in user must belong to at least one group listed in
   `ADMIN_OIDC_GROUPS`.
 - Generate the session signing key with `openssl rand -base64 32` and put it
   in `ADMIN_SESSION_SECRET` (≥ 32 chars).
 - Preview Workers have **per-branch URLs**, so the callback URL differs per
-  branch — same gotcha as the per-branch Stripe webhook URLs above. Register
-  the preview branch's callback URL (e.g.
-  `https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev/api/admin/callback`)
-  in the provider when testing a preview branch.
+  branch — same gotcha as the per-branch Stripe webhook URLs above. Set
+  `BASE_URL` to the preview branch's root URL (e.g.
+  `https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev`) and
+  register the derived callback URL (that root + `/api/admin/callback`) in the
+  provider when testing a preview branch.
 
 ## Notes / gotchas
 

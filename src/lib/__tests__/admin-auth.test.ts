@@ -9,6 +9,7 @@ import {
   getOidcConfig,
   isAllowedByGroups,
   isOidcConfigured,
+  resolveRedirectUri,
   verifySessionToken,
   type OidcConfig,
 } from '@/lib/admin-auth';
@@ -21,7 +22,8 @@ const REQUIRED_VARS = [
   'ADMIN_OIDC_GROUPS',
 ];
 
-const REDIRECT_URI = 'https://shop.example.com/api/admin/callback';
+const BASE_URL = 'https://shop.example.com';
+const CALLBACK_URL = `${BASE_URL}/api/admin/callback`;
 
 function setAllEnv() {
   process.env.OIDC_ISSUER = 'https://accounts.example.com';
@@ -30,12 +32,12 @@ function setAllEnv() {
   process.env.ADMIN_SESSION_SECRET =
     'a-very-long-admin-session-secret-for-hs256-signing';
   process.env.ADMIN_OIDC_GROUPS = ' admins, shop-owners,, staff ';
-  process.env.OIDC_REDIRECT_URI = REDIRECT_URI;
+  process.env.BASE_URL = BASE_URL;
 }
 
 function clearAllEnv() {
   for (const name of REQUIRED_VARS) delete process.env[name];
-  delete process.env.OIDC_REDIRECT_URI;
+  delete process.env.BASE_URL;
 }
 
 beforeEach(() => {
@@ -71,17 +73,17 @@ describe('isOidcConfigured', () => {
     expect(isOidcConfigured()).toBe(false);
   });
 
-  test('requires OIDC_REDIRECT_URI when NODE_ENV is production', () => {
+  test('requires BASE_URL when NODE_ENV is production', () => {
     // `NODE_ENV` is declared read-only on ProcessEnv; cast to mutate it.
     const env = process.env as Record<string, string | undefined>;
     const originalNodeEnv = env.NODE_ENV;
     try {
-      delete env.OIDC_REDIRECT_URI;
+      delete env.BASE_URL;
       env.NODE_ENV = 'production';
 
       expect(isOidcConfigured()).toBe(false);
-      expect(() => getOidcConfig(REDIRECT_URI)).toThrow(
-        'OIDC admin auth is not configured: missing OIDC_REDIRECT_URI'
+      expect(() => getOidcConfig(CALLBACK_URL)).toThrow(
+        'OIDC admin auth is not configured: missing BASE_URL'
       );
     } finally {
       if (originalNodeEnv === undefined) {
@@ -97,18 +99,18 @@ describe('getOidcConfig', () => {
   test('throws naming exactly the missing required env vars', () => {
     delete process.env.OIDC_ISSUER;
     delete process.env.ADMIN_SESSION_SECRET;
-    expect(() => getOidcConfig(REDIRECT_URI)).toThrow(
+    expect(() => getOidcConfig(CALLBACK_URL)).toThrow(
       'OIDC admin auth is not configured: missing OIDC_ISSUER, ADMIN_SESSION_SECRET'
     );
   });
 
   test('returns the expected config shape with split/trim/filtered groups', () => {
-    const config = getOidcConfig(REDIRECT_URI);
+    const config = getOidcConfig(CALLBACK_URL);
     expect(config).toEqual({
       issuer: 'https://accounts.example.com',
       clientId: 'client-123',
       clientSecret: 'client-secret',
-      redirectUri: REDIRECT_URI,
+      redirectUri: CALLBACK_URL,
       allowedGroups: ['admins', 'shop-owners', 'staff'],
       sessionSecret: 'a-very-long-admin-session-secret-for-hs256-signing',
     });
@@ -116,8 +118,17 @@ describe('getOidcConfig', () => {
 
   test('throws when ADMIN_SESSION_SECRET is shorter than 32 characters', () => {
     process.env.ADMIN_SESSION_SECRET = 'short-secret';
-    expect(() => getOidcConfig(REDIRECT_URI)).toThrow(
+    expect(() => getOidcConfig(CALLBACK_URL)).toThrow(
       'OIDC admin auth is not configured: ADMIN_SESSION_SECRET must be at least 32 characters'
+    );
+  });
+});
+
+describe('resolveRedirectUri', () => {
+  test('trims a trailing slash from BASE_URL before appending /api/admin/callback', () => {
+    process.env.BASE_URL = 'https://example.com/';
+    expect(resolveRedirectUri('https://shop.example.com/whatever')).toBe(
+      'https://example.com/api/admin/callback'
     );
   });
 });
@@ -145,7 +156,7 @@ describe('buildAuthorizeUrl', () => {
       issuer: 'https://accounts.example.com',
       clientId: 'client-123',
       clientSecret: 'client-secret',
-      redirectUri: REDIRECT_URI,
+      redirectUri: CALLBACK_URL,
       allowedGroups: ['admins'],
       sessionSecret: 'a-very-long-admin-session-secret-for-hs256-signing',
     };
@@ -164,7 +175,7 @@ describe('buildAuthorizeUrl', () => {
     );
     expect(parsed.searchParams.get('response_type')).toBe('code');
     expect(parsed.searchParams.get('client_id')).toBe('client-123');
-    expect(parsed.searchParams.get('redirect_uri')).toBe(REDIRECT_URI);
+    expect(parsed.searchParams.get('redirect_uri')).toBe(CALLBACK_URL);
     expect(parsed.searchParams.get('scope')).toBe('openid email profile');
     expect(parsed.searchParams.get('state')).toBe('state-123');
     expect(parsed.searchParams.get('code_challenge')).toBe('challenge-abc');
@@ -198,7 +209,7 @@ describe('isAllowedByGroups', () => {
 
 describe('createSessionToken / verifySessionToken', () => {
   test('roundtrips sub, email, and groups', async () => {
-    const config = getOidcConfig(REDIRECT_URI);
+    const config = getOidcConfig(CALLBACK_URL);
     const token = await createSessionToken(config, {
       sub: 'user-42',
       email: 'owner@example.com',
@@ -217,7 +228,7 @@ describe('createSessionToken / verifySessionToken', () => {
   });
 
   test('returns null for a tampered token', async () => {
-    const config = getOidcConfig(REDIRECT_URI);
+    const config = getOidcConfig(CALLBACK_URL);
     const token = await createSessionToken(config, { sub: 'user-42' });
     const tampered = token.slice(0, -3) + 'abc';
 
@@ -236,7 +247,7 @@ describe('createSessionToken / verifySessionToken', () => {
   });
 
   test('returns null for an expired token', async () => {
-    const config = getOidcConfig(REDIRECT_URI);
+    const config = getOidcConfig(CALLBACK_URL);
     const now = Math.floor(Date.now() / 1000);
     const token = await new SignJWT({ sub: 'user-42' })
       .setProtectedHeader({ alg: 'HS256' })
@@ -267,7 +278,7 @@ describe('exchangeCodeForTokens', () => {
       status: 502,
     })) as unknown as typeof fetch;
     try {
-      const config = getOidcConfig(REDIRECT_URI);
+      const config = getOidcConfig(CALLBACK_URL);
       const discovery = {
         authorizationEndpoint: 'https://accounts.example.com/authorize',
         tokenEndpoint: 'https://accounts.example.com/token',
