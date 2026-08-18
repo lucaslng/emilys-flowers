@@ -191,6 +191,30 @@ Workers Builds):
     `pull-requests: write` permission for this; branches with no open PR skip
     the comment step.
 
+### GitHub Environments (build-time secret scoping)
+
+Build-time secrets are scoped with **GitHub Environments** — distinct from the
+Wrangler `[env.*]` environments above (same names, different concepts):
+
+- **`production` environment** — live Stripe keys (`STRIPE_SECRET_KEY`,
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`), used by the `deploy-production` job.
+  Its **deployment-branch rule** (main only) is enforced by GitHub as
+  defense-in-depth on top of the workflow's `if:` gate — a job targeting
+  `production` from any other branch fails the run.
+- **`preview` environment** — test Stripe keys (same secret names), used by the
+  `deploy-preview` job **and** the `e2e` job in `test.yml`. The e2e job sets
+  `environment: { name: preview, deployment: false }` — it's a CI job, not a
+  deployment, so it stays out of the preview deployment history. No protection
+  rules: every branch may deploy a preview.
+- **Repo-level secrets** — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`,
+  `FLAGSHIP_APP_ID` are shared by both jobs and both builds, so they stay at
+  repo level rather than being duplicated per environment.
+
+Environment secrets are only visible to jobs that set `environment:`; they are
+**not** delivered by `secrets: inherit` to jobs that don't reference an
+environment. That's why the `e2e` job declares `environment: preview` itself
+instead of receiving the key from the caller.
+
 `--keep-vars` is **required** on every deploy: without it, `wrangler deploy`/
 `wrangler versions upload` deletes dashboard-set runtime secrets
 (`STRIPE_SECRET_KEY`) that aren't declared in `wrangler.jsonc`. The `--`
@@ -206,22 +230,40 @@ keys.
 
 ## Required GitHub Secrets
 
+Secrets are split between **repo-level** (shared by both deploy paths) and
+**GitHub Environment** (scoped to `production` / `preview`; see the GitHub
+Environments section above). The old `_LIVE`/`_TEST`-suffixed repo secrets
+(`STRIPE_SECRET_KEY_LIVE`, `STRIPE_SECRET_KEY_TEST`,
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST`)
+are **gone** — delete them once the environment secrets below are in place.
+
+### Repo-level
+
 | Secret | Used by | Notes |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | both deploys + both builds | single API token: Workers deploys (scripts, assets, custom-domain routes) + Flagship read/evaluate for the build-time flag checks |
 | `CLOUDFLARE_ACCOUNT_ID` | both deploys | |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE` | production build | `pk_live_...`, inlined by Next.js at build time |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST` | preview build | `pk_test_...`, inlined by Next.js at build time |
-| `STRIPE_SECRET_KEY_LIVE` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
-| `STRIPE_SECRET_KEY_TEST` | preview build | `sk_test_...`, used at build time to fetch the Stripe product catalog |
 | `FLAGSHIP_APP_ID` | both builds | Flagship app ID (dashboard: Compute → Flagship → `emilysflowers`), used at build time to evaluate `enable-flowers-page` and `under-construction` |
+
+### Environment `production`
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | production build | `pk_live_...`, inlined by Next.js at build time |
+| `STRIPE_SECRET_KEY` | production build | `sk_live_...`, used at build time to fetch the Stripe product catalog |
+
+### Environment `preview`
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | preview build | `pk_test_...`, inlined by Next.js at build time |
+| `STRIPE_SECRET_KEY` | preview build + e2e | `sk_test_...`, used at build time to fetch the Stripe product catalog |
 
 `STRIPE_SECRET_KEY` is needed in **two** places:
 
 1. **At build time** (to fetch the product catalog during static generation) —
-   provided as the GitHub Secrets `STRIPE_SECRET_KEY_LIVE` /
-   `STRIPE_SECRET_KEY_TEST`, passed into the `Build (OpenNext)` step env in
-   `deploy.yml`.
+   provided as the GitHub Environment secrets above, read by the
+   `Build (OpenNext)` step env in `deploy.yml` (and the e2e job in `test.yml`).
 2. **At runtime** (for the checkout route) — a runtime secret set once per
    Worker via `wrangler secret put STRIPE_SECRET_KEY --env production` /
    `--env preview` (or the dashboard's Variables & Secrets for each Worker).
@@ -277,13 +319,18 @@ echo "https://emilysflowers.ca" | bunx wrangler secret put BASE_URL --env produc
 # Preview: use the per-branch root URL; the callback URL is derived by appending /api/admin/callback
 echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev" | bunx wrangler secret put BASE_URL --env preview
 
-# 3. Register the webhook endpoint in the Stripe dashboard:
+# 3. Create the GitHub Environments and move the build-time secrets (see
+#    "GitHub Environments" above): `production` (live keys, deployment-branch
+#    rule = main only) and `preview` (test keys, no rules). Then delete the old
+#    `_LIVE`/`_TEST`-suffixed repo secrets.
+
+# 4. Register the webhook endpoint in the Stripe dashboard:
 #    https://dashboard.stripe.com/webhooks → add endpoint
 #    URL: https://emilysflowers.ca/api/webhooks/stripe
 #    Events: checkout.session.completed
 #    Copy the whsec_... signing secret into STRIPE_WEBHOOK_SECRET above.
 
-# 4. Add the six GitHub Secrets above to the repo, then push.
+# 5. Push — the workflows pick up the environment secrets automatically.
 ```
 
 ## Other config

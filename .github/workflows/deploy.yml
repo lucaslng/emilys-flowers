@@ -4,6 +4,11 @@ name: Deploy
 # branches → preview Worker (test keys). Runtime secrets are set per Worker
 # via `wrangler secret put`; `--keep-vars` preserves them on deploy.
 #
+# GitHub Environments scope the build-time secrets: `production` holds the
+# live Stripe keys, `preview` the test keys. Shared secrets (Cloudflare,
+# Flagship) stay repo-level. The `production` environment's deployment-branch
+# rule (main only) backs up the `if:` gate below.
+#
 # Tests run via the reusable `.github/workflows/test.yml`. Production deploys
 # when the whole tests run succeeds (unit passed AND e2e passed or skipped);
 # previews gate on `unit-result` only.
@@ -34,6 +39,9 @@ jobs:
     # Called workflow succeeds only when unit passed AND (e2e passed or skipped).
     # `!cancelled()` keeps the check explicit when the tests run fails or is cancelled.
     if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.tests.result == 'success' }}
+    # Live Stripe keys live in the `production` environment. The deployment-branch
+    # rule (main only) is enforced by GitHub as defense-in-depth on top of the `if:`.
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -60,12 +68,13 @@ jobs:
           key: ${{ steps.bun-cache.outputs.cache-primary-key }}
 
       # NEXT_PUBLIC_* is inlined at build time; STRIPE_SECRET_KEY feeds the
-      # build-time Stripe catalog fetch. UNDER_CONSTRUCTION_ENABLED marks the
-      # production build — only it evaluates the Flagship `under-construction` flag.
+      # build-time Stripe catalog fetch. Both come from the `production`
+      # environment. UNDER_CONSTRUCTION_ENABLED marks the production build —
+      # only it evaluates the Flagship `under-construction` flag.
       - name: Build (OpenNext)
         env:
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_LIVE }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           UNDER_CONSTRUCTION_ENABLED: "true"
           FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -90,6 +99,9 @@ jobs:
     # Gate on unit tests only — e2e never blocks previews. `!cancelled()` evaluates
     # the output check even when the tests run failed.
     if: ${{ !cancelled() && github.ref != 'refs/heads/main' && needs.tests.outputs.unit-result == 'success' }}
+    # Test Stripe keys live in the `preview` environment (no protection rules —
+    # every branch may deploy a preview).
+    environment: preview
     # `pull-requests: write` lets this job post/update the preview-URL comment.
     permissions:
       contents: read
@@ -121,8 +133,8 @@ jobs:
 
       - name: Build (OpenNext)
         env:
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           FLAGSHIP_APP_ID: ${{ secrets.FLAGSHIP_APP_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
