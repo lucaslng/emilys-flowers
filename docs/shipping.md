@@ -53,9 +53,10 @@ exposed to the client.
 - **Production:** omit `CHITCHATS_API_BASE_URL` (defaults to
   `https://chitchats.com`) or set it explicitly, with live credentials.
 
-The `tracking_url` returned by the API points at the same base (e.g.
-`https://staging.chitchats.com/tracking/{id}`), so the admin "View shipment"
-link follows the environment automatically.
+The admin "View shipment" link is built from the same base plus the client id
+and shipment id — `{base}/clients/{clientId}/shipments/{shipmentId}` — so it
+follows the environment automatically (the API's `tracking_url` is stored in
+metadata but not used for the link).
 
 ## Auth gotchas
 
@@ -101,9 +102,11 @@ param is absent (simulated checkout / legacy URLs).
 
 `/admin/orders` shows a **View shipment** link (styled like "View in Stripe",
 `target="_blank" rel="noopener noreferrer"`) on each order card whose metadata
-has `chitchats_tracking_url`, plus a small muted `ChitChats {shipment_id}`
-label. The "Ship to:" line falls back to the parsed `shipping_address` JSON
-when `shipping_details` is null.
+has `chitchats_shipment_id`. It points at the ChitChats dashboard shipment
+page — `{CHITCHATS_API_BASE_URL}/clients/{CHITCHATS_CLIENT_ID}/shipments/{id}`
+via `shipmentDashboardUrl` in `src/lib/chitchats.ts` — plus a small muted
+`ChitChats {shipment_id}` label. The "Ship to:" line falls back to the parsed
+`shipping_address` JSON when `shipping_details` is null.
 
 ## Fallback behavior when not configured
 

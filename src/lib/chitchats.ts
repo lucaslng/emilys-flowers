@@ -113,6 +113,19 @@ export function chitchatsApiBaseUrl(): string {
   return process.env.CHITCHATS_API_BASE_URL ?? 'https://chitchats.com';
 }
 
+/** ChitChats client ID from env, or `''` when unset. */
+export function chitchatsClientId(): string {
+  return process.env.CHITCHATS_CLIENT_ID ?? '';
+}
+
+/**
+ * ChitChats dashboard URL for a shipment (admin-facing; requires login):
+ * `{base}/clients/{clientId}/shipments/{shipmentId}`.
+ */
+export function shipmentDashboardUrl(shipmentId: string): string {
+  return `${chitchatsApiBaseUrl()}/clients/${chitchatsClientId()}/shipments/${shipmentId}`;
+}
+
 /**
  * Headers for ChitChats API calls. The access token is sent as a BARE token —
  * ChitChats rejects `Bearer <token>`.

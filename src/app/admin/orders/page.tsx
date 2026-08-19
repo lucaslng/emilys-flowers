@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 import { formatPrice } from '@/lib/format';
+import { shipmentDashboardUrl } from '@/lib/chitchats';
 import { isOidcConfigured, verifySessionToken } from '@/lib/admin-auth';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -246,7 +247,6 @@ export default async function AdminOrdersPage({
                 const shippedAt = order.metadata?.shipped_at;
                 const shippingEstimate = order.metadata?.shipping_estimate;
                 const dashboardUrl = stripeDashboardUrl(order);
-                const trackingUrl = order.metadata?.chitchats_tracking_url;
                 const shipmentId = order.metadata?.chitchats_shipment_id;
                 const chitchatsPostageType = order.metadata?.chitchats_postage_type;
                 const shippingAmountCents = order.total_details?.amount_shipping ?? 0;
@@ -276,9 +276,9 @@ export default async function AdminOrdersPage({
                             {shippingEstimate ? ` — ${shippingEstimate}` : ''}
                           </span>
                         )}
-                        {trackingUrl && (
+                        {shipmentId && (
                           <a
-                            href={trackingUrl}
+                            href={shipmentDashboardUrl(shipmentId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-sans text-xs text-muted underline"
