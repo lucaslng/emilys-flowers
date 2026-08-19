@@ -25,19 +25,48 @@ type SessionWithShippingDetails = Stripe.Checkout.Session & {
 
 function formatShippingAddress(session: Stripe.Checkout.Session): string | undefined {
   const shippingDetails = (session as SessionWithShippingDetails).shipping_details;
-  if (!shippingDetails?.address) return undefined;
+  if (shippingDetails?.address) {
+    const address = shippingDetails.address;
+    const lines = [
+      shippingDetails.name,
+      address.line1,
+      address.line2,
+      [address.city, address.state].filter(Boolean).join(', '),
+      address.postal_code,
+      address.country,
+    ].filter((line): line is string => Boolean(line));
 
-  const address = shippingDetails.address;
-  const lines = [
-    shippingDetails.name,
-    address.line1,
-    address.line2,
-    [address.city, address.state].filter(Boolean).join(', '),
-    address.postal_code,
-    address.country,
-  ].filter((line): line is string => Boolean(line));
+    return lines.length > 0 ? lines.join('\n') : undefined;
+  }
 
-  return lines.length > 0 ? lines.join('\n') : undefined;
+  // The address is collected on our own checkout page now, so Stripe's
+  // `shipping_details` is null — fall back to the `shipping_address` JSON we
+  // stored in session metadata at checkout time.
+  const stored = session.metadata?.shipping_address;
+  if (!stored) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (typeof parsed !== 'object' || parsed === null) return undefined;
+    const address = parsed as Record<string, unknown>;
+    const name = typeof address.name === 'string' ? address.name : '';
+    const line1 = typeof address.line1 === 'string' ? address.line1 : '';
+    const line2 = typeof address.line2 === 'string' ? address.line2 : '';
+    const city = typeof address.city === 'string' ? address.city : '';
+    const province = typeof address.province === 'string' ? address.province : '';
+    const postalCode = typeof address.postalCode === 'string' ? address.postalCode : '';
+    const lines = [
+      name,
+      line1,
+      line2,
+      [city, province].filter(Boolean).join(', '),
+      postalCode,
+      'CA',
+    ].filter((line): line is string => Boolean(line));
+
+    return lines.length > 0 ? lines.join('\n') : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

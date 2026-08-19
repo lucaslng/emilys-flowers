@@ -40,6 +40,7 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 - [docs/tailwind-and-styling.md](docs/tailwind-and-styling.md) — Tailwind v4 + styling
 - [docs/animations.md](docs/animations.md) — GSAP, PetalBurst, reduced motion
 - [docs/stripe-checkout.md](docs/stripe-checkout.md) — checkout route + Stripe env wiring
+- [docs/shipping.md](docs/shipping.md) — ChitChats shipping (create-shipment-for-rates flow, env vars, metadata keys)
 - [docs/order-emails.md](docs/order-emails.md) — Resend order confirmation + shipped emails, Stripe webhook, admin order review
 - [docs/opengraph-image.md](docs/opengraph-image.md) — editing the social share image (source pipeline, safe zones, brand tokens)
 
@@ -60,7 +61,7 @@ Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennex
 
 ## Stripe
 
-`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. `STRIPE_SECRET_KEY` is needed **at build time** (GitHub Environment secret `STRIPE_SECRET_KEY` in `production`/`preview` — live/test) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md) and [docs/deployment.md](docs/deployment.md).
+`src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. When ChitChats is configured (`CHITCHATS_CLIENT_ID` + `CHITCHATS_ACCESS_TOKEN`), the route creates a ChitChats shipment to obtain rates and charges the cheapest one as the Stripe shipping option (fail closed — no flat-rate fallback). `STRIPE_SECRET_KEY` is needed **at build time** (GitHub Environment secret `STRIPE_SECRET_KEY` in `production`/`preview` — live/test) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md), [docs/shipping.md](docs/shipping.md), and [docs/deployment.md](docs/deployment.md).
 
 ## Order emails (Resend)
 

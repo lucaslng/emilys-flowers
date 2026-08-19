@@ -289,6 +289,20 @@ not GitHub Secrets and never appear in `deploy.yml`:
 
 See [order-emails.md](./order-emails.md) for the flow these power.
 
+### Runtime-only secrets (ChitChats shipping)
+
+These runtime secrets are read **only at runtime** on the Worker (never at
+build time), so they are set per Worker via `wrangler secret put` — they are
+not GitHub Secrets and never appear in `deploy.yml`:
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `CHITCHATS_CLIENT_ID` | `src/lib/chitchats.ts` | ChitChats client id, used in the URL path `/api/v1/clients/{id}/shipments`. Missing → checkout falls back to the pre-ChitChats behavior (no shipping options). |
+| `CHITCHATS_ACCESS_TOKEN` | `src/lib/chitchats.ts` | ChitChats access token — sent as a **bare token** (no `Bearer` prefix). Missing → same fallback as above. |
+| `CHITCHATS_API_BASE_URL` | `src/lib/chitchats.ts` | Optional. Defaults to `https://chitchats.com` (production); set to `https://staging.chitchats.com` for the sandbox. |
+
+See [shipping.md](./shipping.md) for the flow these power.
+
 ## One-time setup
 
 ```bash
@@ -318,6 +332,13 @@ echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env 
 echo "https://emilysflowers.ca" | bunx wrangler secret put BASE_URL --env production
 # Preview: use the per-branch root URL; the callback URL is derived by appending /api/admin/callback
 echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev" | bunx wrangler secret put BASE_URL --env preview
+# ChitChats shipping (bare access token, no Bearer prefix; staging base for sandbox)
+echo "your-client-id" | bunx wrangler secret put CHITCHATS_CLIENT_ID --env production
+echo "your-client-id" | bunx wrangler secret put CHITCHATS_CLIENT_ID --env preview
+echo "your-access-token" | bunx wrangler secret put CHITCHATS_ACCESS_TOKEN --env production
+echo "your-access-token" | bunx wrangler secret put CHITCHATS_ACCESS_TOKEN --env preview
+echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_API_BASE_URL --env production
+echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_API_BASE_URL --env preview
 
 # 3. Create the GitHub Environments and move the build-time secrets (see
 #    "GitHub Environments" above): `production` (live keys, deployment-branch

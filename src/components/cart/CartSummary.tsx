@@ -3,7 +3,6 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
-import { computeShipping } from '@/lib/order';
 import { formatPrice } from '@/lib/format';
 import { gsap, useGSAP } from '@/lib/gsap';
 import Button from '@/components/ui/Button';
@@ -12,14 +11,13 @@ import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 /**
  * CartSummary — "the receipt". A stitched receipt card with a dashed seam
- * under the heading. Free shipping reads in rose (no cool green anywhere).
+ * under the heading. Shipping is calculated at checkout, so the total here
+ * is the items subtotal.
  */
 export default function CartSummary() {
-  const { items, getTotal, getItemCount } = useCart();
+  const { getTotal, getItemCount } = useCart();
   const subtotal = getTotal();
   const itemCount = getItemCount();
-  const shipping = computeShipping(subtotal);
-  const total = subtotal + shipping;
 
   const rootRef = useRef<HTMLDivElement>(null);
   const totalRef = useRef<HTMLSpanElement>(null);
@@ -47,7 +45,7 @@ export default function CartSummary() {
         }
       );
     },
-    { dependencies: [total], scope: rootRef }
+    { dependencies: [subtotal], scope: rootRef }
   );
 
   return (
@@ -68,23 +66,14 @@ export default function CartSummary() {
           </div>
           <div className="flex justify-between font-sans text-sm text-foreground">
             <span>Shipping</span>
-            <span className="tabular-nums">
-              {shipping === 0 ? (
-                <span className="font-semibold text-rose-deep">Free</span>
-              ) : (
-                `$${formatPrice(shipping)}`
-              )}
+            <span className="text-right text-sm text-muted">
+              Calculated at checkout
             </span>
           </div>
-          {shipping > 0 && (
-            <p className="font-sans text-xs text-muted">
-              Free shipping on orders over $50.00
-            </p>
-          )}
           <div className="gift-divider pt-3">
             <div className="flex justify-between font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground">
               <span>Total</span>
-              <span ref={totalRef} className="tabular-nums">${formatPrice(total)}</span>
+              <span ref={totalRef} className="tabular-nums">${formatPrice(subtotal)}</span>
             </div>
           </div>
         </div>

@@ -103,7 +103,14 @@ function CheckoutSuccessContent() {
   );
 
   const subtotal = computeLineItemTotal(items);
-  const shipping = computeShipping(subtotal);
+  // The checkout API appends `&shipping=<cents>` (the real ChitChats rate)
+  // when shipping is configured; fall back to the flat-rate estimate when the
+  // param is absent (simulated checkout / legacy URLs) or malformed.
+  const shippingParam = searchParams.get('shipping');
+  const shippingFromParam = shippingParam === null ? NaN : parseInt(shippingParam, 10);
+  const shipping = Number.isNaN(shippingFromParam)
+    ? computeShipping(subtotal)
+    : shippingFromParam;
   const total = subtotal + shipping;
   const itemCount = computeLineItemCount(items);
 
