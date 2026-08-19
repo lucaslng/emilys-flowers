@@ -299,7 +299,7 @@ not GitHub Secrets and never appear in `deploy.yml`:
 |---|---|---|
 | `CHITCHATS_CLIENT_ID` | `src/lib/chitchats.ts` | ChitChats client id, used in the URL path `/api/v1/clients/{id}/shipments`. Missing → checkout falls back to the pre-ChitChats behavior (no shipping options). |
 | `CHITCHATS_ACCESS_TOKEN` | `src/lib/chitchats.ts` | ChitChats access token — sent as a **bare token** (no `Bearer` prefix). Missing → same fallback as above. |
-| `CHITCHATS_API_BASE_URL` | `src/lib/chitchats.ts` | Optional. Defaults to `https://chitchats.com` (production); set to `https://staging.chitchats.com` for the sandbox. |
+| `CHITCHATS_BASE_URL` | `src/lib/chitchats.ts` | Optional. Defaults to `https://chitchats.com` (production); set to `https://staging.chitchats.com` for the sandbox. |
 
 See [shipping.md](./shipping.md) for the flow these power.
 
@@ -337,8 +337,8 @@ echo "your-client-id" | bunx wrangler secret put CHITCHATS_CLIENT_ID --env produ
 echo "your-client-id" | bunx wrangler secret put CHITCHATS_CLIENT_ID --env preview
 echo "your-access-token" | bunx wrangler secret put CHITCHATS_ACCESS_TOKEN --env production
 echo "your-access-token" | bunx wrangler secret put CHITCHATS_ACCESS_TOKEN --env preview
-echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_API_BASE_URL --env production
-echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_API_BASE_URL --env preview
+echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_BASE_URL --env production
+echo "https://staging.chitchats.com" | bunx wrangler secret put CHITCHATS_BASE_URL --env preview
 
 # 3. Create the GitHub Environments and move the build-time secrets (see
 #    "GitHub Environments" above): `production` (live keys, deployment-branch

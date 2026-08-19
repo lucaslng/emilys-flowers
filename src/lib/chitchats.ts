@@ -108,9 +108,9 @@ export function isChitchatsConfigured(): boolean {
   );
 }
 
-/** API base URL: `CHITCHATS_API_BASE_URL` or the production default. */
+/** API base URL: `CHITCHATS_BASE_URL` or the production default. */
 export function chitchatsApiBaseUrl(): string {
-  return process.env.CHITCHATS_API_BASE_URL ?? 'https://chitchats.com';
+  return process.env.CHITCHATS_BASE_URL ?? 'https://chitchats.com';
 }
 
 /** ChitChats client ID from env, or `''` when unset. */

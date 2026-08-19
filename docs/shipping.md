@@ -40,7 +40,7 @@ silently falls back to the old flat-rate shipping.
 |---|---|---|
 | `CHITCHATS_CLIENT_ID` | yes (for real shipping) | ChitChats client id, used in the URL path `/api/v1/clients/{id}/shipments` |
 | `CHITCHATS_ACCESS_TOKEN` | yes (for real shipping) | **Bare token — no `Bearer` prefix** (see auth gotchas) |
-| `CHITCHATS_API_BASE_URL` | no | Defaults to `https://chitchats.com`. Set to `https://staging.chitchats.com` for the sandbox. |
+| `CHITCHATS_BASE_URL` | no | Defaults to `https://chitchats.com`. Set to `https://staging.chitchats.com` for the sandbox. |
 
 These are **server-only** runtime secrets — set them per Worker via
 `wrangler secret put` (see [deployment.md](./deployment.md)). They are never
@@ -48,9 +48,9 @@ exposed to the client.
 
 ## Staging vs production
 
-- **Sandbox:** `CHITCHATS_API_BASE_URL=https://staging.chitchats.com` with
+- **Sandbox:** `CHITCHATS_BASE_URL=https://staging.chitchats.com` with
   staging credentials. This repo's `example.env` points at staging.
-- **Production:** omit `CHITCHATS_API_BASE_URL` (defaults to
+- **Production:** omit `CHITCHATS_BASE_URL` (defaults to
   `https://chitchats.com`) or set it explicitly, with live credentials.
 
 The admin "View shipment" link is built from the same base plus the client id
@@ -103,7 +103,7 @@ param is absent (simulated checkout / legacy URLs).
 `/admin/orders` shows a **View shipment** link (styled like "View in Stripe",
 `target="_blank" rel="noopener noreferrer"`) on each order card whose metadata
 has `chitchats_shipment_id`. It points at the ChitChats dashboard shipment
-page — `{CHITCHATS_API_BASE_URL}/clients/{CHITCHATS_CLIENT_ID}/shipments/{id}`
+page — `{CHITCHATS_BASE_URL}/clients/{CHITCHATS_CLIENT_ID}/shipments/{id}`
 via `shipmentDashboardUrl` in `src/lib/chitchats.ts` — plus a small muted
 `ChitChats {shipment_id}` label. The "Ship to:" line falls back to the parsed
 `shipping_address` JSON when `shipping_details` is null.
