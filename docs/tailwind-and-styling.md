@@ -145,7 +145,7 @@ product-facing cards** rather than introducing generic rounded/shadowed cards.
 - `.washi` — semi-transparent tape strip
 - `.specimen-wall` — staggered product grid (columns 2 & 4 sit lower)
 - `StarMotif` (`src/components/ui/StarMotif.tsx`) — the origami-star motif
-- `RibbonRose` (`src/components/ui/RibbonRose.tsx`) — decorative ribbon rose
+- `BouquetSticker` (`src/components/ui/BouquetSticker.tsx`) — die-cut bouquet photo sticker
 
 ### When to use `.gift-card`
 
@@ -175,7 +175,7 @@ hand:
   product wall uses `.specimen-wall` (columns 2 & 4 sit lower); the featured
   center card is lifted above its neighbours.
 - **Hand-placed accents** — washi tape, hand-drawn arrows/annotations,
-  `StarMotif` / `RibbonRose` motifs, ruled notebook lines, dashed seams.
+  `StarMotif` / `BouquetSticker` motifs, ruled notebook lines, dashed seams.
   These are the "satin" details that make a section feel made, not
   manufactured.
 
@@ -214,12 +214,12 @@ default, so that collapsing the animation doesn't leave it hidden.
 
 ## Keyframes and utility classes in `globals.css`
 
-Existing keyframes: `fade-up`, `sway`, `float`, `petal-fall`, `petal-drift`,
+Existing keyframes: `fade-up`, `sway`, `sticker-float`, `petal-fall`, `petal-drift`,
 `bloom-glow`, `spin-bloom`, `draw-stroke`, `page-enter`.
 
 Existing utility classes: `.reveal-init` (hidden, for GSAP reveal),
 `.page-enter` (300ms ease-out page transition), `.animate-sway`,
-`.animate-float`, `.petal` (falling petal), `.petal-nav` (drifting navbar
+`.sticker-float`, `.petal` (falling petal), `.petal-nav` (drifting navbar
 petal).
 
 When adding new keyframes, follow the naming pattern (`kebab-case`) and add a

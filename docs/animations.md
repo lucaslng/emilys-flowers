@@ -87,7 +87,7 @@ animation types:
 
 A global `@media (prefers-reduced-motion: reduce)` block collapses all CSS
 animations to `0.01ms` and hides decorative petals. This covers:
-- CSS `@keyframes` animations (`.animate-sway`, `.animate-float`, `.petal`,
+- CSS `@keyframes` animations (`.animate-sway`, `.sticker-float`, `.petal`,
   `.page-enter`, etc.)
 - `.reveal-init` elements are force-revealed (so GSAP-reveal content isn't
   stuck hidden)

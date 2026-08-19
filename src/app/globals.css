@@ -108,9 +108,12 @@ html {
   100% { transform: rotate(3deg); }
 }
 
-@keyframes float {
-  0%   { transform: translateY(-6px); }
-  100% { transform: translateY(6px); }
+/* Sticker float — gentle bob + slight sway/rotation, like a die-cut
+   sticker catching a breeze. Transform-only (no layout shift); the
+   reduced-motion guard collapses it to the static tilt. */
+@keyframes sticker-float {
+  0%   { transform: translateY(-5px) rotate(-1.2deg); }
+  100% { transform: translateY(5px) rotate(1.2deg); }
 }
 
 /* Vertical fall is driven by `top` (container-relative %), so a petal truly
@@ -220,8 +223,8 @@ html {
   animation: sway 3s ease-in-out infinite alternate;
 }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite alternate;
+.sticker-float {
+  animation: sticker-float 5.5s ease-in-out infinite alternate;
 }
 
 .animate-star {

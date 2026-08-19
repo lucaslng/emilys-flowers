@@ -8,7 +8,7 @@ import { firePetalBurst } from '@/lib/petal-burst';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
-import RibbonRose from '@/components/ui/RibbonRose';
+import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
@@ -139,7 +139,7 @@ export default function CartPageClient() {
                 className="wrapping-grid absolute inset-0 opacity-40"
               />
               <div className="relative">
-                <RibbonRose size={150} className="mx-auto" />
+                <BouquetSticker size={150} className="mx-auto" />
                 {/* Gift-box lid, tilted */}
                 <div className="mx-auto -mt-2 h-3 w-44 rotate-[-1.5deg] border border-rose-line/70 bg-blush/80" />
               </div>
