@@ -77,24 +77,38 @@ export async function POST(
       );
     }
 
-    await sendShippedEmail({
-      to,
-      orderNumber: session.metadata?.order_number ?? session.id,
-      customerName: session.customer_details?.name ?? undefined,
-      estimatedShippingTime,
-    });
-
-    await stripe.checkout.sessions.update(sessionId, {
-      // `sessions.update` REPLACES the entire metadata map, so merge the
-      // existing keys — notably the webhook's `confirmation_email_sent_at` /
-      // `confirmation_email_id` stamps, which are the app-level dedupe guard
-      // against re-sending confirmation emails on Stripe webhook retries.
-      metadata: {
-        ...session.metadata,
-        shipped_at: new Date().toISOString(),
-        shipping_estimate: estimatedShippingTime,
+    await sendShippedEmail(
+      {
+        to,
+        orderNumber: session.metadata?.order_number ?? session.id,
+        customerName: session.customer_details?.name ?? undefined,
+        estimatedShippingTime,
       },
-    });
+      { idempotencyKey: `shipped-${sessionId}` }
+    );
+
+    // Stamp the shipped state. `sessions.update` REPLACES the entire metadata
+    // map, so merge the existing keys — notably the webhook's
+    // `confirmation_email_sent_at` / `confirmation_email_id` stamps, which are
+    // the app-level dedupe guard against re-sending confirmation emails on
+    // Stripe webhook retries.
+    try {
+      await stripe.checkout.sessions.update(sessionId, {
+        metadata: {
+          ...session.metadata,
+          shipped_at: new Date().toISOString(),
+          shipping_estimate: estimatedShippingTime,
+        },
+      });
+    } catch (error) {
+      // Non-fatal: the email was already delivered. Returning an error here
+      // would make the admin retry and risk a duplicate shipped email once
+      // Resend's 24h idempotency-key window expires.
+      console.error(
+        `[Admin ship] Failed to stamp shipped metadata for session ${sessionId}:`,
+        error
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

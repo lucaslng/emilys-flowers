@@ -66,6 +66,7 @@ function makeSession(overrides: Record<string, unknown> = {}): Stripe.Checkout.S
       },
     },
     metadata: { order_number: 'EF-ABC123' },
+    payment_status: 'paid',
     ...overrides,
   } as unknown as Stripe.Checkout.Session;
 }
@@ -246,6 +247,18 @@ describe('POST /api/webhooks/stripe', () => {
   test('skips when the session has no customer email', async () => {
     orderEmailMocks.currentEvent = completedEvent();
     orderEmailMocks.currentSession = makeSession({ customer_details: null });
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('skips sending when the session is not yet paid', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession({ payment_status: 'unpaid' });
 
     const response = await POST(completedRequest());
 

@@ -43,7 +43,7 @@ Resend domain).
 | Variable | Where used | Notes |
 |---|---|---|
 | `RESEND_API_KEY` | `src/lib/email.ts` | Send-only API key. Missing → email functions throw. |
-| `STRIPE_WEBHOOK_SECRET` | webhook route | `whsec_...`. Missing → dev-mode skips signature verification (with a warning); set it in prod. |
+| `STRIPE_WEBHOOK_SECRET` | webhook route | `whsec_...`. Missing outside production → signature verification is skipped (with a warning); missing in production → the webhook fails closed with 500. |
 | `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
@@ -61,9 +61,11 @@ so they must be deployed as `wrangler secret put` per Worker (see
 - Route: `POST /api/webhooks/stripe` (dynamic, no `force-dynamic` needed —
   POST handlers are dynamic by default).
 - Signature verification: `stripe.webhooks.constructEventAsync(rawBody, sig,
-  STRIPE_WEBHOOK_SECRET)`. Fails → 400. When the secret is unset (local dev),
-  verification is skipped with a warning so `stripe listen` works without
-  copying the secret.
+  STRIPE_WEBHOOK_SECRET)`. Fails → 400. When the secret is unset and
+  `NODE_ENV !== 'production'` (local dev), verification is skipped with a
+  warning so `stripe listen` works without copying the secret. In production a
+  missing secret is a hard 500 — the webhook fails closed rather than
+  accepting unsigned events.
 - On `checkout.session.completed`: retrieves the session with
   `expand: ['line_items']` (the only expandable property), maps it
   with the exported pure function `mapCheckoutSessionToConfirmation(session)`,
@@ -72,6 +74,13 @@ so they must be deployed as `wrangler secret put` per Worker (see
   dedupes Stripe's webhook retries).
 - If the session has no customer email, the event is logged and skipped
   (200) — nothing to send to.
+- If the session's `payment_status` is not yet `'paid'` (async payment
+  methods can settle after `checkout.session.completed` fires), the event is
+  logged and skipped (200) — the confirmation email is only sent for sessions
+  already `'paid'` at webhook time, matching the admin order list's
+  `payment_status === 'paid'` filter. The handler does not listen for
+  `checkout.session.async_payment_succeeded`, so an async-payment order that
+  settles later never receives a confirmation email.
 - Email send failures are caught and logged, and the handler returns **500** so
   Stripe auto-retries the webhook delivery with exponential backoff (up to ~3
   days, sequential). Duplicate sends are prevented two ways: Resend's
@@ -101,7 +110,8 @@ bun run dev
 ```
 
 `stripe listen` prints a `whsec_...` secret; you can either set
-`STRIPE_WEBHOOK_SECRET` in `.env` or leave it unset (dev-mode skip). Complete
+`STRIPE_WEBHOOK_SECRET` in `.env` or leave it unset (dev-mode skip — only
+outside production). Complete
 a test checkout with card `4242 4242 4242 4242` and the confirmation email
 arrives.
 

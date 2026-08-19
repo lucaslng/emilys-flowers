@@ -11,7 +11,10 @@ import {
  *
  * Handles `checkout.session.completed` by sending an order confirmation email.
  * Signature verification is skipped (with a warning) when
- * `STRIPE_WEBHOOK_SECRET` is not set, so local dev works without it.
+ * `STRIPE_WEBHOOK_SECRET` is not set and the app is not running in production,
+ * so local dev works without it. In production a missing
+ * `STRIPE_WEBHOOK_SECRET` is a hard error (500) — never accept unsigned
+ * webhooks on a payment endpoint.
  */
 
 // `shipping_details` is returned by the Stripe API on Checkout Sessions but is
@@ -97,11 +100,17 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
       console.warn(
         '[Webhook] STRIPE_WEBHOOK_SECRET is not set; skipping signature verification (dev mode)'
       );
       event = JSON.parse(payload) as Stripe.Event;
+    } else {
+      console.error('[Webhook] STRIPE_WEBHOOK_SECRET is not set');
+      return NextResponse.json(
+        { error: 'Stripe webhook secret not configured' },
+        { status: 500 }
+      );
     }
 
     if (event.type === 'checkout.session.completed') {
@@ -111,6 +120,20 @@ export async function POST(request: Request) {
         // listing them in `expand` makes Stripe reject the request with 400.
         expand: ['line_items'],
       });
+
+      // `checkout.session.completed` can fire while payment is still settling
+      // for async payment methods (Stripe later fires
+      // `checkout.session.async_payment_succeeded` / `async_payment_failed`
+      // once the payment settles). Only paid sessions get a confirmation email
+      // — matches the admin order list, which shows orders with
+      // `payment_status === 'paid'`. Acknowledge with 200 so Stripe doesn't
+      // retry this event.
+      if (session.payment_status !== 'paid') {
+        console.log(
+          `[Webhook] Session ${session.id} not yet paid (payment_status: ${session.payment_status}); skipping confirmation email`
+        );
+        return NextResponse.json({ received: true });
+      }
 
       // App-level idempotency: once the confirmation is stamped on the session,
       // never send it again — even after Resend's 24h idempotency-key window
