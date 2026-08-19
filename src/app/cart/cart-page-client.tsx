@@ -140,8 +140,6 @@ export default function CartPageClient() {
               />
               <div className="relative">
                 <BouquetSticker size={150} className="mx-auto" />
-                {/* Gift-box lid, tilted */}
-                <div className="mx-auto -mt-2 h-3 w-44 rotate-[-1.5deg] border border-rose-line/70 bg-blush/80" />
               </div>
               <h2 className="relative mt-8 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
                 Your cart is empty
