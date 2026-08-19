@@ -142,10 +142,11 @@ function isLineItem(v: unknown): v is LineItem {
 }
 
 /**
- * Generate a short, human-readable order number for the simulated checkout
- * path, e.g. "EF-7Q3K9M". Uses an unambiguous alphabet (no I, O, 0, 1, L).
- * Real Stripe payments use the Stripe session id (`{CHECKOUT_SESSION_ID}`)
- * instead, so this is only for the simulated/local-dev path.
+ * Generate the human-friendly order number shown to customers, e.g.
+ * "EF-7Q3K9M". Uses an unambiguous alphabet (no I, O, 0, 1, L). Used by the
+ * real checkout path and stored in Stripe session metadata as `order_number`;
+ * emails/admin read it from there, falling back to the session id for legacy
+ * sessions.
  */
 export function generateOrderNumber(): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

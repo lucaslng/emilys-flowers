@@ -71,9 +71,21 @@ runtime. If you ever remove the static-assets cache, the flags will silently
 fail open in production again — the build-time `process.env` values do not
 exist on the Worker at runtime.
 
-When the flag is on, `src/app/layout.tsx` renders the standalone
+Consequently, only **prerendered** routes show the gate: every storefront page,
+and unmatched URLs (the root `src/app/not-found.tsx` is prerendered, so `/foo`
+shows the construction screen too). **On-demand renders fail open**: a route
+that isn't in the static cache (e.g. an unknown `/products/<slug>` that calls
+`notFound()`) is rendered at runtime where the flag value is absent, so it
+serves the normal storefront 404 in the shell rather than the construction
+screen. This is expected and is the same reason there is **no runtime API
+gate** below.
+
+When the flag is on, `src/app/(store)/layout.tsx` renders the standalone
 `UnderConstruction` component (`src/components/under-construction.tsx`) instead
-of the app tree (no Navbar/Footer/cart/providers). `src/app/robots.ts` returns
+of the storefront shell (no Navbar/Footer/cart/providers). The `/admin/*`
+routes are exempt: `src/app/admin/layout.tsx` renders the same storefront shell
+with no gate, so the owner can still review orders and send shipping
+notifications while the storefront is down. `src/app/robots.ts` returns
 `disallow: '/'` while construction is on (blocks all crawling so the
 construction page isn't indexed, while still advertising the sitemap);
 otherwise it returns the normal rules (`allow: '/'`, `disallow: ['/cart',
@@ -258,6 +270,25 @@ are **gone** — delete them once the environment secrets below are in place.
    This is a *different* value from the build-time secret and is never a GitHub
    Secret.
 
+### Runtime-only secrets (order emails)
+
+These runtime secrets are read **only at runtime** on the Worker (never at
+build time), so they are set per Worker via `wrangler secret put` — they are
+not GitHub Secrets and never appear in `deploy.yml`:
+
+| Secret | Used by | Notes |
+|---|---|---|
+| `RESEND_API_KEY` | `src/lib/email.ts` | Send-only Resend API key (`re_...`). Missing → email functions throw. |
+| `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` | `whsec_...` from the Stripe dashboard (prod) or `stripe listen` (dev). Missing → dev-mode skips signature verification. |
+| `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
+| `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
+| `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
+| `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
+| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback`. Required in production; optional in dev (falls back to the request origin in dev; never derived from the Host header in prod). The derived callback URL must match the one registered in the provider exactly. |
+
+See [order-emails.md](./order-emails.md) for the flow these power.
+
 ## One-time setup
 
 ```bash
@@ -269,12 +300,37 @@ bunx wrangler deploy --env preview
 # 2. Set runtime secrets per Worker (one-time):
 echo "sk_live_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env production
 echo "sk_test_..." | bunx wrangler secret put STRIPE_SECRET_KEY --env preview
+echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env production
+echo "re_..." | bunx wrangler secret put RESEND_API_KEY --env preview
+echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env production
+echo "whsec_..." | bunx wrangler secret put STRIPE_WEBHOOK_SECRET --env preview
+echo "https://accounts.example.com" | bunx wrangler secret put OIDC_ISSUER --env production
+echo "https://accounts.example.com" | bunx wrangler secret put OIDC_ISSUER --env preview
+echo "your-client-id" | bunx wrangler secret put OIDC_CLIENT_ID --env production
+echo "your-client-id" | bunx wrangler secret put OIDC_CLIENT_ID --env preview
+echo "your-client-secret" | bunx wrangler secret put OIDC_CLIENT_SECRET --env production
+echo "your-client-secret" | bunx wrangler secret put OIDC_CLIENT_SECRET --env preview
+# ADMIN_SESSION_SECRET must be >= 32 chars (generate with `openssl rand -base64 32`)
+echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env production
+echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env preview
+echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env production
+echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env preview
+echo "https://emilysflowers.ca" | bunx wrangler secret put BASE_URL --env production
+# Preview: use the per-branch root URL; the callback URL is derived by appending /api/admin/callback
+echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev" | bunx wrangler secret put BASE_URL --env preview
 
 # 3. Create the GitHub Environments and move the build-time secrets (see
 #    "GitHub Environments" above): `production` (live keys, deployment-branch
 #    rule = main only) and `preview` (test keys, no rules). Then delete the old
 #    `_LIVE`/`_TEST`-suffixed repo secrets.
-# 4. Push — the workflows pick up the environment secrets automatically.
+
+# 4. Register the webhook endpoint in the Stripe dashboard:
+#    https://dashboard.stripe.com/webhooks → add endpoint
+#    URL: https://emilysflowers.ca/api/webhooks/stripe
+#    Events: checkout.session.completed
+#    Copy the whsec_... signing secret into STRIPE_WEBHOOK_SECRET above.
+
+# 5. Push — the workflows pick up the environment secrets automatically.
 ```
 
 ## Other config

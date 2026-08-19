@@ -40,12 +40,13 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 - [docs/tailwind-and-styling.md](docs/tailwind-and-styling.md) — Tailwind v4 + styling
 - [docs/animations.md](docs/animations.md) — GSAP, PetalBurst, reduced motion
 - [docs/stripe-checkout.md](docs/stripe-checkout.md) — checkout route + Stripe env wiring
+- [docs/order-emails.md](docs/order-emails.md) — Resend order confirmation + shipped emails, Stripe webhook, admin order review
 - [docs/opengraph-image.md](docs/opengraph-image.md) — editing the social share image (source pipeline, safe zones, brand tokens)
 
 ## Architecture
 
-- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, and `POST /api/checkout`.
-- `src/app/layout.tsx` is the root: loads fonts, wraps the tree in `CartProvider` + `PetalBurstProvider`, renders `Navbar`/`Footer` — persists across navigations.
+- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (OIDC-gated order review), and API routes `POST /api/checkout`, `POST /api/webhooks/stripe` (order-confirmation email), `GET /api/admin/login` (OIDC redirect), `GET /api/admin/callback`, `GET /api/admin/logout`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
+- `src/app/layout.tsx` is the root: loads fonts, renders `<html>`/`<body>`. The storefront shell (`CartProvider` + `PetalBurstProvider`, `Navbar`/`Footer`) is `src/components/layout/StoreShell.tsx`, mounted by `src/app/(store)/layout.tsx` (storefront routes — hosts the under-construction gate) and `src/app/admin/layout.tsx` (admin routes — exempt from the gate).
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not state that must persist.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 
@@ -60,6 +61,10 @@ Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennex
 ## Stripe
 
 `src/app/api/checkout/route.ts` creates a real Stripe Checkout Session when `STRIPE_SECRET_KEY` is set; otherwise it falls back to a simulated success URL so `bun run dev` works. `STRIPE_SECRET_KEY` is needed **at build time** (GitHub Environment secret `STRIPE_SECRET_KEY` in `production`/`preview` — live/test) **and** at runtime (`wrangler secret put` per Worker). See [docs/stripe-checkout.md](docs/stripe-checkout.md) and [docs/deployment.md](docs/deployment.md).
+
+## Order emails (Resend)
+
+On `checkout.session.completed`, `POST /api/webhooks/stripe` sends the customer an order-confirmation email via Resend (`src/lib/email.ts`, from `Emily's Flowers <hello@emilysflowers.ca>`). The owner then reviews orders at `/admin/orders` (gated by OIDC — authorization code + PKCE; access restricted to OIDC groups via `ADMIN_OIDC_GROUPS`) and confirms shipping by entering an estimated shipping time, which triggers the shipped email and stamps `shipped_at`/`shipping_estimate` on the Stripe session metadata. Runtime-only secrets: `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `ADMIN_SESSION_SECRET`, `ADMIN_OIDC_GROUPS` (`wrangler secret put` per Worker). See [docs/order-emails.md](docs/order-emails.md).
 
 ## Testing
 
