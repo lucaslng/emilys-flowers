@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
-import RibbonRose from '@/components/ui/RibbonRose';
+import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
 
 /**
  * Hero — "the gift box". Off-center composition: the headline block sits on
- * the left, a hand-folded ribbon rose rests on a tilted wrapping-paper panel
- * to the right, with washi tape, a handwritten annotation, floating hearts,
- * and a diagonal ribbon band. Centered single-subject, generous negative
- * space — like opening a carefully wrapped gift.
+ * the left, a bouquet sticker rests on a tilted wrapping-paper panel to the
+ * right, with washi tape, a handwritten annotation, floating hearts, and a
+ * diagonal ribbon band. Centered single-subject, generous negative space —
+ * like opening a carefully wrapped gift.
  */
 export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) {
   return (
@@ -69,7 +69,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
           </div>
         </div>
 
-        {/* The rose — tilted wrapping-paper panel */}
+        {/* The bouquet sticker — tilted wrapping-paper panel */}
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <div className="relative rotate-2 border border-border bg-background/90 p-8 backdrop-blur-[1px] sm:p-10">
             {/* Washi tape corners */}
@@ -79,8 +79,8 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             {/* Wrapping grid inside the panel */}
             <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
 
-            <div className="relative flex justify-center">
-              <RibbonRose size={260} className="animate-float" />
+            <div className="relative flex justify-center py-5">
+              <BouquetSticker size={260} tilt={10} />
             </div>
 
             {/* Handwritten annotation with arrow */}
@@ -103,7 +103,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
                 <path d="M84 8 L 74 6 M 84 8 L 80 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
               </svg>
               <span className="font-hand text-3xl leading-none text-rose-deep">
-                our roses ♡
+                our bouquets ♡
               </span>
             </div>
           </div>
