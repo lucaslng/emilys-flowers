@@ -80,7 +80,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
 
             <div className="relative flex justify-center">
-              <BouquetSticker size={260} />
+              <BouquetSticker size={260} tilt={30} />
             </div>
 
             {/* Handwritten annotation with arrow */}
