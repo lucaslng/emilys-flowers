@@ -79,8 +79,8 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             {/* Wrapping grid inside the panel */}
             <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
 
-            <div className="relative flex justify-center">
-              <BouquetSticker size={260} tilt={30} />
+            <div className="relative flex justify-center py-5">
+              <BouquetSticker size={260} tilt={10} />
             </div>
 
             {/* Handwritten annotation with arrow */}
