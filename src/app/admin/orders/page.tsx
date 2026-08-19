@@ -51,6 +51,20 @@ function formatAddress(address: Stripe.Address | null | undefined): string {
     .join(', ');
 }
 
+/**
+ * Deep link to the Stripe Dashboard payment detail page for a session.
+ * Returns `null` when the session has no PaymentIntent (possible for async
+ * payment methods), in which case there's nothing to link to. Uses the
+ * session's own `livemode` so the link always points at the account the
+ * payment actually lives on (test vs live).
+ */
+function stripeDashboardUrl(order: Stripe.Checkout.Session): string | null {
+  const paymentIntent = order.payment_intent;
+  if (typeof paymentIntent !== 'string') return null;
+  const mode = order.livemode ? '' : '/test';
+  return `https://dashboard.stripe.com${mode}/payments/${paymentIntent}`;
+}
+
 const REQUIRED_ENV_VARS = [
   'OIDC_ISSUER',
   'OIDC_CLIENT_ID',
@@ -202,6 +216,7 @@ export default async function AdminOrdersPage({
                 const sessionWithShipping = order as SessionWithShippingDetails;
                 const shippedAt = order.metadata?.shipped_at;
                 const shippingEstimate = order.metadata?.shipping_estimate;
+                const dashboardUrl = stripeDashboardUrl(order);
                 return (
                   <li key={order.id} className="gift-card p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -213,12 +228,24 @@ export default async function AdminOrdersPage({
                           {formatDate(order.created)}
                         </p>
                       </div>
-                      {shippedAt && (
-                        <span className="inline-flex items-center gap-1 border border-rose-line bg-blush px-2 py-1 font-sans text-xs font-medium uppercase tracking-[0.08em] text-rose-deep">
-                          Shipped
-                          {shippingEstimate ? ` — ${shippingEstimate}` : ''}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        {shippedAt && (
+                          <span className="inline-flex items-center gap-1 border border-rose-line bg-blush px-2 py-1 font-sans text-xs font-medium uppercase tracking-[0.08em] text-rose-deep">
+                            Shipped
+                            {shippingEstimate ? ` — ${shippingEstimate}` : ''}
+                          </span>
+                        )}
+                        {dashboardUrl && (
+                          <a
+                            href={dashboardUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-sans text-xs text-muted underline"
+                          >
+                            View in Stripe
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     <div className="gift-divider mt-4" />
