@@ -38,6 +38,16 @@ const EMAIL_BORDER = '#EDE0D4';
 const EMAIL_TEXT = '#4A3B3B';
 const EMAIL_MUTED = '#7A6868';
 const EMAIL_ROSE = '#9E5E5E';
+const EMAIL_ROSE_LINE = '#B16E6E'; // non-text rose — tag/panel borders
+const EMAIL_BLUSH = '#F9E4E4'; // soft satin pink panel
+const EMAIL_STITCH = '#E4C9B8'; // dashed seam
+
+// System font stacks only — no web fonts in email. The mono stack approximates
+// Martian Mono (the site's geometric voice); the hand stack echoes the
+// Reenie Beanie accents.
+const EMAIL_FONT_MONO =
+  "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace";
+const EMAIL_FONT_HAND = "'Segoe Script', 'Bradley Hand', cursive";
 
 function escapeHtml(value: string): string {
   return value
@@ -57,14 +67,20 @@ function emailShell(innerHtml: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; padding:24px 0;">
   <tr>
     <td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_SURFACE}; border:1px solid ${EMAIL_BORDER}; border-radius:12px; padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_SURFACE}; border:1px solid ${EMAIL_BORDER}; padding:32px;">
         <tr>
-          <td style="padding-bottom:20px; border-bottom:1px solid ${EMAIL_BORDER};">
-            <span style="font-family:Georgia, 'Times New Roman', serif; font-size:22px; color:${EMAIL_ROSE}; letter-spacing:1px;">Emily's Flowers</span>
+          <td style="padding-bottom:20px; border-bottom:1px dashed ${EMAIL_STITCH};">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; border:1px solid ${EMAIL_ROSE_LINE}; transform:rotate(-1deg);">
+              <tr>
+                <td style="padding:6px 12px; font-family:${EMAIL_FONT_MONO}; font-size:14px; font-weight:bold; letter-spacing:0.16em; text-transform:uppercase; color:${EMAIL_TEXT};">
+                  Emily's Flowers <span style="color:${EMAIL_ROSE};">&#9825;</span>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         <tr>
-          <td style="padding-top:20px; font-family:Georgia, 'Times New Roman', serif; font-size:15px; line-height:1.6; color:${EMAIL_TEXT};">
+          <td style="padding-top:20px; font-family:${EMAIL_FONT_MONO}; font-size:13px; line-height:1.6; color:${EMAIL_TEXT};">
             ${innerHtml}
           </td>
         </tr>
@@ -80,10 +96,10 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
       const lineTotal = item.unitAmountCents * item.quantity;
       return `
         <tr>
-          <td style="padding:8px 0; border-bottom:1px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:14px; line-height:1.5;">
+          <td style="padding:8px 0; border-bottom:1px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:13px; line-height:1.5;">
             ${escapeHtml(item.name)} <span style="color:${EMAIL_MUTED};">&times; ${item.quantity}</span>
           </td>
-          <td align="right" style="padding:8px 0; border-bottom:1px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:14px; white-space:nowrap;">
+          <td align="right" style="padding:8px 0; border-bottom:1px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:13px; white-space:nowrap;">
             $${formatPrice(lineTotal)}
           </td>
         </tr>`;
@@ -97,14 +113,14 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
     ? `
         <tr>
           <td colspan="2" style="padding:16px 0 0; color:${EMAIL_MUTED}; font-size:13px; line-height:1.6;">
-            <strong style="color:${EMAIL_TEXT};">Shipping to</strong><br/>
+            <span style="font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase; color:${EMAIL_ROSE};">Shipping to</span><br/>
             ${escapeHtml(data.shippingAddress).replace(/\n/g, '<br/>')}
           </td>
         </tr>`
     : '';
 
   return emailShell(`
-    <p style="margin:0 0 16px;">${escapeHtml(greeting(data.customerName))}</p>
+    <p style="margin:0 0 16px; font-size:15px; font-weight:bold;">${escapeHtml(greeting(data.customerName))}</p>
     <p style="margin:0 0 16px;">
       Thank you for your order! Your order <strong>#${escapeHtml(data.orderNumber)}</strong> is confirmed,
       and we're wrapping every stem by hand.
@@ -112,16 +128,16 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
       ${itemRows}
       <tr>
-        <td style="padding:12px 0 0; color:${EMAIL_MUTED}; font-size:13px;">Subtotal</td>
+        <td style="padding:12px 0 0; color:${EMAIL_MUTED}; font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Subtotal</td>
         <td align="right" style="padding:12px 0 0; color:${EMAIL_TEXT}; font-size:13px;">$${formatPrice(data.subtotalCents)}</td>
       </tr>
       <tr>
-        <td style="padding:4px 0 0; color:${EMAIL_MUTED}; font-size:13px;">Shipping</td>
+        <td style="padding:4px 0 0; color:${EMAIL_MUTED}; font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Shipping</td>
         <td align="right" style="padding:4px 0 0; color:${EMAIL_TEXT}; font-size:13px;">${shippingLabel}</td>
       </tr>
       <tr>
-        <td style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:15px; font-weight:bold;">Total</td>
-        <td align="right" style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:15px; font-weight:bold;">$${formatPrice(data.totalCents)}</td>
+        <td style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:13px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Total</td>
+        <td align="right" style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:14px; font-weight:bold;">$${formatPrice(data.totalCents)}</td>
       </tr>
       ${addressBlock}
     </table>
@@ -132,6 +148,7 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
     <p style="margin:16px 0 0; color:${EMAIL_MUTED}; font-size:13px;">
       Warmly,<br/>Emily's Flowers
     </p>
+    <p style="margin:12px 0 0; font-family:${EMAIL_FONT_HAND}; font-size:16px; color:${EMAIL_ROSE};">handcrafted with love</p>
   `);
 }
 
@@ -171,13 +188,13 @@ function buildShippedHtml(data: {
   estimatedShippingTime: string;
 }): string {
   return emailShell(`
-    <p style="margin:0 0 16px;">${escapeHtml(greeting(data.customerName))}</p>
+    <p style="margin:0 0 16px; font-size:15px; font-weight:bold;">${escapeHtml(greeting(data.customerName))}</p>
     <p style="margin:0 0 16px;">
       Great news - your order <strong>#${escapeHtml(data.orderNumber)}</strong> is on its way!
     </p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; border:1px solid ${EMAIL_BORDER}; border-radius:8px; padding:16px; margin:0 0 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BLUSH}; border:1px solid ${EMAIL_ROSE_LINE}; padding:16px; margin:0 0 16px;">
       <tr>
-        <td style="color:${EMAIL_MUTED}; font-size:13px;">Estimated delivery</td>
+        <td style="color:${EMAIL_TEXT}; font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Estimated delivery</td>
       </tr>
       <tr>
         <td style="color:${EMAIL_TEXT}; font-size:18px; font-weight:bold; padding-top:4px;">${escapeHtml(data.estimatedShippingTime)}</td>
@@ -189,6 +206,7 @@ function buildShippedHtml(data: {
     <p style="margin:16px 0 0; color:${EMAIL_MUTED}; font-size:13px;">
       Warmly,<br/>Emily's Flowers
     </p>
+    <p style="margin:12px 0 0; font-family:${EMAIL_FONT_HAND}; font-size:16px; color:${EMAIL_ROSE};">handcrafted with love</p>
   `);
 }
 
