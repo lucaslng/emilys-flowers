@@ -63,6 +63,10 @@ export default async function nextConfig(): Promise<NextConfig> {
   }
 
   return {
+    env: {
+      UNDER_CONSTRUCTION: process.env.UNDER_CONSTRUCTION ?? "false",
+      FLOWERS_ENABLED: process.env.FLOWERS_ENABLED ?? "false",
+    },
     async headers() {
       return [
         {
