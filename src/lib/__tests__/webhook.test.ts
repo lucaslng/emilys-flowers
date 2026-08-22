@@ -138,6 +138,59 @@ describe('mapCheckoutSessionToConfirmation', () => {
     expect(result?.shippingAddress).toBeUndefined();
   });
 
+  test('falls back to metadata shipping_address when shipping_details is null', () => {
+    const session = makeSession({
+      shipping_details: null,
+      metadata: {
+        order_number: 'EF-ABC123',
+        shipping_address: JSON.stringify({
+          name: 'Ada Lovelace',
+          line1: '1 Analytical Way',
+          line2: 'Apt 2',
+          city: 'Toronto',
+          province: 'ON',
+          postalCode: 'M5V 2T6',
+        }),
+      },
+    });
+    const result = mapCheckoutSessionToConfirmation(session);
+    expect(result?.shippingAddress).toBe(
+      'Ada Lovelace\n1 Analytical Way\nApt 2\nToronto, ON\nM5V 2T6\nCA'
+    );
+  });
+
+  test('metadata shipping_address fallback omits line2 when absent', () => {
+    const session = makeSession({
+      shipping_details: null,
+      metadata: {
+        order_number: 'EF-ABC123',
+        shipping_address: JSON.stringify({
+          name: 'Ada Lovelace',
+          line1: '1 Analytical Way',
+          city: 'Toronto',
+          province: 'ON',
+          postalCode: 'M5V 2T6',
+        }),
+      },
+    });
+    const result = mapCheckoutSessionToConfirmation(session);
+    expect(result?.shippingAddress).toBe(
+      'Ada Lovelace\n1 Analytical Way\nToronto, ON\nM5V 2T6\nCA'
+    );
+  });
+
+  test('returns undefined shippingAddress when metadata shipping_address is malformed', () => {
+    const session = makeSession({
+      shipping_details: null,
+      metadata: {
+        order_number: 'EF-ABC123',
+        shipping_address: '{not json',
+      },
+    });
+    const result = mapCheckoutSessionToConfirmation(session);
+    expect(result?.shippingAddress).toBeUndefined();
+  });
+
   test('falls back to the session id when metadata has no order_number', () => {
     const session = makeSession({ metadata: {} });
     const result = mapCheckoutSessionToConfirmation(session);

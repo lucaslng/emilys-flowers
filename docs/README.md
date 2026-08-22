@@ -42,6 +42,7 @@ writing code that touches any of these areas.
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the warm gift-tag card language. |
 | [animations.md](./animations.md) | Before writing any GSAP animation, scroll effect, or motion component. Covers the `@/lib/gsap` import rule, `useGSAP` cleanup, `gsap.matchMedia()`, and the PetalBurst singleton. |
 | [stripe-checkout.md](./stripe-checkout.md) | Before touching `src/app/api/checkout/route.ts` or Stripe env wiring. Covers the redirect pattern (`session.url`, not the removed `redirectToCheckout`) |
+| [shipping.md](./shipping.md) | Before touching `src/lib/chitchats.ts`, the ChitChats wiring in the checkout route, the webhook's shipping-address fallback, or the admin "View shipment" link. Covers the create-shipment-for-rates flow, env vars, auth gotchas, and metadata keys. |
 | [order-emails.md](./order-emails.md) | Before touching `src/lib/email.ts`, the Stripe webhook route, or `src/app/admin/orders/**`. Covers the Resend confirmation + shipped emails, the webhook, and the OIDC-gated admin flow. |
 | [opengraph-image.md](./opengraph-image.md) | Before editing the social share image (`public/opengraph-image.png`). Covers the `og-src/` + `scripts/og/` source pipeline, safe zones, brand tokens, and type rules. |
 

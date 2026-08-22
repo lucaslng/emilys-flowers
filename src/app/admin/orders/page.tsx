@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 import { formatPrice } from '@/lib/format';
+import { shipmentDashboardUrl } from '@/lib/chitchats';
 import { isOidcConfigured, verifySessionToken } from '@/lib/admin-auth';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -49,6 +50,35 @@ function formatAddress(address: Stripe.Address | null | undefined): string {
   ]
     .filter((part): part is string => Boolean(part))
     .join(', ');
+}
+
+/**
+ * Parse the `shipping_address` JSON stored in session metadata (the address
+ * is collected on our own checkout page now, so Stripe's `shipping_details`
+ * is null). Returns a comma-joined string matching `formatAddress`'s output
+ * (recipient name + address lines), or null when absent/unparseable.
+ */
+function formatMetadataShippingAddress(
+  metadata: Stripe.Metadata | null | undefined
+): string | null {
+  const stored = metadata?.shipping_address;
+  if (!stored) return null;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const address = parsed as Record<string, unknown>;
+    const parts = [
+      address.name,
+      address.line1,
+      address.line2,
+      address.city,
+      address.province,
+      address.postalCode,
+    ].filter((part): part is string => typeof part === 'string' && part !== '');
+    return parts.length > 0 ? parts.join(', ') : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -217,6 +247,17 @@ export default async function AdminOrdersPage({
                 const shippedAt = order.metadata?.shipped_at;
                 const shippingEstimate = order.metadata?.shipping_estimate;
                 const dashboardUrl = stripeDashboardUrl(order);
+                const shipmentId = order.metadata?.chitchats_shipment_id;
+                const chitchatsPostageType = order.metadata?.chitchats_postage_type;
+                const shippingAmountCents = order.total_details?.amount_shipping ?? 0;
+                const shippingAmountLabel =
+                  shippingAmountCents === 0
+                    ? 'Free'
+                    : `$${formatPrice(shippingAmountCents)}`;
+                const shippingAddressText = sessionWithShipping.shipping_details
+                  ?.address
+                  ? formatAddress(sessionWithShipping.shipping_details.address)
+                  : formatMetadataShippingAddress(order.metadata);
                 return (
                   <li key={order.id} className="gift-card p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -233,6 +274,26 @@ export default async function AdminOrdersPage({
                           <span className="inline-flex items-center gap-1 border border-rose-line bg-blush px-2 py-1 font-sans text-xs font-medium uppercase tracking-[0.08em] text-rose-deep">
                             Shipped
                             {shippingEstimate ? ` — ${shippingEstimate}` : ''}
+                          </span>
+                        )}
+                        {shipmentId && (
+                          <a
+                            href={shipmentDashboardUrl(shipmentId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-sans text-xs text-muted underline"
+                          >
+                            View shipment
+                          </a>
+                        )}
+                        {shipmentId && (
+                          <span className="font-sans text-[10px] uppercase tracking-[0.08em] text-muted/70">
+                            ChitChats {shipmentId}
+                          </span>
+                        )}
+                        {chitchatsPostageType && (
+                          <span className="font-sans text-[10px] uppercase tracking-[0.08em] text-muted/70">
+                            Shipping: {shippingAmountLabel} ({chitchatsPostageType})
                           </span>
                         )}
                         {dashboardUrl && (
@@ -288,12 +349,9 @@ export default async function AdminOrdersPage({
                       </span>
                     </div>
 
-                    {sessionWithShipping.shipping_details?.address && (
+                    {shippingAddressText && (
                       <p className="mt-3 font-sans text-xs text-muted">
-                        Ship to:{' '}
-                        {formatAddress(
-                          sessionWithShipping.shipping_details.address,
-                        )}
+                        Ship to: {shippingAddressText}
                       </p>
                     )}
 
