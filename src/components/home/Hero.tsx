@@ -54,7 +54,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             folded by hand
           </h1>
           <p className="mt-6 max-w-md font-sans text-base leading-relaxed text-muted">
-            Every petal is cut, folded, and stitched by hand — ribbon flowers
+            Every petal is cut, folded, and stitched by hand - ribbon flowers
             that never wilt, made to your palette and kept for a lifetime.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">

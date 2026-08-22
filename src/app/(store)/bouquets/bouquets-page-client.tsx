@@ -92,8 +92,7 @@ export default function BouquetsPageClient({
             Bouquet Collections
           </h1>
           <p className="ml-auto mt-4 max-w-md font-sans text-sm leading-relaxed text-muted sm:text-base">
-            Explore our curated collections of handcrafted ribbon flower
-            bouquets — romantic, rustic, seasonal, and more.
+            Explore our collection of handcrafted ribbon flower bouquets!
           </p>
           {/* Hand-drawn arrow annotation */}
           <div className="mt-3 flex items-center justify-end gap-2">
