@@ -6,6 +6,9 @@ import {
   computeLineItemTotal,
   computeLineItemCount,
   computeShipping,
+  validateLineItems,
+  validateCheckoutItems,
+  MAX_LINE_ITEM_QUANTITY,
   type LineItem,
 } from '@/lib/order';
 
@@ -113,6 +116,18 @@ describe('encodeOrderItems / decodeOrderItems', () => {
       { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
     ]);
   });
+
+  // Pins the simulated-checkout behavior: the no-key path emits an `items=`
+  // URL param carrying the {productId, quantity} wire shape, which lacks
+  // id/name/price and therefore decodes to [] — i.e. the simulated success
+  // page renders the generic confirmation WITHOUT an itemized receipt.
+  test('yields [] for a simulated-mode {productId, quantity} payload (no itemized receipt)', () => {
+    const payload = JSON.stringify([
+      { productId: 'prod_rose', quantity: 2 },
+    ]);
+    const b64 = btoa(unescape(encodeURIComponent(payload)));
+    expect(decodeOrderItems(b64)).toEqual([]);
+  });
 });
 
 describe('generateOrderNumber', () => {
@@ -204,5 +219,139 @@ describe('computeShipping', () => {
 
   test('14999 cents -> 0', () => {
     expect(computeShipping(14999)).toBe(0);
+  });
+});
+
+describe('validateLineItems quantity cap', () => {
+  test(`quantity ${MAX_LINE_ITEM_QUANTITY} (cap) -> ok`, () => {
+    expect(
+      validateLineItems([
+        { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY },
+      ])
+    ).toEqual({ ok: true });
+  });
+
+  test(`quantity ${MAX_LINE_ITEM_QUANTITY + 1} -> 'Invalid line item'`, () => {
+    expect(
+      validateLineItems([
+        { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY + 1 },
+      ])
+    ).toEqual({ ok: false, error: 'Invalid line item' });
+  });
+
+  test('huge quantity -> Invalid line item', () => {
+    expect(
+      validateLineItems([{ id: 'x', name: 'X', price: 100, quantity: 100000 }])
+    ).toEqual({ ok: false, error: 'Invalid line item' });
+  });
+
+  test('decodeOrderItems mirrors the cap (over-cap items are dropped)', () => {
+    const payload = JSON.stringify([
+      { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY + 1 },
+    ]);
+    const b64 = btoa(unescape(encodeURIComponent(payload)));
+    expect(decodeOrderItems(b64)).toEqual([]);
+  });
+});
+
+describe('validateCheckoutItems ({productId, quantity} wire shape)', () => {
+  test('valid single item -> ok', () => {
+    expect(
+      validateCheckoutItems([{ productId: 'prod_rose', quantity: 2 }])
+    ).toEqual({ ok: true });
+  });
+
+  test('valid multiple items -> ok', () => {
+    expect(
+      validateCheckoutItems([
+        { productId: 'prod_rose', quantity: 2 },
+        { productId: 'prod_bouquet', quantity: 1 },
+      ])
+    ).toEqual({ ok: true });
+  });
+
+  test('empty array -> No items provided', () => {
+    expect(validateCheckoutItems([])).toEqual({
+      ok: false,
+      error: 'No items provided',
+    });
+  });
+
+  test('undefined / null / non-array -> No items provided', () => {
+    for (const bad of [undefined, null, 'items', {}, 42]) {
+      expect(validateCheckoutItems(bad)).toEqual({
+        ok: false,
+        error: 'No items provided',
+      });
+    }
+  });
+
+  test('missing productId -> Invalid line item', () => {
+    expect(validateCheckoutItems([{ quantity: 1 }])).toEqual({
+      ok: false,
+      error: 'Invalid line item',
+    });
+  });
+
+  test('empty / whitespace productId -> Invalid line item', () => {
+    for (const productId of ['', '   ']) {
+      expect(validateCheckoutItems([{ productId, quantity: 1 }])).toEqual({
+        ok: false,
+        error: 'Invalid line item',
+      });
+    }
+  });
+
+  test('non-string productId -> Invalid line item', () => {
+    expect(validateCheckoutItems([{ productId: 42, quantity: 1 }])).toEqual({
+      ok: false,
+      error: 'Invalid line item',
+    });
+  });
+
+  test('zero / negative quantity -> Invalid line item', () => {
+    for (const quantity of [0, -1]) {
+      expect(
+        validateCheckoutItems([{ productId: 'prod_rose', quantity }])
+      ).toEqual({ ok: false, error: 'Invalid line item' });
+    }
+  });
+
+  test('non-integer quantity -> Invalid line item', () => {
+    for (const quantity of [1.5, NaN, Infinity]) {
+      expect(
+        validateCheckoutItems([{ productId: 'prod_rose', quantity }])
+      ).toEqual({ ok: false, error: 'Invalid line item' });
+    }
+  });
+
+  test(`quantity ${MAX_LINE_ITEM_QUANTITY} -> ok; ${MAX_LINE_ITEM_QUANTITY + 1} -> Invalid line item`, () => {
+    expect(
+      validateCheckoutItems([
+        { productId: 'prod_rose', quantity: MAX_LINE_ITEM_QUANTITY },
+      ])
+    ).toEqual({ ok: true });
+    expect(
+      validateCheckoutItems([
+        { productId: 'prod_rose', quantity: MAX_LINE_ITEM_QUANTITY + 1 },
+      ])
+    ).toEqual({ ok: false, error: 'Invalid line item' });
+  });
+
+  test('null item in array -> Invalid line item', () => {
+    expect(validateCheckoutItems([null])).toEqual({
+      ok: false,
+      error: 'Invalid line item',
+    });
+  });
+
+  test('extra fields (name/price smuggling) are tolerated by validation but carry no weight', () => {
+    // Validation passes — the route simply never reads name/price from the
+    // request; resolution happens against the Stripe catalog.
+    expect(
+      validateCheckoutItems([
+        { productId: 'prod_rose', quantity: 2, name: 'Ribbon Rose', price: 1 },
+      ])
+    ).toEqual({ ok: true });
   });
 });

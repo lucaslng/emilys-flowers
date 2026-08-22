@@ -3,19 +3,26 @@
 // /checkout/success
 //
 // Shown after a completed Stripe Checkout (or the simulated checkout path used
-// in local dev / E2E). The checkout API redirects here with two query params:
+// in local dev / E2E). Two URL shapes arrive here:
 //
-//   ?success=true&order=<EF-XXXXXX | cs_test_...>&items=<base64url LineItem[]>
+//   Simulated (no STRIPE_SECRET_KEY — dev/E2E only):
+//     ?success=true&order=<EF-XXXXXX>&items=<base64url LineItem[]>
+//   Real (Stripe-hosted checkout):
+//     ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
 //
-// We decode `items` back into the line-item list (see `src/lib/order.ts`), show
-// a warm confirmation + an order summary that mirrors `/checkout`, clear the
-// cart (the order is already placed), and celebrate with a small petal burst
-// from the confirmation seal.
+// The simulated path decodes `items` directly (see `src/lib/order.ts`). The
+// real path carries NO product data in the URL — the receipt is fetched from
+// GET /api/checkout/session?session_id=…, which retrieves the session from
+// Stripe and returns a sanitized projection.
+//
+// We show a warm confirmation + an order summary that mirrors `/checkout`,
+// clear the cart (the order is already placed), and celebrate with a small
+// petal burst from the confirmation seal.
 //
 // `useSearchParams()` is wrapped in <Suspense> per Next.js 16's static-render
 // requirement (the fallback is a branded BloomSpinner placeholder).
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { gsap, useGSAP } from '@/lib/gsap';
@@ -28,16 +35,64 @@ import Button from '@/components/ui/Button';
 import BloomSpinner from '@/components/ui/BloomSpinner';
 import StarMotif from '@/components/ui/StarMotif';
 
+/** The sanitized projection returned by GET /api/checkout/session. */
+interface RetrievedOrder {
+  items: Array<{ name: string; quantity: number; unitAmount: number }>;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  orderNumber: string;
+}
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const { clearCart } = useCart();
   const root = useRef<HTMLDivElement>(null);
   const sealRef = useRef<HTMLDivElement>(null);
 
-  const order = searchParams.get('order') ?? '';
+  const orderParam = searchParams.get('order') ?? '';
   const encodedItems = searchParams.get('items') ?? '';
-  const items: LineItem[] = decodeOrderItems(encodedItems);
+  const sessionId = searchParams.get('session_id');
+
+  // Real-path receipt retrieval. Only fired when a session_id is present
+  // (simulated URLs carry items= instead); failures degrade to the generic
+  // confirmation without an order summary.
+  const [retrieved, setRetrieved] = useState<RetrievedOrder | null>(null);
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    fetch(`/api/checkout/session?session_id=${encodeURIComponent(sessionId)}`)
+      .then(async (response) =>
+        response.ok ? ((await response.json()) as RetrievedOrder) : null
+      )
+      .then((data) => {
+        if (!cancelled && data) setRetrieved(data);
+      })
+      .catch(() => {
+        // Leave the generic confirmation in place.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  // Simulated-path items decode wins when present; otherwise fall back to the
+  // retrieved receipt.
+  const decodedItems: LineItem[] = decodeOrderItems(encodedItems);
+  const retrievedItems: LineItem[] = (retrieved?.items ?? []).map(
+    (item, index) => ({
+      id: `${index}`,
+      name: item.name,
+      price: item.unitAmount,
+      quantity: item.quantity,
+    })
+  );
+  const items: LineItem[] =
+    decodedItems.length > 0 ? decodedItems : retrievedItems;
   const hasItems = items.length > 0;
+  const fromRetrieval = decodedItems.length === 0 && retrieved !== null;
+
+  const order = orderParam || retrieved?.orderNumber || '';
 
   // The order is already placed — clear the cart once on mount.
   useEffect(() => {
@@ -102,16 +157,24 @@ function CheckoutSuccessContent() {
     { scope: root, dependencies: [] }
   );
 
-  const subtotal = computeLineItemTotal(items);
+  // On the real path the retrieved receipt carries Stripe's own amounts;
+  // otherwise the totals come from the decoded line items.
+  const subtotal = fromRetrieval
+    ? (retrieved?.subtotal ?? computeLineItemTotal(items))
+    : computeLineItemTotal(items);
   // The checkout API appends `&shipping=<cents>` (the real ChitChats rate)
-  // when shipping is configured; fall back to the flat-rate estimate when the
-  // param is absent (simulated checkout / legacy URLs) or malformed.
+  // when shipping is configured; fall back to the retrieved shipping, then to
+  // the flat-rate estimate when neither is present or the param is malformed.
   const shippingParam = searchParams.get('shipping');
   const shippingFromParam = shippingParam === null ? NaN : parseInt(shippingParam, 10);
   const shipping = Number.isNaN(shippingFromParam)
-    ? computeShipping(subtotal)
+    ? fromRetrieval
+      ? (retrieved?.shipping ?? computeShipping(subtotal))
+      : computeShipping(subtotal)
     : shippingFromParam;
-  const total = subtotal + shipping;
+  const total = fromRetrieval && retrieved
+    ? retrieved.total
+    : subtotal + shipping;
   const itemCount = computeLineItemCount(items);
 
   return (

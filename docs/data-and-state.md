@@ -59,5 +59,28 @@ to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount).
   operate on the flat `LineItem` shape; the provider's `getTotal`/`getItemCount`
   flatten `CartItem[]` to `LineItem[]` via `toLineItems` and delegate to them.
 - `decodeOrderItems` enforces the same semantic shape as `validateLineItems`
-  (non-empty id/name, positive-integer price/quantity), so a crafted `items`
+  (non-empty id/name, positive-integer price/quantity, quantity ≤
+  `MAX_LINE_ITEM_QUANTITY` = 99), so a crafted `items`
   URL param can't surface negative/fractional totals on the success page.
+
+## Checkout — server-side price resolution
+
+The checkout client POSTs only `{productId, quantity}` pairs (plus the address)
+to `/api/checkout` — never names or prices. The route validates the wire shape
+with `validateCheckoutItems` (`src/lib/order.ts`: non-empty array, non-empty
+`productId`, positive-integer quantity capped at 99) and then resolves every
+`productId` against the **live Stripe catalog** via `getCatalogIndex()`
+(`src/lib/catalog-index.ts`): a pure, Workers-safe index of product id →
+`{priceId, name, unitAmount}` fetched with `products.list({active: true,
+expand: ['data.default_price']})` and memoized at **module scope** (one Stripe
+call per cold isolate). Unknown product ids are rejected with a 400. Stripe
+`line_items` use the resolved Price objects (`price:` form, not inline
+`price_data`), and the ChitChats shipment payload is built from the same
+resolved items.
+
+Real checkout success URLs carry only `session_id={CHECKOUT_SESSION_ID}`; the
+success page fetches its receipt from `GET /api/checkout/session`, which
+format-checks the id before calling Stripe and returns a sanitized projection
+(`items/subtotal/shipping/total/orderNumber` — never customer_details or
+metadata). The no-key simulated path keeps the legacy `items=` URL param for
+local dev/E2E synthetic URLs.

@@ -9,8 +9,10 @@
 ## Flow overview
 
 1. **Address collected on our checkout page.** The checkout client POSTs
-   `{ items, address }` to `/api/checkout`. The address shape is
-   `{ name, line1, line2?, city, province, postalCode }` (province = 2-letter
+   `{ items, address }` to `/api/checkout`, where `items` are
+   `{productId, quantity}` pairs only — names/prices are resolved server-side
+   from the Stripe catalog (see `src/lib/catalog-index.ts`). The address shape
+   is `{ name, line1, line2?, city, province, postalCode }` (province = 2-letter
    CA code; `line2` is the optional apartment/unit line — sent to ChitChats as
    `address_2` only when present). Stripe's `shipping_address_collection` is
    **removed** from the Checkout Session so the customer isn't asked for the
@@ -18,8 +20,9 @@
 2. **Shipment auto-created to get rates.** When `STRIPE_SECRET_KEY` and the
    ChitChats credentials are configured, the route validates the address,
    builds a create-shipment payload (`postage_type: "unknown"`, `ship_date:
-   "today"`), and POSTs it to ChitChats. The response's `rates` array is the
-   only way to get rates.
+   "today"`) from **catalog-resolved** names/prices/subtotal — never raw
+   client values — and POSTs it to ChitChats. The response's `rates` array is
+   the only way to get rates.
 3. **Cheapest rate charged as a Stripe shipping option.** The route picks the
    rate with the lowest `payment_amount` (string dollars, total to charge:
    postage + insurance + taxes + fees) and adds it as a single

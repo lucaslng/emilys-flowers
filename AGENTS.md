@@ -46,14 +46,14 @@ There is **no `lint` script** — do not assume it works. `bun test`, `bun run t
 
 ## Architecture
 
-- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (OIDC-gated order review), and API routes `POST /api/checkout`, `POST /api/webhooks/stripe` (order-confirmation email), `GET /api/admin/login` (OIDC redirect), `GET /api/admin/callback`, `GET /api/admin/logout`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
+- App Router under `src/app/`. Routes: `/`, `/flowers`, `/bouquets`, `/products/[slug]`, `/cart`, `/checkout`, `/admin/orders` (OIDC-gated order review), and API routes `POST /api/checkout`, `GET /api/checkout/session` (sanitized success-receipt retrieval), `POST /api/webhooks/stripe` (order-confirmation email), `GET /api/admin/login` (OIDC redirect), `GET /api/admin/callback`, `GET /api/admin/logout`, `POST /api/admin/orders/[sessionId]/ship` (shipped email).
 - `src/app/layout.tsx` is the root: loads fonts, renders `<html>`/`<body>`. The storefront shell (`CartProvider` + `PetalBurstProvider`, `Navbar`/`Footer`) is `src/components/layout/StoreShell.tsx`, mounted by `src/app/(store)/layout.tsx` (storefront routes — hosts the under-construction gate) and `src/app/admin/layout.tsx` (admin routes — exempt from the gate).
 - `src/app/template.tsx` wraps every page in a `page-enter` animation and **remounts on segment navigation** (`useEffect` re-runs per route) — use it for per-route effects, not state that must persist.
 - Path alias `@/*` → `./src/*`. TypeScript `strict`, `noEmit`, `moduleResolution: bundler`.
 
 ## Data & state
 
-Products come from the **Stripe catalog**, fetched at build time by the server-only `src/lib/stripe-catalog.ts` (no DB/CMS) and memoized with React `cache`; images are scanned from `public/products/<slug>/`. Prices are **integer cents** (`2499` = $24.99); display via `formatPrice` (`src/lib/format.ts`), order math via `computeShipping`/`computeLineItemTotal`/`computeLineItemCount`/`validateLineItems` in `src/lib/order.ts` (free-shipping threshold $50 = 5000¢, else 599¢). Cart is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` with `sanitizeStoredCart` on hydration. See [docs/data-and-state.md](docs/data-and-state.md).
+Products come from the **Stripe catalog**, fetched at build time by the server-only `src/lib/stripe-catalog.ts` (no DB/CMS) and memoized with React `cache`; images are scanned from `public/products/<slug>/`. At checkout, the client posts only `{productId, quantity}` pairs and the route resolves names/prices/price-ids against a module-memoized runtime catalog index (`src/lib/catalog-index.ts`, Workers-safe — no `node:fs`); unknown product ids are rejected with 400. Prices are **integer cents** (`2499` = $24.99); display via `formatPrice` (`src/lib/format.ts`), order math via `computeShipping`/`computeLineItemTotal`/`computeLineItemCount`/`validateLineItems`/`validateCheckoutItems` in `src/lib/order.ts` (free-shipping threshold $50 = 5000¢, else 599¢; per-line quantity cap 99). Cart is React Context + `useReducer` in `src/lib/cart-context.tsx`, persisted to `localStorage` key `emilys-flowers-cart` with `sanitizeStoredCart` on hydration. See [docs/data-and-state.md](docs/data-and-state.md).
 
 ## Deployment
 

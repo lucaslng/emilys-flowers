@@ -27,41 +27,71 @@ or Stripe Elements.
 
 ### Server side — Route Handler
 
-`src/app/api/checkout/route.ts` exports a `POST` handler. The real flow:
+`src/app/api/checkout/route.ts` exports a `POST` handler. The client sends
+only `{productId, quantity}` pairs; the route resolves everything else from
+the Stripe catalog. The real flow:
 
 ```ts
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { validateCheckoutItems } from '@/lib/order'
+import { getCatalogIndex } from '@/lib/catalog-index'
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin
-  const { items } = await request.json()
+  const { items, address } = await request.json()
+
+  // items: [{productId, quantity}] only — no client-supplied prices/names.
+  const validation = validateCheckoutItems(items)
+  if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 })
 
   const secretKey = process.env.STRIPE_SECRET_KEY
 
-  // No key configured — simulate success instead of crashing.
+  // No key configured — simulate success instead of crashing (dev/E2E only;
+  // keeps the legacy items= URL param for synthetic success URLs).
   if (!secretKey) {
-    return NextResponse.json({ url: `${origin}/cart?success=true` })
+    return NextResponse.json({ url: `${origin}/checkout/success?...&items=...` })
+  }
+
+  // Resolve productIds against the live Stripe catalog (module-memoized).
+  const catalog = await getCatalogIndex()
+  const lineItems = []
+  for (const item of items) {
+    const entry = catalog.get(item.productId)
+    if (!entry) {
+      return NextResponse.json({ error: `Unknown product: ${item.productId}` }, { status: 400 })
+    }
+    lineItems.push({ price: entry.priceId, quantity: item.quantity })
   }
 
   const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() })
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
-    line_items: items.map((item: { name: string; price: number; quantity: number }) => ({
-      price_data: {
-        currency: 'cad',
-        product_data: { name: item.name },
-        unit_amount: item.price,  // integer cents — Stripe convention
-      },
-      quantity: item.quantity,
-    })),
-    success_url: `${origin}/cart?success=true`,
+    billing_address_collection: 'required',
+    metadata: { order_number },
+    line_items: lineItems,          // Stripe Price objects — NOT inline price_data
+    success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/cart?canceled=true`,
   })
 
   return NextResponse.json({ url: session.url })
 }
 ```
+
+Key invariants:
+
+- **No client-supplied financial identifier exists anywhere in the request
+  path.** Prices, names and price ids come from the catalog index; unknown
+  product ids get a 400. Quantities are capped at 99 per line server-side.
+- **The ChitChats shipment payload is built from the same resolved items** —
+  declared customs/insurance value and package descriptions never come from
+  the client.
+- **Real success URLs carry only `session_id={CHECKOUT_SESSION_ID}`.** The
+  success page retrieves its receipt from `GET /api/checkout/session`
+  (`src/app/api/checkout/session/route.ts`), which format-checks the id
+  against `^cs_(live|test)_` before calling Stripe and returns ONLY a
+  sanitized projection (`items/subtotal/shipping/total/orderNumber`) — never
+  `customer_details` or metadata.
 
 The `origin` is derived from `request.url` — the Worker knows its own host
 from the incoming request, so there is no `NEXT_PUBLIC_BASE_URL` /
@@ -76,13 +106,17 @@ the SDK must use the `fetch`-based client. This call is a no-op on Node.js
 
 ### Client side — redirect
 
-`src/app/(store)/checkout/page.tsx` POSTs the cart to `/api/checkout` and redirects:
+`src/app/(store)/checkout/checkout-page-client.tsx` POSTs the cart to
+`/api/checkout` and redirects:
 
 ```ts
 const res = await fetch('/api/checkout', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ items: cartItems }),
+  body: JSON.stringify({
+    items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+    address,
+  }),
 })
 const { url } = await res.json()
 if (url) window.location.href = url  // redirect to Stripe Checkout
