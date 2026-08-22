@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useCart, toLineItems } from '@/lib/cart-context';
+import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -171,7 +171,13 @@ export default function CheckoutPageClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: toLineItems(items),
+          // Only product references and quantities leave the browser — the
+          // server resolves names/prices from the Stripe catalog, so a
+          // tampered request can't buy any product at a chosen price.
+          items: items.map((item) => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+          })),
           address: {
             name: address.name.trim(),
             line1: address.line1.trim(),

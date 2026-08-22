@@ -10,8 +10,8 @@
   (`stripe-catalog.test.ts`), the client-safe listing helpers
   (`product-utils.test.ts`), the exported `cartReducer`, the `toLineItems`
   seam, and the extracted pure helpers (`formatPrice` in `src/lib/format.ts`;
-  `computeLineItemTotal` / `computeLineItemCount` / `computeShipping` and
-  `validateLineItems` in `src/lib/order.ts`).
+  `computeLineItemTotal` / `computeLineItemCount` / `computeShipping`,
+  `validateLineItems`, and `validateCheckoutItems` in `src/lib/order.ts`).
 - Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias
   resolves automatically (bun reads `tsconfig.json` paths).
 - No happy-dom / testing-library — keep unit tests dependency-free; if a
@@ -42,9 +42,21 @@ hit the real Stripe API.**
 
 The API route is also tested directly (empty items → 400 with
 `error: "No items provided"`, valid items → 200 with `url`). Input validation
-lives in `validateLineItems` (`src/lib/order.ts`) and is unit-tested there; the
-route imports it. The empty-items 400 error string is asserted by E2E — keep it
-stable.
+lives in `validateCheckoutItems` (`src/lib/order.ts`: `{productId, quantity}`
+wire shape, positive-integer quantities capped at 99) and is unit-tested
+there; the route imports it. The empty-items 400 error string is asserted by
+E2E — keep it stable.
+
+`checkout-route.test.ts` mocks `@/lib/catalog-index` so catalog resolution
+never touches Stripe, and asserts that Stripe `line_items` and the ChitChats
+shipment payload are built from catalog-resolved names/prices.
+`checkout-session-route.test.ts` covers the success-retrieval surface
+(`GET /api/checkout/session`): cs_ id format guard, sanitized projection, and
+the no-leak guarantee for customer_details/metadata. It reuses the shared
+`stripe` mock from `order-emails-mocks.ts` — bun's `mock.module` registry is
+process-global across test files, so test files must not register a second
+`stripe` mock (see the note in `order-emails-mocks.ts`; `checkout-route.test.ts`
+predates this rule and runs its own per-file mock).
 
 E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update
 them if the Stripe catalog changes. E2E builds run without Flagship

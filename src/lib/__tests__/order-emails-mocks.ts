@@ -25,6 +25,8 @@ export const orderEmailMocks = {
     data: { object: { id: 'pi_123' } },
   } as unknown as Stripe.Event,
   currentSession: {} as object,
+  stripeRetrieveCalls: [] as Array<{ id: string; params: unknown }>,
+  retrieveShouldThrow: false,
   stripeUpdateCalls: [] as Array<{
     sessionId: string;
     params: { metadata: Record<string, string> };
@@ -41,6 +43,8 @@ export function resetOrderEmailMocks() {
     data: { object: { id: 'pi_123' } },
   } as unknown as Stripe.Event;
   orderEmailMocks.currentSession = {};
+  orderEmailMocks.stripeRetrieveCalls.length = 0;
+  orderEmailMocks.retrieveShouldThrow = false;
   orderEmailMocks.stripeUpdateCalls.length = 0;
   orderEmailMocks.emailSendCalls.length = 0;
   orderEmailMocks.emailShouldThrow = false;
@@ -62,7 +66,13 @@ mock.module('stripe', () => {
     };
     checkout = {
       sessions: {
-        retrieve: async () => orderEmailMocks.currentSession,
+        retrieve: async (id: string, params?: unknown) => {
+          if (orderEmailMocks.retrieveShouldThrow) {
+            throw new Error('Stripe retrieve failed');
+          }
+          orderEmailMocks.stripeRetrieveCalls.push({ id, params });
+          return orderEmailMocks.currentSession;
+        },
         update: async (
           sessionId: string,
           params: { metadata: Record<string, string> }

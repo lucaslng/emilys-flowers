@@ -47,10 +47,12 @@ test.describe("Checkout flow", () => {
   });
 
   test("POST /api/checkout with valid items returns url with success=true", async ({ page }) => {
+    // Wire shape is {productId, quantity} only — names/prices are resolved
+    // server-side from the Stripe catalog (issue #170).
     const response = await page.request.post("/api/checkout", {
       data: {
         items: [
-          { id: "test-1", name: "Test Rose", price: 2499, quantity: 1 },
+          { productId: "test-1", quantity: 1 },
         ],
       },
     });

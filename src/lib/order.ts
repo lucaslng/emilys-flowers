@@ -25,6 +25,21 @@ export interface LineItem {
   category?: 'flower' | 'bouquet';
 }
 
+/**
+ * The checkout wire shape the client is allowed to send: a product reference
+ * and a quantity ONLY. Names and prices are never accepted from the client —
+ * the server resolves them against the Stripe catalog (see
+ * `src/lib/catalog-index.ts`), so a crafted request can't buy any product at
+ * an attacker-chosen price.
+ */
+export interface CheckoutItemPayload {
+  productId: string;
+  quantity: number;
+}
+
+/** Hard cap on units per line, enforced server-side at the checkout boundary. */
+export const MAX_LINE_ITEM_QUANTITY = 99;
+
 export type LineItemsValidation =
   | { ok: true }
   | { ok: false; error: string };
@@ -53,7 +68,8 @@ export function computeShipping(subtotalCents: number): number {
  * Validate the checkout payload's line items.
  * - items must be a non-empty array (error: "No items provided")
  * - each item: non-empty id, non-empty name, positive-integer price (cents),
- *   positive-integer quantity (else error: "Invalid line item")
+ *   positive-integer quantity capped at MAX_LINE_ITEM_QUANTITY
+ *   (else error: "Invalid line item")
  */
 export function validateLineItems(items: unknown): LineItemsValidation {
   if (!Array.isArray(items) || items.length === 0) {
@@ -77,9 +93,40 @@ export function validateLineItems(items: unknown): LineItemsValidation {
       typeof item.quantity !== "number" ||
       !Number.isInteger(item.quantity) ||
       item.quantity <= 0 ||
+      item.quantity > MAX_LINE_ITEM_QUANTITY ||
       ("category" in item &&
         item.category !== "flower" &&
         item.category !== "bouquet")
+    ) {
+      return { ok: false, error: "Invalid line item" };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Validate the checkout REQUEST payload — the `{productId, quantity}` pairs
+ * the client is allowed to send. Names/prices are deliberately absent from
+ * this shape; the server resolves them from the Stripe catalog. Same
+ * non-empty-array / positive-integer-quantity semantics as
+ * `validateLineItems`, plus the MAX_LINE_ITEM_QUANTITY cap.
+ */
+export function validateCheckoutItems(items: unknown): LineItemsValidation {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { ok: false, error: "No items provided" };
+  }
+  for (const item of items) {
+    if (
+      item === null ||
+      typeof item !== "object" ||
+      !("productId" in item) ||
+      typeof item.productId !== "string" ||
+      item.productId.trim() === "" ||
+      !("quantity" in item) ||
+      typeof item.quantity !== "number" ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity <= 0 ||
+      item.quantity > MAX_LINE_ITEM_QUANTITY
     ) {
       return { ok: false, error: "Invalid line item" };
     }
@@ -121,7 +168,8 @@ function isLineItem(v: unknown): v is LineItem {
   const o = v as Record<string, unknown>;
   // Mirrors the semantic checks in validateLineItems so the success-page
   // receipt can never surface items the checkout boundary would reject
-  // (empty ids/names, zero/negative/non-integer prices or quantities).
+  // (empty ids/names, zero/negative/non-integer prices or quantities,
+  // over-cap quantities).
   const categoryOk =
     o.category === undefined ||
     o.category === 'flower' ||
@@ -137,6 +185,7 @@ function isLineItem(v: unknown): v is LineItem {
     typeof o.quantity === 'number' &&
     Number.isInteger(o.quantity) &&
     o.quantity > 0 &&
+    o.quantity <= MAX_LINE_ITEM_QUANTITY &&
     categoryOk
   );
 }
