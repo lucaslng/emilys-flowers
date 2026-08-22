@@ -63,22 +63,24 @@ absent — so preview builds always render the store, never the construction
 screen. (The Flagship credentials are still passed to both builds because
 `enable-flowers-page` is evaluated in both.)
 
-**The flag values only reach users because the prerendered pages are actually
-served**: `open-next.config.ts` uses `staticAssetsIncrementalCache` and
-`deploy.yml` runs `populateCache local` after the build, so the worker serves
-the build-time prerendered HTML (flags baked in) instead of re-rendering at
-runtime. If you ever remove the static-assets cache, the flags will silently
-fail open in production again — the build-time `process.env` values do not
-exist on the Worker at runtime.
+**The flag values reach users because they are compiled into the JS bundle**:
+after evaluation, `next.config.ts` passes both results through the `env` config
+(`UNDER_CONSTRUCTION` / `FLOWERS_ENABLED`), so Next.js replaces every
+`process.env.<FLAG>` read with the build-time literal at compile time. Every
+render — prerendered or on-demand — therefore sees the same build-time decision,
+and flipping a flag in the dashboard does **not** change already-deployed pages
+until the next CI build. (The `staticAssetsIncrementalCache` + `populateCache
+local` setup in `open-next.config.ts`/`deploy.yml` is still what lets the worker
+serve the prerendered HTML/RSC assets, but flag correctness no longer depends on
+it.)
 
-Consequently, only **prerendered** routes show the gate: every storefront page,
-and unmatched URLs (the root `src/app/not-found.tsx` is prerendered, so `/foo`
-shows the construction screen too). **On-demand renders fail open**: a route
-that isn't in the static cache (e.g. an unknown `/products/<slug>` that calls
-`notFound()`) is rendered at runtime where the flag value is absent, so it
-serves the normal storefront 404 in the shell rather than the construction
-screen. This is expected and is the same reason there is **no runtime API
-gate** below.
+Consequently **every storefront render shows the gate while the flag is on**:
+prerendered pages, unmatched URLs (the root `src/app/not-found.tsx` is
+prerendered, so `/foo` shows the construction screen too), and on-demand renders
+such as an unknown `/products/<slug>` that calls `notFound()`. Those on-demand
+renders used to fail open — the runtime Worker has no such env var, so they
+served the normal storefront 404 in the shell with full site navigation, letting
+visitors click straight into the store and bypassing the gate.
 
 When the flag is on, `src/app/(store)/layout.tsx` renders the standalone
 `UnderConstruction` component (`src/components/under-construction.tsx`) instead
@@ -131,9 +133,9 @@ CI build. No Flagship SDK dependency is used. Import `isFlowersEnabled` only
 from server components (layout, pages, Footer, not-found, FeaturedBouquets,
 sitemap) — never from client components; client components receive the value as
 a prop (e.g. `Navbar showFlowers`, `Hero showFlowers`, `NotFoundClient`).
-Like `under-construction`, this only works because the prerendered pages are
-served via `staticAssetsIncrementalCache` + `populateCache local` (see the
-under-construction section).
+Like `under-construction`, the value is inlined into the bundle via the
+`env` config, so on-demand renders (e.g. flower product pages that 404 on
+demand) see the same build-time decision.
 
 Credentials are passed to **both** `Build (OpenNext)` steps in `deploy.yml`
 (production and preview evaluate the same flag): `FLAGSHIP_APP_ID`,

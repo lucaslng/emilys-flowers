@@ -63,6 +63,17 @@ export default async function nextConfig(): Promise<NextConfig> {
   }
 
   return {
+    // Bake the evaluated flag results into the JS bundle (build-time
+    // DefinePlugin replacement). Without this, `process.env.UNDER_CONSTRUCTION`
+    // is only readable during prerendering — at request time on Workers it is
+    // undefined, so on-demand renders (e.g. /products/<unknown-slug> hitting
+    // not-found) failed open and exposed an ungated page with full site
+    // navigation, bypassing the construction screen. Inlining makes every
+    // render — prerendered or on-demand — see the same build-time decision.
+    env: {
+      UNDER_CONSTRUCTION: process.env.UNDER_CONSTRUCTION ?? "false",
+      FLOWERS_ENABLED: process.env.FLOWERS_ENABLED ?? "false",
+    },
     async headers() {
       return [
         {
