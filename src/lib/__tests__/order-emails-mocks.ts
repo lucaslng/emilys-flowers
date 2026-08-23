@@ -27,6 +27,7 @@ export const orderEmailMocks = {
   currentSession: {} as object,
   stripeRetrieveCalls: [] as Array<{ id: string; params: unknown }>,
   retrieveShouldThrow: false,
+  retrieveShouldThrowResourceMissing: false,
   stripeUpdateCalls: [] as Array<{
     sessionId: string;
     params: { metadata: Record<string, string> };
@@ -45,6 +46,7 @@ export function resetOrderEmailMocks() {
   orderEmailMocks.currentSession = {};
   orderEmailMocks.stripeRetrieveCalls.length = 0;
   orderEmailMocks.retrieveShouldThrow = false;
+  orderEmailMocks.retrieveShouldThrowResourceMissing = false;
   orderEmailMocks.stripeUpdateCalls.length = 0;
   orderEmailMocks.emailSendCalls.length = 0;
   orderEmailMocks.emailShouldThrow = false;
@@ -55,9 +57,20 @@ export function resetOrderEmailMocks() {
 // calls. The routes import `Stripe` as the default export and construct it
 // with `new Stripe(key, { httpClient: Stripe.createFetchHttpClient() })`, so
 // the mock needs the static factory plus the `webhooks` / `checkout`
-// namespaces used by the webhook and ship routes.
+// namespaces used by the webhook and ship routes. The static `errors`
+// namespace mirrors the real SDK surface so routes can `instanceof`-check
+// typed Stripe errors (e.g. resource-missing → 404 in checkout/session).
 mock.module('stripe', () => {
+  class MockStripeInvalidRequestError extends Error {
+    readonly type = 'StripeInvalidRequestError';
+    readonly code?: string;
+    constructor(message: string, code?: string) {
+      super(message);
+      this.code = code;
+    }
+  }
   class MockStripe {
+    static errors = { StripeInvalidRequestError: MockStripeInvalidRequestError };
     static createFetchHttpClient() {
       return {};
     }
@@ -69,6 +82,12 @@ mock.module('stripe', () => {
         retrieve: async (id: string, params?: unknown) => {
           if (orderEmailMocks.retrieveShouldThrow) {
             throw new Error('Stripe retrieve failed');
+          }
+          if (orderEmailMocks.retrieveShouldThrowResourceMissing) {
+            throw new MockStripeInvalidRequestError(
+              'No such checkout.session',
+              'resource_missing'
+            );
           }
           orderEmailMocks.stripeRetrieveCalls.push({ id, params });
           return orderEmailMocks.currentSession;
