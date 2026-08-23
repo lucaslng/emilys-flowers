@@ -1,9 +1,6 @@
-// Unit tests for `checkRateLimit` (src/lib/rate-limit.ts) — the shared
-// rate-limit guard. Focus: the limiter key MUST be surface-prefixed
-// (`${surface}:${ip}`) so each API surface gets its own bucket (issue #209),
-// plus the fail-open contract.
-// The `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts
-// (registered once per process, driven via `rateLimitMocks`).
+// Unit tests for `checkRateLimit` (src/lib/rate-limit.ts): keys must be
+// surface-prefixed (issue #209) and every failure mode fails open.
+// The `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts.
 
 import { test, expect, describe, beforeEach } from 'bun:test';
 import {
