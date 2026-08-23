@@ -1,5 +1,3 @@
-// src/app/(store)/layout.tsx
-//
 // Storefront routes live in the `(store)` route group (URL-transparent) so the
 // under-construction gate applies to them but NOT to /admin/* (which has its
 // own layout at src/app/admin/layout.tsx).

@@ -6,7 +6,6 @@ import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 // NOTE: the `stripe` and `resend` mocks live in `./order-emails-mocks`,
 // registered exactly once per process (bun's `mock.module` registry is
 // process-global and shared across test files).
-//
 // `@/lib/admin-auth` is deliberately NOT mocked: the real `verifySessionToken`
 // is exercised with a real HS256 JWT signed against the test secret, matching
 // how admin-auth.test.ts uses the module. Mocking it from this file previously

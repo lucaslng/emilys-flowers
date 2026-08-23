@@ -1,12 +1,8 @@
 @import "tailwindcss";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   EMILY'S FLOWERS — "warm handmade" design system
-   Satin softness vs. crisp geometric structure. Warm blush / cream /
-   champagne with pink as the ONLY chromatic accent. Zero cool tones.
-   Fonts: Martian Mono (structure, labels, UI) + Reenie Beanie (hand-drawn
-   accents). Loaded via next/font in layout.tsx.
-   ───────────────────────────────────────────────────────────────────────── */
+/* Emily's Flowers — "warm handmade" design system: satin softness vs. crisp
+   geometric structure; warm blush/cream/champagne with pink as the ONLY
+   chromatic accent, zero cool tones. Fonts load via next/font in layout.tsx. */
 
 :root {
   /* Warm paper creams — no cool tints anywhere */

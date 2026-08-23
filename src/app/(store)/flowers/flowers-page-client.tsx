@@ -45,23 +45,19 @@ export default function FlowersPageClient({
   const filtered = useMemo(() => {
     let result = [...products];
 
-    // Filter by flower type
     if (selectedCategory !== 'all') {
       result = result.filter((p) => p.flowerType === selectedCategory);
     }
 
-    // Filter by color
     if (selectedColor !== 'all') {
       result = result.filter((p) => p.color === selectedColor);
     }
 
-    // Filter by price range
     result = result.filter(
       (p) =>
         p.price >= selectedPriceRange[0] && p.price <= selectedPriceRange[1]
     );
 
-    // Sort
     switch (selectedSort) {
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);

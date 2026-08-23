@@ -1,5 +1,3 @@
-// src/lib/__tests__/address-validation.test.ts
-//
 // Unit tests for the shared delivery-address validation contract
 // (`src/lib/address-validation.ts`) — the same rules enforced by both the
 // client checkout form and the server (`POST /api/checkout`).

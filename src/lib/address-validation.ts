@@ -133,8 +133,6 @@ function isKnownProvince(value: string): boolean {
   return CA_PROVINCES.includes(value.toUpperCase() as CaProvince);
 }
 
-// --- Truncation (Stripe metadata 500-char cap) ---
-
 /** Stripe caps every Checkout Session metadata value at 500 characters. */
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 

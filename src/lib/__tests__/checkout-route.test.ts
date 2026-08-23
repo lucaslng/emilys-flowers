@@ -1,17 +1,13 @@
-// src/lib/__tests__/checkout-route.test.ts
-//
 // Tests for `POST /api/checkout` with ChitChats shipping configured.
 //
 // bun runs each test file in its own process, so the `stripe`,
 // `@/lib/chitchats`, and `@/lib/catalog-index` mocks registered here are
 // per-file and don't collide with the process-global mocks in
 // `./order-emails-mocks.ts` (webhook/ship tests).
-//
 // `@/lib/chitchats` is mocked with the REAL pure helpers (spread from the
 // pre-imported module) and only `isChitchatsConfigured` / `createShipment`
 // overridden — the route's pure logic (rate picking, payload building,
 // address validation) still runs for real.
-//
 // `@/lib/catalog-index` is mocked so catalog resolution never touches Stripe:
 // the route must resolve {productId, quantity} pairs against this index and
 // reject unknown product ids.

@@ -1,5 +1,3 @@
-// src/lib/chitchats.ts
-//
 // Thin server-only client + pure helpers for ChitChats shipping.
 //
 // ChitChats has NO standalone rates endpoint — rates are returned when a
@@ -8,12 +6,9 @@
 // shipping option, and stores the shipment id / tracking URL in session
 // metadata so the admin can open the shipment later.
 //
-// The pure helpers (pickCheapestRate, parsePaymentAmountToCents,
-// estimateShipmentWeight, buildShipmentPayload, validateDeliveryAddress) are
-// isomorphic — no Node-only `Buffer`, no DOM — so they can be unit-tested
-// with bun without touching the network. The client functions
-// (isChitchatsConfigured, chitchatsApiBaseUrl, chitchatsHeaders,
-// createShipment) read `process.env` and are server-only.
+// The pure helpers are isomorphic — no Node-only `Buffer`, no DOM — so they
+// can be unit-tested with bun without touching the network. The client
+// functions read `process.env` and are server-only.
 
 import type { LineItem } from '@/lib/order';
 import {
@@ -97,8 +92,6 @@ export interface ChitChatsShipmentInput {
   line_items: ChitChatsShipmentLineItem[];
 }
 
-// --- Config helpers (server-only) ---
-
 /** True when both ChitChats credentials are present. */
 export function isChitchatsConfigured(): boolean {
   return Boolean(
@@ -134,8 +127,6 @@ export function chitchatsHeaders(): Record<string, string> {
     'Content-Type': 'application/json; charset=utf-8',
   };
 }
-
-// --- Client (server-only) ---
 
 /**
  * Create a ChitChats shipment. With `postage_type: "unknown"` this is how
@@ -195,8 +186,6 @@ export async function createShipment(
   }
   return body.shipment;
 }
-
-// --- Pure helpers (isomorphic, unit-tested) ---
 
 /** Parse a ChitChats string-dollars amount into integer cents. NaN → 0. */
 export function parsePaymentAmountToCents(paymentAmount: string): number {

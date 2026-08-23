@@ -10,7 +10,6 @@ test.describe("Home page", () => {
     await page.goto("/");
     const addToCartButtons = page.getByRole("button", { name: "Add to Cart" });
     await expect(addToCartButtons.first()).toBeVisible();
-    // At least one featured product card should have an "Add to Cart" button
     await expect(addToCartButtons.first()).toBeEnabled();
   });
 });
