@@ -2,11 +2,8 @@
 //
 // Per-surface, per-IP rate limiting for billable API surfaces, backed by the
 // Cloudflare Workers ratelimit binding (`RATE_LIMITER` in wrangler.jsonc —
-// 10 requests per 60 s per key). Keys are surface-prefixed
-// (`${surface}:${ip}`) so each API surface gets its own bucket — an
-// unprefixed shared bucket would let heavy use of one surface (e.g.
-// receipt-page refreshes) lock clients out of another (e.g. checkout
-// submission).
+// 10 requests per 60 s per key). Keys are surface-prefixed so each surface
+// gets its own bucket.
 //
 // Deliberate deviation from the repo's `process.env` convention: object
 // bindings cannot ride through `process.env` (OpenNext's populateProcessEnv
@@ -39,11 +36,8 @@ interface RateLimiterBinding {
 /**
  * Returns `null` when the request is allowed (or when limiting is
  * unavailable), or a ready-to-return 429 response when the caller exceeded
- * the limit for their IP on the given surface.
- *
- * `surface` prefixes the limiter key (`${surface}:${ip}`) so every call site
- * gets an isolated bucket; the parameter is required so no surface can fall
- * into an unprefixed shared bucket by accident.
+ * the limit for their IP on the given surface. `surface` prefixes the
+ * limiter key (`${surface}:${ip}`) so call sites get isolated buckets.
  */
 export async function checkRateLimit(
   request: Request,
