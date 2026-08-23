@@ -115,7 +115,9 @@ displayed can be altered by hand-editing the URL.
 
 `/admin/orders` shows a **View shipment** link (styled like "View in Stripe",
 `target="_blank" rel="noopener noreferrer"`) on each order card whose metadata
-has `chitchats_shipment_id`. It points at the ChitChats dashboard shipment
+has `chitchats_shipment_id` **and** passes `isValidShipmentId`
+(`/^[A-Za-z0-9_-]{4,64}$/`) — malformed values render only as the plain-text
+label, never as a link. It points at the ChitChats dashboard shipment
 page — `{CHITCHATS_BASE_URL}/clients/{CHITCHATS_CLIENT_ID}/shipments/{id}`
 via `shipmentDashboardUrl` in `src/lib/chitchats.ts` — plus a small muted
 `ChitChats {shipment_id}` label. The "Ship to:" line falls back to the parsed
