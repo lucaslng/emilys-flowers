@@ -18,6 +18,7 @@
 
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
 import type { ChitChatsShipment } from '@/lib/chitchats';
+import { ADDRESS_FIELD_MAX_LENGTHS } from '@/lib/address-validation';
 
 const realChitchats = await import('@/lib/chitchats');
 
@@ -258,6 +259,57 @@ describe('POST /api/checkout with ChitChats configured', () => {
     const metadata = params.metadata as Record<string, string>;
     expect(metadata.chitchats_postage_type).toBe('standard');
     expect(params.success_url).toContain('&shipping=968');
+  });
+
+  test('truncates over-long address fields in BOTH the ChitChats payload and the shipping_address metadata', async () => {
+    // Stripe caps metadata values at 500 chars; an over-long value would make
+    // session creation throw after the customer filled the form. The route
+    // must clamp server-side and mirror the SAME truncated address into the
+    // ChitChats payload so the label matches what was stored.
+    const overLongAddress = {
+      name: 'N'.repeat(500),
+      line1: 'L'.repeat(500),
+      line2: 'A'.repeat(500),
+      city: 'C'.repeat(500),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: overLongAddress })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(1);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+
+    const payload = checkoutMocks.shipmentCreateCalls[0] as {
+      name: string;
+      address_1: string;
+      address_2: string;
+      city: string;
+    };
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+    const metadata = params.metadata as Record<string, string>;
+    const stored = JSON.parse(metadata.shipping_address) as Record<
+      string,
+      string
+    >;
+
+    // The ChitChats label mirrors exactly what was stored in metadata.
+    expect(payload.name).toBe(stored.name);
+    expect(payload.address_1).toBe(stored.line1);
+    expect(payload.address_2).toBe(stored.line2);
+    expect(payload.city).toBe(stored.city);
+
+    // Every field is clamped to its shared cap.
+    for (const [field, value] of Object.entries(stored)) {
+      expect(value.length).toBeLessThanOrEqual(
+        ADDRESS_FIELD_MAX_LENGTHS[field as keyof typeof ADDRESS_FIELD_MAX_LENGTHS]
+      );
+    }
+    // And the metadata value itself fits Stripe's hard cap.
+    expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
   });
 
   test('returns 400 with per-field errors when the address is missing', async () => {

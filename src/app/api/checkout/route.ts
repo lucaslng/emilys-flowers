@@ -22,6 +22,8 @@ import {
 } from '@/lib/chitchats';
 import {
   validateDeliveryAddressFields,
+  truncateDeliveryAddress,
+  shippingAddressMetadataValue,
   type AddressFieldError,
 } from '@/lib/address-validation';
 
@@ -139,9 +141,13 @@ export async function POST(request: Request) {
         );
       }
 
+      // Clamp once so the ChitChats label mirrors exactly what gets stored
+      // in Stripe metadata — both sides see the same truncated address.
+      const shippingAddress = truncateDeliveryAddress(addressValidation.value);
+
       const subtotalCents = computeLineItemTotal(resolvedItems);
       const payload = buildShipmentPayload({
-        address: addressValidation.value,
+        address: shippingAddress,
         items: resolvedItems,
         orderNumber,
         subtotalCents,
@@ -186,14 +192,10 @@ export async function POST(request: Request) {
         chitchats_shipment_id: shipment.id,
         chitchats_tracking_url: shipment.tracking_url,
         chitchats_postage_type: rate.postage_type,
-        shipping_address: JSON.stringify({
-          name: addressValidation.value.name,
-          line1: addressValidation.value.line1,
-          line2: addressValidation.value.line2,
-          city: addressValidation.value.city,
-          province: addressValidation.value.province,
-          postalCode: addressValidation.value.postalCode,
-        }),
+        // shippingAddressMetadataValue hard-guarantees the value fits
+        // Stripe's 500-char metadata cap (an over-long value would make
+        // session creation throw after the customer filled the form).
+        shipping_address: shippingAddressMetadataValue(shippingAddress),
       };
       sessionParams.success_url = `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}&shipping=${shippingCents}`;
     }

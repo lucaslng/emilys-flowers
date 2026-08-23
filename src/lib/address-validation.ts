@@ -132,3 +132,131 @@ export function validateDeliveryAddressFields(
 function isKnownProvince(value: string): boolean {
   return CA_PROVINCES.includes(value.toUpperCase() as CaProvince);
 }
+
+// --- Truncation (Stripe metadata 500-char cap) ---
+
+/**
+ * Stripe caps every Checkout Session metadata VALUE at 500 characters; an
+ * over-long value makes session creation throw AFTER the customer filled the
+ * form. These per-field caps bound the worst case: fully-filled fields
+ * serialize to ≈349 characters plus ≈85 characters of JSON overhead — under
+ * the cap with margin. The client form enforces them via `maxLength`; the
+ * server clamps again (never trust the client).
+ */
+export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
+
+export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
+  name: 80,
+  line1: 120,
+  line2: 80,
+  city: 60,
+  province: 2,
+  postalCode: 7,
+};
+
+/**
+ * Structural address shape for truncation. Deliberately local — NOT imported
+ * from `@/lib/chitchats`, because `chitchats.ts` already imports THIS module
+ * and an import back would create a cycle.
+ */
+interface ValidatedDeliveryAddress {
+  name: string;
+  line1: string;
+  /** Apartment/unit line — optional. */
+  line2?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+}
+
+/**
+ * Clamp an ALREADY-VALIDATED address (fields trimmed upstream) to
+ * `ADDRESS_FIELD_MAX_LENGTHS`. Pure: a valid address comes back byte-identical.
+ */
+export function truncateDeliveryAddress(
+  address: ValidatedDeliveryAddress
+): ValidatedDeliveryAddress {
+  const clamp = (field: AddressFieldName, value: string) =>
+    value.slice(0, ADDRESS_FIELD_MAX_LENGTHS[field]);
+  return {
+    name: clamp('name', address.name),
+    line1: clamp('line1', address.line1),
+    // `line2` is optional — preserve absence instead of materializing ''.
+    ...(address.line2 === undefined
+      ? {}
+      : { line2: clamp('line2', address.line2) }),
+    city: clamp('city', address.city),
+    province: clamp('province', address.province),
+    postalCode: clamp('postalCode', address.postalCode),
+  };
+}
+
+const METADATA_ADDRESS_FIELDS = [
+  'name',
+  'line1',
+  'city',
+  'province',
+  'postalCode',
+] as const satisfies readonly Exclude<AddressFieldName, 'line2'>[];
+
+function serializeShippingAddress(address: ValidatedDeliveryAddress): string {
+  return JSON.stringify({
+    name: address.name,
+    line1: address.line1,
+    line2: address.line2,
+    city: address.city,
+    province: address.province,
+    postalCode: address.postalCode,
+  });
+}
+
+/**
+ * Serialize the delivery address for the `shipping_address` session metadata,
+ * HARD-guaranteed to fit Stripe's 500-character metadata VALUE cap (an
+ * over-long value makes session creation throw after the customer filled the
+ * form). Per-field truncation normally suffices, but JSON escape inflation
+ * (each quote/backslash/control char doubles) can still push the serialized
+ * form over the cap — so as a last resort drop the optional `line2`, then
+ * deterministically shorten the longest remaining field until it fits.
+ */
+export function shippingAddressMetadataValue(
+  address: ValidatedDeliveryAddress
+): string {
+  const truncated = truncateDeliveryAddress(address);
+
+  let value = serializeShippingAddress(truncated);
+  if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+
+  // Escape inflation: drop the optional apartment/unit line and retry.
+  const { line2: _line2, ...withoutLine2 } = truncated;
+  value = serializeShippingAddress(withoutLine2);
+  if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+
+  // Still over: shorten the longest field by the overflow amount each pass.
+  // Removing one raw character shrinks the serialized form by 1–2 characters
+  // (escape pairs), so cutting `overflow` raw characters always makes
+  // progress — the loop terminates.
+  const current: Record<(typeof METADATA_ADDRESS_FIELDS)[number], string> = {
+    name: withoutLine2.name,
+    line1: withoutLine2.line1,
+    city: withoutLine2.city,
+    province: withoutLine2.province,
+    postalCode: withoutLine2.postalCode,
+  };
+  while (true) {
+    value = serializeShippingAddress(current);
+    if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+    let longest: (typeof METADATA_ADDRESS_FIELDS)[number] | null = null;
+    for (const field of METADATA_ADDRESS_FIELDS) {
+      if (longest === null || current[field].length > current[longest].length) {
+        longest = field;
+      }
+    }
+    if (longest === null || current[longest].length === 0) return value;
+    const overflow = value.length - STRIPE_METADATA_VALUE_MAX_LENGTH;
+    current[longest] = current[longest].slice(
+      0,
+      Math.max(0, current[longest].length - overflow)
+    );
+  }
+}

@@ -6,11 +6,15 @@
 
 import { test, expect, describe } from 'bun:test';
 import {
+  ADDRESS_FIELD_MAX_LENGTHS,
   ADDRESS_FIELD_MESSAGES,
   CA_POSTAL_CODE_REGEX,
   CA_PROVINCES,
+  STRIPE_METADATA_VALUE_MAX_LENGTH,
   isValidCAPostalCode,
   normalizeCAPostalCode,
+  shippingAddressMetadataValue,
+  truncateDeliveryAddress,
   validateDeliveryAddressFields,
 } from '@/lib/address-validation';
 
@@ -199,5 +203,159 @@ describe('validateDeliveryAddressFields', () => {
     expect(CA_PROVINCES).toEqual([
       'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT',
     ]);
+  });
+});
+
+describe('ADDRESS_FIELD_MAX_LENGTHS', () => {
+  test('exports a cap for every address field', () => {
+    expect(Object.keys(ADDRESS_FIELD_MAX_LENGTHS).sort()).toEqual(
+      ['city', 'line1', 'line2', 'name', 'postalCode', 'province'].sort()
+    );
+  });
+
+  test('caps are sane: province/postalCode tight, free-text fields roomy, all positive integers', () => {
+    expect(ADDRESS_FIELD_MAX_LENGTHS).toEqual({
+      name: 80,
+      line1: 120,
+      line2: 80,
+      city: 60,
+      province: 2,
+      postalCode: 7,
+    });
+    for (const cap of Object.values(ADDRESS_FIELD_MAX_LENGTHS)) {
+      expect(Number.isInteger(cap)).toBe(true);
+      expect(cap).toBeGreaterThan(0);
+    }
+  });
+
+  test('fully-filled worst case stays under the Stripe metadata value cap with margin', () => {
+    const worstCase = Object.fromEntries(
+      Object.entries(ADDRESS_FIELD_MAX_LENGTHS).map(([field, cap]) => [
+        field,
+        'x'.repeat(cap),
+      ])
+    );
+    // Sanity: the raw JSON of the capped fields must fit — that's the whole
+    // point of these caps (issue #178).
+    expect(JSON.stringify(worstCase).length).toBeLessThan(
+      STRIPE_METADATA_VALUE_MAX_LENGTH
+    );
+  });
+});
+
+describe('truncateDeliveryAddress', () => {
+  const validAddress = {
+    name: 'Ada Lovelace',
+    line1: '1 Analytical Way',
+    line2: 'Apt 4',
+    city: 'Toronto',
+    province: 'ON',
+    postalCode: 'M5V 2T6',
+  };
+
+  test('leaves an already-valid address byte-identical', () => {
+    expect(truncateDeliveryAddress(validAddress)).toEqual(validAddress);
+  });
+
+  test('clamps every over-long field to its cap', () => {
+    const overLong = {
+      name: 'N'.repeat(200),
+      line1: 'L'.repeat(300),
+      line2: 'A'.repeat(150),
+      city: 'C'.repeat(120),
+      province: 'ONTOARIO',
+      postalCode: 'M5V 2T6X',
+    };
+    const truncated = truncateDeliveryAddress(overLong);
+    expect(truncated.name).toBe('N'.repeat(ADDRESS_FIELD_MAX_LENGTHS.name));
+    expect(truncated.line1).toBe('L'.repeat(ADDRESS_FIELD_MAX_LENGTHS.line1));
+    expect(truncated.line2).toBe('A'.repeat(ADDRESS_FIELD_MAX_LENGTHS.line2));
+    expect(truncated.city).toBe('C'.repeat(ADDRESS_FIELD_MAX_LENGTHS.city));
+    expect(truncated.province).toBe('ON');
+    expect(truncated.postalCode).toBe('M5V 2T6');
+  });
+
+  test('preserves line2 absence (optional field stays absent)', () => {
+    const { line2: _line2, ...withoutLine2 } = validAddress;
+    const truncated = truncateDeliveryAddress(withoutLine2);
+    expect('line2' in truncated ? truncated.line2 : undefined).toBeUndefined();
+  });
+
+  test('is deterministic', () => {
+    expect(truncateDeliveryAddress(validAddress)).toEqual(
+      truncateDeliveryAddress(validAddress)
+    );
+  });
+});
+
+describe('shippingAddressMetadataValue', () => {
+  const validAddress = {
+    name: 'Ada Lovelace',
+    line1: '1 Analytical Way',
+    line2: 'Apt 4',
+    city: 'Toronto',
+    province: 'ON',
+    postalCode: 'M5V 2T6',
+  };
+
+  test('normal case round-trips all six keys as JSON', () => {
+    const value = shippingAddressMetadataValue(validAddress);
+    expect(value.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
+    expect(JSON.parse(value)).toEqual(validAddress);
+  });
+
+  test('always fits the Stripe metadata value cap — pathological escape inflation included', () => {
+    // Every field filled with quote characters: each one doubles in the JSON
+    // serialization (`"` → `\"`), pushing far past what per-field truncation
+    // alone can guarantee.
+    const pathological = {
+      name: '"'.repeat(200),
+      line1: '"'.repeat(200),
+      line2: '"'.repeat(200),
+      city: '"'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+    const value = shippingAddressMetadataValue(pathological);
+    expect(value.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
+    // The hard guarantee must not come at the cost of validity.
+    expect(() => JSON.parse(value)).not.toThrow();
+    expect(typeof JSON.parse(value)).toBe('object');
+  });
+
+  test('backslash-heavy input also stays under the cap and parses', () => {
+    const backslashes = {
+      name: '\\'.repeat(200),
+      line1: '\\'.repeat(200),
+      city: '\\'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+    const value = shippingAddressMetadataValue(backslashes);
+    expect(value.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
+    expect(() => JSON.parse(value)).not.toThrow();
+  });
+
+  test('over-long fields are clamped before serialization', () => {
+    const value = shippingAddressMetadataValue({
+      ...validAddress,
+      name: 'N'.repeat(500),
+    });
+    const parsed = JSON.parse(value) as { name: string };
+    expect(parsed.name).toBe('N'.repeat(ADDRESS_FIELD_MAX_LENGTHS.name));
+  });
+
+  test('is deterministic', () => {
+    const pathological = {
+      name: '"'.repeat(200),
+      line1: '"'.repeat(200),
+      line2: '"'.repeat(200),
+      city: '"'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+    expect(shippingAddressMetadataValue(pathological)).toBe(
+      shippingAddressMetadataValue(pathological)
+    );
   });
 });
