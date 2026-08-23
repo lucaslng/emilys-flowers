@@ -12,6 +12,9 @@
 //
 // customer_details and metadata are NEVER returned — the browser must not
 // learn the customer's contact details or the shipment/address metadata.
+//
+// A format-valid id Stripe doesn't know maps to 404 (missing resource), not
+// 500 — other Stripe failures stay 500.
 // `image` is always a same-origin path (build-time manifest or placeholder).
 
 import { NextResponse } from 'next/server';
@@ -85,12 +88,26 @@ export async function GET(request: Request) {
       orderNumber: session.metadata?.order_number ?? '',
     });
   } catch (error) {
+    // A format-valid id Stripe doesn't know (expired, other key, or crafted)
+    // is a missing resource, not a server fault — answer 404 so clients get
+    // correct semantics and we don't log phantom 5s.
+    if (isStripeResourceMissing(error)) {
+      return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+    }
     console.error('[CheckoutSession] Error:', error);
     return NextResponse.json(
       { error: 'Could not retrieve your order.' },
       { status: 500 }
     );
   }
+}
+
+/** True when Stripe reports the requested resource does not exist. */
+function isStripeResourceMissing(error: unknown): boolean {
+  return (
+    error instanceof Stripe.errors.StripeInvalidRequestError &&
+    error.code === 'resource_missing'
+  );
 }
 
 /**

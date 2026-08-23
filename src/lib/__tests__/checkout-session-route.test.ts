@@ -171,6 +171,26 @@ describe('GET /api/checkout/session', () => {
     );
   });
 
+  test('returns 404 when Stripe reports the session as missing', async () => {
+    orderEmailMocks.retrieveShouldThrowResourceMissing = true;
+    const errors: unknown[][] = [];
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      errors.push(args);
+    };
+
+    try {
+      const response = await GET(sessionRequest('cs_test_abc123'));
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ error: 'Order not found.' });
+      // A missing resource must not be logged as a server error.
+      expect(errors).toHaveLength(0);
+    } finally {
+      console.error = originalConsoleError;
+    }
+  });
+
   test('rate limiter allows the request through and keys it by IP', async () => {
     const request = new Request(
       'http://localhost/api/checkout/session?session_id=cs_test_abc123',
