@@ -165,7 +165,12 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   (the update replaces the whole map, so the current keys are spread in). The
   page reloads after a ~1s success message. The route is **idempotent**: if
   `metadata.shipped_at` already exists it returns 200 without sending a
-  duplicate shipped email (duplicate submits are a benign no-op).
+  duplicate shipped email (duplicate submits are a benign no-op). If the
+  metadata stamp itself fails, the route returns
+  `500 { error, emailSent: true }` instead of swallowing the error — the form
+  surfaces the server's message verbatim. Resubmitting within 24 hours is
+  deduped by the `shipped-${sessionId}` email idempotency key and retries the
+  stamp; after 24 hours a resubmit risks a duplicate shipped email.
 
 ### OIDC setup
 

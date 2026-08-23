@@ -170,10 +170,11 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     const body = await response.json();
     expect(body.emailSent).toBe(true);
     expect(typeof body.error).toBe('string');
-    // The message must warn that the email already went out so the admin
-    // does not blindly resubmit and duplicate it.
+    // The message must spell out the retry semantics: the email already went
+    // out, resubmitting within 24h is deduped, after 24h it risks a duplicate.
     expect(body.error).toMatch(/already/i);
-    expect(body.error).toMatch(/do not resubmit/i);
+    expect(body.error).toMatch(/24 hours/i);
+    expect(body.error).toMatch(/duplicate/i);
     // The email itself was still delivered exactly once.
     expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
   });
