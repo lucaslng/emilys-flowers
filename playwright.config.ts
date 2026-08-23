@@ -1,12 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // The product catalog is fetched from Stripe at build time, so the E2E build
-// needs a test key (STRIPE_SECRET_KEY). The served app runs with an empty
-// key so /api/checkout stays in simulated-success mode and never hits the real
-// Stripe API. Next.js does not override an existing env var (even an empty one)
-// with .env values, so the empty prefix on `start` forces `!secretKey` →
-// simulated path.
-const buildKey = process.env.STRIPE_SECRET_KEY ?? "";
+// needs a key (STRIPE_SECRET_KEY): taken from the invoking environment when
+// exported (CI), otherwise left to Next.js's own `.env` loading. The prefix
+// must be omitted entirely when absent — an empty `STRIPE_SECRET_KEY=` would
+// shadow `.env` (Next.js does not override existing vars, even empty ones).
+// The served app never hits the real Stripe API: E2E specs intercept both
+// checkout network hops with page.route() — POST /api/checkout and
+// GET /api/checkout/session are fulfilled with fixtures — so runtime
+// credentials are irrelevant.
+const buildPrefix =
+  process.env.STRIPE_SECRET_KEY !== undefined
+    ? `STRIPE_SECRET_KEY=${process.env.STRIPE_SECRET_KEY} `
+    : "";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,7 +29,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: `STRIPE_SECRET_KEY=${buildKey} bun run build && STRIPE_SECRET_KEY= bun run start`,
+    command: `${buildPrefix}bun run build && bun run start`,
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

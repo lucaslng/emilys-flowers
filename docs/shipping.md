@@ -97,9 +97,9 @@ and the admin "Ship to:" line now that Stripe no longer collects the address
 `mapCheckoutSessionToConfirmation` parses it (guarded with try/catch → null)
 and the admin page formats it with `formatMetadataShippingAddress`.
 
-The success URL also gains `&shipping=<cents>` so the receipt shows the real
-rate; the success page falls back to `computeShipping(subtotal)` when the
-param is absent (simulated checkout / legacy URLs).
+Success URLs carry no shipping amount — the receipt's shipping comes from
+`GET /api/checkout/session` (the sanitized Stripe projection), so nothing
+displayed can be altered by hand-editing the URL.
 
 ## Admin "View shipment" button
 
@@ -116,9 +116,10 @@ via `shipmentDashboardUrl` in `src/lib/chitchats.ts` — plus a small muted
 - **`STRIPE_SECRET_KEY` present, ChitChats not configured:** the route behaves
   exactly as before — a session with no `shipping_options`, no address
   required, no `shipping_address` metadata. (This is the pre-ChitChats
-  behavior; the old flat-rate `computeShipping` is still used by the success
-  page fallback only.)
-- **No `STRIPE_SECRET_KEY`:** simulated success URL (unchanged).
+  behavior; the old flat-rate `computeShipping` remains only as the success
+  page's defensive fallback for a missing receipt field.)
+- **No `STRIPE_SECRET_KEY`:** the route returns `503 { error: 'Stripe is not
+  configured.' }` — there is no simulated path.
 
 ## Manual postage purchase
 

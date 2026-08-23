@@ -1,20 +1,12 @@
 // order.ts
 //
 // The Order-line module: the single home for the flat line-item shape, the
-// order/cart math that operates on it, the base64url encoding used by the
-// checkout success URL, and checkout payload validation.
+// order/cart math that operates on it, and checkout payload validation.
 //
 // Both the server (the `/api/checkout` route, which runs on Cloudflare Workers)
 // and the client (the `/checkout` and `/checkout/success` pages, plus the cart
 // context) import these, so the helpers must be isomorphic — no Node-only
-// `Buffer`, no DOM-only types. `btoa`/`atob` are available globally in browsers,
-// Cloudflare Workers, and bun.
-//
-// The encoding is base64url (URL-safe: `-` and `_` instead of `+` and `/`, no
-// padding `=`) so it can be dropped into a query string without further
-// `encodeURIComponent`. Product names are ASCII today, but the UTF-8-safe
-// `unescape(encodeURIComponent(...))` / `decodeURIComponent(escape(...))` trick
-// is used so future non-ASCII names round-trip correctly.
+// `Buffer`, no DOM-only types.
 
 export interface LineItem {
   id: string;
@@ -96,60 +88,8 @@ export function validateCheckoutItems(items: unknown): LineItemsValidation {
 }
 
 // --- Encoding ---
-
-/**
- * Encode a list of line items as a base64url string suitable for a URL
- * query param. Returns the base64url string (no padding).
- */
-export function encodeOrderItems(items: LineItem[]): string {
-  const json = JSON.stringify(items);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/**
- * Decode a base64url-encoded `LineItem[]`. Returns `[]` for any malformed
- * input or if the decoded JSON isn't a valid array of line items — never throws.
- */
-export function decodeOrderItems(encoded: string): LineItem[] {
-  if (!encoded) return [];
-  try {
-    const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const json = decodeURIComponent(escape(atob(b64)));
-    const parsed: unknown = JSON.parse(json);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isLineItem);
-  } catch {
-    return [];
-  }
-}
-
-function isLineItem(v: unknown): v is LineItem {
-  if (typeof v !== 'object' || v === null) return false;
-  const o = v as Record<string, unknown>;
-  // Mirrors the semantic checks enforced at the checkout boundary
-  // (`validateCheckoutItems`) so the success-page receipt can never surface
-  // items that boundary would reject (empty ids/names, zero/negative/
-  // non-integer prices or quantities, over-cap quantities).
-  const categoryOk =
-    o.category === undefined ||
-    o.category === 'flower' ||
-    o.category === 'bouquet';
-  return (
-    typeof o.id === 'string' &&
-    o.id.trim() !== '' &&
-    typeof o.name === 'string' &&
-    o.name.trim() !== '' &&
-    typeof o.price === 'number' &&
-    Number.isInteger(o.price) &&
-    o.price > 0 &&
-    typeof o.quantity === 'number' &&
-    Number.isInteger(o.quantity) &&
-    o.quantity > 0 &&
-    o.quantity <= MAX_LINE_ITEM_QUANTITY &&
-    categoryOk
-  );
-}
+// (removed — success URLs carry no product data; receipts come from
+// GET /api/checkout/session)
 
 /**
  * Generate the human-friendly order number shown to customers, e.g.

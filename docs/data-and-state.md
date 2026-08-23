@@ -84,5 +84,5 @@ Real checkout success URLs carry only `session_id={CHECKOUT_SESSION_ID}`; the
 success page fetches its receipt from `GET /api/checkout/session`, which
 format-checks the id before calling Stripe and returns a sanitized projection
 (`items/subtotal/shipping/total/orderNumber` — never customer_details or
-metadata). The no-key simulated path keeps the legacy `items=` URL param for
-local dev/E2E synthetic URLs.
+metadata). There is no simulated path: success URLs carry no product data, so
+nothing displayed can be altered by hand-editing the URL.

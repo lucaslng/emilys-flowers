@@ -167,11 +167,25 @@ test.describe("WCAG 2.2 AA automated scans", () => {
   });
 
   test("checkout success page (real success state) has no WCAG 2.2 AA violations", async ({ page }) => {
-    // Replicate the valid success URL from checkout.spec.ts (Buffer base64url
-    // order/items params) so the scan covers the real rendered receipt.
-    const items = [{ id: "aurora-bloom", name: "Aurora Bloom", price: 7999, quantity: 2 }];
-    const encoded = Buffer.from(JSON.stringify(items)).toString("base64url");
-    await page.goto(`/checkout/success?success=true&order=EF-TEST&items=${encoded}`);
+    // Intercept the receipt retrieval and navigate via the real success-URL
+    // shape (session_id only, no product data) so the scan covers the real
+    // rendered receipt.
+    await page.route(/\/api\/checkout\/session/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          items: [{ name: "Aurora Bloom", quantity: 2, unitAmount: 7999 }],
+          subtotal: 15998,
+          shipping: 0,
+          total: 15998,
+          orderNumber: "EF-TEST",
+        }),
+      })
+    );
+    await page.goto(
+      `/checkout/success?success=true&order=EF-TEST&session_id=cs_test_123`
+    );
 
     // The success page mounts its content client-side inside <Suspense>.
     await expect(page.getByRole("heading", { name: "Thank you for your order" })).toBeVisible();

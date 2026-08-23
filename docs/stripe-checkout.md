@@ -9,9 +9,9 @@
 
 The checkout route at `src/app/api/checkout/route.ts` creates a **real**
 Stripe Checkout Session when `STRIPE_SECRET_KEY` is set. When the key is
-absent (e.g. local dev without a `.env.local`), it falls back to a simulated
-success URL so `bun run dev` still works without keys. No money moves in the
-fallback.
+absent it fails closed with a `503 { error: 'Stripe is not configured.' }` —
+there is no simulated checkout path. Local dev needs a test key in `.env`
+(the build-time catalog fetch requires one anyway).
 
 ## Versions
 
@@ -47,10 +47,9 @@ export async function POST(request: Request) {
 
   const secretKey = process.env.STRIPE_SECRET_KEY
 
-  // No key configured — simulate success instead of crashing (dev/E2E only;
-  // keeps the legacy items= URL param for synthetic success URLs).
+  // No key configured — fail closed (503). There is no simulated path.
   if (!secretKey) {
-    return NextResponse.json({ url: `${origin}/checkout/success?...&items=...` })
+    return NextResponse.json({ error: 'Stripe is not configured.' }, { status: 503 })
   }
 
   // Resolve productIds against the live Stripe catalog (module-memoized).

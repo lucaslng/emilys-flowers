@@ -1,7 +1,5 @@
 import { test, expect, describe } from 'bun:test';
 import {
-  encodeOrderItems,
-  decodeOrderItems,
   generateOrderNumber,
   computeLineItemTotal,
   computeLineItemCount,
@@ -10,137 +8,6 @@ import {
   MAX_LINE_ITEM_QUANTITY,
   type LineItem,
 } from '@/lib/order';
-
-describe('encodeOrderItems / decodeOrderItems', () => {
-  test('round-trips a list of line items', () => {
-    const items: LineItem[] = [
-      { id: 'blush-romance', name: 'Blush Romance Bouquet', price: 8999, quantity: 1 },
-      { id: 'ribbon-rose', name: 'Ribbon Rose', price: 2499, quantity: 2 },
-    ];
-    const encoded = encodeOrderItems(items);
-    const decoded = decodeOrderItems(encoded);
-    expect(decoded).toEqual(items);
-  });
-
-  test('round-trips a single item', () => {
-    const items: LineItem[] = [
-      { id: 'x', name: 'X', price: 100, quantity: 1 },
-    ];
-    expect(decodeOrderItems(encodeOrderItems(items))).toEqual(items);
-  });
-
-  test('round-trips an empty array', () => {
-    const encoded = encodeOrderItems([]);
-    expect(decodeOrderItems(encoded)).toEqual([]);
-  });
-
-  test('encoded output is base64url (no +, /, =)', () => {
-    const items: LineItem[] = [
-      { id: 'a', name: 'a?b/c+d=', price: 1, quantity: 1 },
-    ];
-    const encoded = encodeOrderItems(items);
-    expect(encoded).not.toContain('+');
-    expect(encoded).not.toContain('/');
-    expect(encoded).not.toContain('=');
-  });
-
-  test('round-trips names with non-ASCII characters', () => {
-    const items: LineItem[] = [
-      { id: 'p', name: 'Fleur d’amour — café', price: 1999, quantity: 3 },
-    ];
-    expect(decodeOrderItems(encodeOrderItems(items))).toEqual(items);
-  });
-
-  test('returns [] for empty input', () => {
-    expect(decodeOrderItems('')).toEqual([]);
-  });
-
-  test('returns [] for malformed base64', () => {
-    expect(decodeOrderItems('not-valid-base64!!!')).toEqual([]);
-  });
-
-  test('returns [] for valid base64 of non-array JSON', () => {
-    const b64 = btoa(unescape(encodeURIComponent('"hello"')));
-    expect(decodeOrderItems(b64)).toEqual([]);
-  });
-
-  test('returns [] for valid base64 of a JSON object', () => {
-    const b64 = btoa(unescape(encodeURIComponent('{"id":"x"}')));
-    expect(decodeOrderItems(b64)).toEqual([]);
-  });
-
-  test('filters out items with wrong shape, keeps valid ones', () => {
-    const payload = JSON.stringify([
-      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
-      { id: 'no-price', name: 'NoPrice', quantity: 1 },
-      'not-an-object',
-      null,
-      { id: 'bad-name', name: 42, price: 100, quantity: 1 },
-    ]);
-    const b64 = btoa(unescape(encodeURIComponent(payload)));
-    const decoded = decodeOrderItems(b64);
-    expect(decoded).toHaveLength(1);
-    expect(decoded[0].id).toBe('ok');
-  });
-
-  test('filters out array and number entries', () => {
-    const payload = JSON.stringify([
-      ['x'],
-      42,
-      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
-    ]);
-    const b64 = btoa(unescape(encodeURIComponent(payload)));
-    expect(decodeOrderItems(b64)).toEqual([
-      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
-    ]);
-  });
-
-  // Regression: the decode schema must mirror the semantic checks enforced at
-  // the checkout boundary (`validateCheckoutItems`) so a crafted `items` URL
-  // param can never surface negative, fractional, zero, or blank line items in
-  // the success-page receipt.
-  const invalidItems: Array<[string, unknown]> = [
-    ['negative price', { id: 'x', name: 'X', price: -500, quantity: 1 }],
-    ['zero price', { id: 'x', name: 'X', price: 0, quantity: 1 }],
-    ['non-integer price', { id: 'x', name: 'X', price: 24.99, quantity: 1 }],
-    ['negative quantity', { id: 'x', name: 'X', price: 100, quantity: -3 }],
-    ['zero quantity', { id: 'x', name: 'X', price: 100, quantity: 0 }],
-    ['non-integer quantity', { id: 'x', name: 'X', price: 100, quantity: 1.5 }],
-    ['empty id', { id: '', name: 'X', price: 100, quantity: 1 }],
-    ['whitespace id', { id: '  ', name: 'X', price: 100, quantity: 1 }],
-    ['empty name', { id: 'x', name: '', price: 100, quantity: 1 }],
-    ['whitespace name', { id: 'x', name: '   ', price: 100, quantity: 1 }],
-  ];
-  for (const [label, item] of invalidItems) {
-    test(`drops item with ${label}`, () => {
-      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify([item]))));
-      expect(decodeOrderItems(b64)).toEqual([]);
-    });
-  }
-
-  test('keeps only valid items when a payload mixes valid and lax ones', () => {
-    const payload = JSON.stringify([
-      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
-      { id: 'bad', name: 'Bad', price: -1, quantity: 1 },
-    ]);
-    const b64 = btoa(unescape(encodeURIComponent(payload)));
-    expect(decodeOrderItems(b64)).toEqual([
-      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
-    ]);
-  });
-
-  // Pins the simulated-checkout behavior: the no-key path emits an `items=`
-  // URL param carrying the {productId, quantity} wire shape, which lacks
-  // id/name/price and therefore decodes to [] — i.e. the simulated success
-  // page renders the generic confirmation WITHOUT an itemized receipt.
-  test('yields [] for a simulated-mode {productId, quantity} payload (no itemized receipt)', () => {
-    const payload = JSON.stringify([
-      { productId: 'prod_rose', quantity: 2 },
-    ]);
-    const b64 = btoa(unescape(encodeURIComponent(payload)));
-    expect(decodeOrderItems(b64)).toEqual([]);
-  });
-});
 
 describe('generateOrderNumber', () => {
   test('produces EF-XXXXXX format', () => {
@@ -231,16 +98,6 @@ describe('computeShipping', () => {
 
   test('14999 cents -> 0', () => {
     expect(computeShipping(14999)).toBe(0);
-  });
-});
-
-describe('decodeOrderItems quantity cap', () => {
-  test('drops over-cap items (mirrors the checkout boundary cap)', () => {
-    const payload = JSON.stringify([
-      { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY + 1 },
-    ]);
-    const b64 = btoa(unescape(encodeURIComponent(payload)));
-    expect(decodeOrderItems(b64)).toEqual([]);
   });
 });
 

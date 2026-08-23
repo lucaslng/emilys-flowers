@@ -36,7 +36,7 @@ writing code that touches any of these areas.
 | Doc | When to read |
 |---|---|
 | [deployment.md](./deployment.md) | Before touching `wrangler.jsonc`, `open-next.config.ts`, `deploy.yml`/`test.yml`, Flagship flags, or secrets. Covers the two-worker model, build-time Flagship flags, CI/CD, GitHub Secrets, and the `--keep-vars` requirement. |
-| [testing.md](./testing.md) | Before adding or modifying tests. Covers `bun test` unit tests, Playwright E2E (simulated checkout mode), axe-core WCAG 2.2 AA scans, and runner separation. |
+| [testing.md](./testing.md) | Before adding or modifying tests. Covers `bun test` unit tests, Playwright E2E (intercepted checkout APIs), axe-core WCAG 2.2 AA scans, and runner separation. |
 | [data-and-state.md](./data-and-state.md) | Before touching product data, the cart, prices, or order math. Covers the Stripe catalog fetch, integer-cents prices, cart context, and `src/lib/order.ts` helpers. |
 | [nextjs-and-react.md](./nextjs-and-react.md) | Before touching routes, layouts, data fetching, metadata, route handlers, or React hooks/components. Covers Next.js 16 + React 19 breaking changes. |
 | [tailwind-and-styling.md](./tailwind-and-styling.md) | Before editing styles, theme tokens, `globals.css`, or adding visual components. Covers Tailwind v4 CSS-first config and the warm gift-tag card language. |
@@ -61,4 +61,4 @@ writing code that touches any of these areas.
 - **Cart** is React Context + `useReducer` in `src/lib/cart-context.tsx`,
   persisted to `localStorage` key `emilys-flowers-cart`.
 - **Stripe** creates real Checkout Sessions when `STRIPE_SECRET_KEY` is set
-  (live or test mode); falls back to a simulated success URL when absent.
+  (live or test mode); returns 503 when absent — there is no simulated path.
