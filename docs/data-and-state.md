@@ -76,8 +76,11 @@ to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount).
 
 The checkout client POSTs only `{productId, quantity}` pairs (plus the address)
 to `/api/checkout` — never names or prices. The route validates the wire shape
-with `validateCheckoutItems` (`src/lib/order.ts`: non-empty array, non-empty
-`productId`, positive-integer quantity capped at 99) and then resolves every
+with `validateCheckoutItems` (`src/lib/order.ts`: non-empty array of at most 20
+lines, non-empty `productId`, positive-integer quantity capped at 99), merges
+duplicate `productId`s server-side (`mergeCheckoutItems`, quantities summed)
+and re-validates so a merged line still respects the per-line cap, then
+resolves every
 `productId` against the **live Stripe catalog** via `getCatalogIndex()`
 (`src/lib/catalog-index.ts`): a pure, Workers-safe index of product id →
 `{priceId, name, unitAmount}` fetched with `products.list({active: true,
