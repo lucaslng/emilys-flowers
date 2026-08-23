@@ -151,8 +151,8 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
   });
 
   test('returns 401 when the session groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
-    // Validly signed with the correct secret, but the bearer was removed from
-    // every allowed group — per-request group enforcement must reject it.
+    // Validly signed with the correct secret, but its groups claim doesn't
+    // intersect the allowlist — per-request group enforcement must reject it.
     const revokedCookie = `admin_session=${await new SignJWT({
       sub: 'admin-1',
       groups: ['some-other-group'],

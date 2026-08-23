@@ -305,9 +305,11 @@ export async function createSessionToken(
 /**
  * Verifies the `admin_session` JWT against `ADMIN_SESSION_SECRET` and
  * re-checks the token's `groups` claim against the CURRENT
- * `ADMIN_OIDC_GROUPS` allowlist on every call — so removing a user from the
- * IdP admin group revokes their session immediately, without waiting out the
- * 8h TTL. Fails closed when the allowlist is unset/empty.
+ * `ADMIN_OIDC_GROUPS` allowlist on every call — so removing a group from
+ * the allowlist revokes existing sessions on their next request, without
+ * waiting out the 8h TTL. The claim itself is baked into the JWT at login,
+ * so removal on the IdP side still waits out the TTL.
+ * Fails closed when the allowlist is unset/empty.
  * Returns `null` on any failure (missing/malformed/expired/bad signature/
  * no longer in an allowed group).
  */
@@ -326,7 +328,8 @@ export async function verifySessionToken(
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     if (typeof payload.sub !== 'string') return null;
     // Group membership was baked into the JWT at login; re-check it against
-    // the live allowlist each request so revocation doesn't wait for expiry.
+    // the live allowlist each request so allowlist changes take effect
+    // before expiry.
     if (
       !isAllowedByGroups(
         payload as Record<string, unknown>,

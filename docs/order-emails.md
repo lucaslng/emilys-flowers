@@ -151,8 +151,10 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
   `GET /api/admin/logout` clears the cookie. The page and the ship route
   verify the `admin_session` JWT and re-check it against
-  `ADMIN_OIDC_GROUPS` on every request, so removing a user from the IdP
-  admin group revokes their session immediately rather than at next login.
+  `ADMIN_OIDC_GROUPS` on every request, so removing a group from the
+  allowlist revokes existing sessions immediately. Removing a user from the
+  IdP admin group still waits out the 8h session TTL — the `groups` claim is
+  baked into the JWT at login.
 - Order list: latest 25 paid Checkout Sessions (`expand: ['data.line_items']`),
   filtered to `payment_status === 'paid'`, sorted newest first. Each card
   shows the order number (`metadata.order_number`, falling back to the session
