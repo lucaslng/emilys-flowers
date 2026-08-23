@@ -34,6 +34,17 @@ async function settlePage(page: Page) {
     return !el || getComputedStyle(el).opacity === "1";
   });
 
+  // GSAP/ScrollTrigger only registers the reveals once React hydrates. Under
+  // CI load hydration can land *after* the scroll loop below has already run,
+  // leaving every below-the-fold reveal untriggered (opacity 0) and the final
+  // wait polling forever. Wait until at least one reveal root carries
+  // GSAP-written inline styles (or no reveal roots exist) before scrolling.
+  await page.waitForFunction(() => {
+    const roots = document.querySelectorAll(".reveal-init, [data-reveal]");
+    if (roots.length === 0) return true;
+    return Array.from(roots).some((el) => el.getAttribute("style") !== null);
+  });
+
   // Trigger all ScrollTrigger reveals by scrolling down in steps with pauses
   // (a single instant jump to the bottom misses mid-page reveals), then
   // return to the top so the page is in a scannable state.
@@ -63,6 +74,9 @@ async function settlePage(page: Page) {
       }
       return targets.every((el) => getComputedStyle(el).opacity === "1");
     },
+    // Second arg is `arg` (passed to the callback), not options — pass
+    // undefined so the timeout below is applied as options.
+    undefined,
     { timeout: 5_000 }
   );
 }
