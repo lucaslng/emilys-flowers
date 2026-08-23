@@ -87,10 +87,6 @@ export function validateCheckoutItems(items: unknown): LineItemsValidation {
   return { ok: true };
 }
 
-// --- Encoding ---
-// (removed — success URLs carry no product data; receipts come from
-// GET /api/checkout/session)
-
 /**
  * Generate the human-friendly order number shown to customers, e.g.
  * "EF-7Q3K9M". Uses an unambiguous alphabet (no I, O, 0, 1, L). Used by the

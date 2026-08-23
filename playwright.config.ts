@@ -1,15 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// E2E builds are pinned deterministic: FLOWERS_ENABLED/UNDER_CONSTRUCTION
-// bypass next.config.ts's live Flagship evaluation, which would otherwise run
-// whenever a developer's .env carries real credentials. The product catalog
-// still needs STRIPE_SECRET_KEY at build time — taken from the invoking
-// environment when exported (CI), otherwise left to Next.js's own `.env`
-// loading (an empty `STRIPE_SECRET_KEY=` prefix would shadow `.env`; Next.js
-// does not override existing vars, even empty ones). The served app never
-// hits the real Stripe API: E2E specs intercept both checkout network hops
-// with page.route() — POST /api/checkout and GET /api/checkout/session are
-// fulfilled with fixtures — so runtime credentials are irrelevant.
+// Pinned deterministic build: FLOWERS_ENABLED/UNDER_CONSTRUCTION bypass the
+// live Flagship evaluation. The Stripe key prefix is conditional — an empty
+// `STRIPE_SECRET_KEY=` would shadow `.env` (Next.js doesn't override existing
+// vars). Specs intercept both checkout APIs via page.route(): no real calls.
 const stripePrefix =
   process.env.STRIPE_SECRET_KEY !== undefined &&
   process.env.STRIPE_SECRET_KEY !== ""

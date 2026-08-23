@@ -46,10 +46,7 @@ export async function POST(request: Request) {
 
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      // No secret key configured: fail closed with a clear 503 instead of
-      // simulating a checkout. There is no simulated success path — the
-      // receipt comes only from GET /api/checkout/session, which 503s the
-      // same way when Stripe is unconfigured.
+      // Fail closed when unconfigured — there is no simulated path.
       console.error(
         '[Checkout] STRIPE_SECRET_KEY is not set; cannot create a checkout session.'
       );
@@ -107,10 +104,8 @@ export async function POST(request: Request) {
         price: r.priceId,
         quantity: r.quantity,
       })),
-      // Real success URLs carry only the session id — no product data and no
-      // display-only params. The receipt (shipping included) is retrieved
-      // server-side by /api/checkout/session using it, so nothing shown on
-      // the success page can be altered by hand-editing the URL (issue #177).
+      // Session id only — no display-only params; the receipt (shipping
+      // included) is retrieved server-side (issue #177).
       success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };

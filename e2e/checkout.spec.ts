@@ -1,14 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// E2E never hits the real Stripe API. Both checkout network hops are
-// intercepted with page.route():
-//
-//   - POST /api/checkout        → fulfilled with a success URL
-//   - GET /api/checkout/session → fulfilled with a sanitized receipt fixture
-//
-// so the served app's runtime credentials are irrelevant. Route behavior
-// itself (validation, catalog resolution, 503-when-unconfigured) is covered
-// by unit tests in src/lib/__tests__/checkout-route.test.ts.
+// No real Stripe calls: both checkout network hops are intercepted below with
+// page.route(). Route behavior itself is covered by unit tests in
+// src/lib/__tests__/checkout-route.test.ts.
 
 /** Sanitized projection shape returned by GET /api/checkout/session. */
 const receiptFixture = {
@@ -42,8 +36,7 @@ async function mockCheckoutApis(
   );
 }
 
-// A complete, valid delivery address is required before Pay submits
-// (client-side validation blocks incomplete/invalid forms).
+// Complete, valid address — client-side validation blocks Pay otherwise.
 async function fillDeliveryAddress(page: Page) {
   await page.getByLabel("Full name").fill("Ava Bloom");
   await page.getByLabel("Street address").fill("12 Rose Lane");
@@ -77,16 +70,13 @@ test.describe("Checkout flow", () => {
     await fillDeliveryAddress(page);
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
-    // The intercepted POST returns our success URL; the receipt comes from
-    // the intercepted session-retrieval endpoint.
     await expect(page).toHaveURL(/\/checkout\/success/, { timeout: 15_000 });
 
-    // Success page shows the thank-you heading and the retrieved receipt
     await expect(page.locator("h1")).toContainText("Thank you for your order", { timeout: 5_000 });
     await expect(page.getByText("Aurora Bloom")).toBeVisible();
     await expect(page.getByText("Free")).toBeVisible();
 
-    // The success page clears the cart on mount — confirm by visiting /cart
+    // Cart clearing happens on the success page mount.
     await page.goto("/cart");
     await expect(
       page.getByRole("heading", { name: "Your cart is empty" })
@@ -107,10 +97,8 @@ test.describe("Checkout flow", () => {
 
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
-    // Submission is blocked client-side: no navigation happens, and the
-    // invalid field gets an inline message. The summary banner is reserved
-    // for server-returned field errors — a client-blocked submit never
-    // reaches /api/checkout, so no banner appears here.
+    // Client-side validation blocks submission before any fetch, so the
+    // server-error banner never appears here.
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(
       page.getByText("Enter a valid Canadian postal code")
@@ -124,8 +112,7 @@ test.describe("Checkout flow", () => {
     await expect(page.locator("h1")).toContainText("Thank you for your order");
     await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
     await expect(page.getByText("Aurora Bloom")).toBeVisible();
-    // 2 x $79.99 = $159.98; free shipping at/above $50 → total $159.98.
-    // The value appears in the line total, subtotal, and total rows.
+    // $159.98 appears 3×: line total, subtotal, total.
     await expect(page.getByText("$159.98")).toHaveCount(3);
     await expect(page.getByText("Free")).toBeVisible();
   });
@@ -134,7 +121,6 @@ test.describe("Checkout flow", () => {
     await mockCheckoutApis(page, { status: 500 });
     await page.goto(successUrl);
 
-    // Failures degrade to the generic confirmation without an order summary.
     await expect(page.locator("h1")).toContainText("Thank you for your order");
     await expect(page.getByRole("heading", { name: "Order Summary" })).toHaveCount(0);
   });

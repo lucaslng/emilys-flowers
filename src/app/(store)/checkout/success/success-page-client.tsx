@@ -2,15 +2,10 @@
 
 // /checkout/success
 //
-// Shown after a completed Stripe Checkout. The success URL carries NO product
-// data — only the session id:
-//
-//   ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
-//
-// The receipt is fetched from GET /api/checkout/session?session_id=…, which
-// retrieves the session from Stripe and returns a sanitized projection.
-// Until it resolves (or if it fails), only the generic confirmation shows —
-// nothing in the summary can be influenced by hand-edited URL params.
+// Shown after a completed Stripe Checkout. The success URL carries no product
+// data — only ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
+// — and the receipt is fetched from GET /api/checkout/session. Until it
+// resolves (or fails), only the generic confirmation shows.
 //
 // We show a warm confirmation + an order summary that mirrors `/checkout`,
 // clear the cart (the order is already placed), and celebrate with a small
@@ -49,8 +44,7 @@ function CheckoutSuccessContent() {
   const orderParam = searchParams.get('order') ?? '';
   const sessionId = searchParams.get('session_id');
 
-  // Receipt retrieval. Success URLs always carry a session_id; failures
-  // degrade to the generic confirmation without an order summary.
+  // Receipt retrieval; failures degrade to the generic confirmation.
   const [retrieved, setRetrieved] = useState<RetrievedOrder | null>(null);
   useEffect(() => {
     if (!sessionId) return;
@@ -70,8 +64,6 @@ function CheckoutSuccessContent() {
     };
   }, [sessionId]);
 
-  // The receipt comes ONLY from session retrieval — success URLs carry no
-  // product data, so nothing renders until the fetch resolves.
   const items: LineItem[] = (retrieved?.items ?? []).map((item, index) => ({
     id: `${index}`,
     name: item.name,
@@ -145,9 +137,8 @@ function CheckoutSuccessContent() {
     { scope: root, dependencies: [] }
   );
 
-  // Every displayed amount comes from the retrieved receipt — Stripe is
-  // authoritative. The compute* fallbacks only cover defensively-missing
-  // fields; no URL param can influence what is rendered (issue #177).
+  // Amounts come from the retrieved receipt; the compute* fallbacks only
+  // cover defensively-missing fields (issue #177).
   const subtotal = retrieved?.subtotal ?? computeLineItemTotal(items);
   const shipping = retrieved?.shipping ?? computeShipping(subtotal);
   const total = retrieved?.total ?? subtotal + shipping;

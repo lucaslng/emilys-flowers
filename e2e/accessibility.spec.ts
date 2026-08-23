@@ -167,9 +167,7 @@ test.describe("WCAG 2.2 AA automated scans", () => {
   });
 
   test("checkout success page (real success state) has no WCAG 2.2 AA violations", async ({ page }) => {
-    // Intercept the receipt retrieval and navigate via the real success-URL
-    // shape (session_id only, no product data) so the scan covers the real
-    // rendered receipt.
+    // Intercept receipt retrieval; scan the real session_id-only success URL.
     await page.route(/\/api\/checkout\/session/, (route) =>
       route.fulfill({
         status: 200,

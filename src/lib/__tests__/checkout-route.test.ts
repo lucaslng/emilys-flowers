@@ -185,9 +185,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(metadata.chitchats_postage_type).toBe('expedited');
     expect(JSON.parse(metadata.shipping_address)).toEqual(validAddress);
 
-    // Real success URLs carry only the session id placeholder — no items= and
-    // no display-only params of any kind; the receipt (shipping included)
-    // comes from GET /api/checkout/session (issue #177).
+    // Success URLs carry only the session id placeholder (issue #177).
     const successUrl = params.success_url as string;
     expect(successUrl).toContain('&session_id={CHECKOUT_SESSION_ID}');
     expect(successUrl).not.toContain('&items=');
@@ -363,8 +361,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(await response.json()).toEqual({
       error: 'Stripe is not configured.',
     });
-    // Fails closed before any catalog resolution, ChitChats call, or Stripe
-    // session creation.
+    // Fails closed before any catalog/ChitChats/Stripe calls.
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
     expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
