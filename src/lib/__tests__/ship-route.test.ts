@@ -23,8 +23,8 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.RESEND_API_KEY = 're_test_mock';
     process.env.ADMIN_SESSION_SECRET = ADMIN_SESSION_SECRET;
-    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request (fail closed
-    // when unset), so the allowlist and the cookie's groups claim must match.
+    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request, so the
+    // cookie's groups claim must match the allowlist.
     process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetOrderEmailMocks();
     adminCookie = `admin_session=${await new SignJWT({
@@ -151,8 +151,6 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
   });
 
   test('returns 401 when the session groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
-    // Validly signed with the correct secret, but its groups claim doesn't
-    // intersect the allowlist — per-request group enforcement must reject it.
     const revokedCookie = `admin_session=${await new SignJWT({
       sub: 'admin-1',
       groups: ['some-other-group'],

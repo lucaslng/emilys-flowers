@@ -88,8 +88,7 @@ export function isOidcConfigured(): boolean {
 }
 
 /**
- * Parses `ADMIN_OIDC_GROUPS` (comma-separated) into the current allowlist.
- * Read fresh on every call so group revocation takes effect immediately —
+ * Parses `ADMIN_OIDC_GROUPS` (comma-separated) into the current allowlist;
  * an empty/unset value yields an empty list, which fails closed downstream.
  */
 function getAllowedGroupsFromEnv(): string[] {
@@ -304,14 +303,11 @@ export async function createSessionToken(
 
 /**
  * Verifies the `admin_session` JWT against `ADMIN_SESSION_SECRET` and
- * re-checks the token's `groups` claim against the CURRENT
- * `ADMIN_OIDC_GROUPS` allowlist on every call — so removing a group from
- * the allowlist revokes existing sessions on their next request, without
- * waiting out the 8h TTL. The claim itself is baked into the JWT at login,
- * so removal on the IdP side still waits out the TTL.
- * Fails closed when the allowlist is unset/empty.
- * Returns `null` on any failure (missing/malformed/expired/bad signature/
- * no longer in an allowed group).
+ * re-checks its `groups` claim against the CURRENT `ADMIN_OIDC_GROUPS`
+ * allowlist, so allowlist changes revoke existing sessions before the 8h
+ * TTL expires (the claim is baked in at login). Fails closed when the
+ * allowlist is unset/empty. Returns `null` on any failure
+ * (missing/malformed/expired/bad signature/no longer in an allowed group).
  */
 export async function verifySessionToken(
   token: string | undefined
@@ -327,9 +323,6 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     if (typeof payload.sub !== 'string') return null;
-    // Group membership was baked into the JWT at login; re-check it against
-    // the live allowlist each request so allowlist changes take effect
-    // before expiry.
     if (
       !isAllowedByGroups(
         payload as Record<string, unknown>,

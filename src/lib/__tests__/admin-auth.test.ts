@@ -270,8 +270,6 @@ describe('createSessionToken / verifySessionToken', () => {
   });
 
   test('returns null when the token groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
-    // Signed while the user was in 'old-admins'; the env now allows only
-    // 'admins', so the session must be rejected despite a valid signature.
     const config = getOidcConfig(CALLBACK_URL);
     const token = await new SignJWT({ sub: 'user-42', groups: ['old-admins'] })
       .setProtectedHeader({ alg: 'HS256' })
