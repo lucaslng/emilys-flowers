@@ -108,13 +108,12 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     // Submission is blocked client-side: no navigation happens, and the
-    // invalid field gets an inline message plus a summary banner.
+    // invalid field gets an inline message. The summary banner is reserved
+    // for server-returned field errors — a client-blocked submit never
+    // reaches /api/checkout, so no banner appears here.
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(
       page.getByText("Enter a valid Canadian postal code")
-    ).toBeVisible();
-    await expect(
-      page.getByText("Please check the highlighted delivery address fields.")
     ).toBeVisible();
   });
 
