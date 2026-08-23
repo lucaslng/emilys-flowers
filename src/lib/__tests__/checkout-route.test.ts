@@ -262,10 +262,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
   });
 
   test('truncates over-long address fields in BOTH the ChitChats payload and the shipping_address metadata', async () => {
-    // Stripe caps metadata values at 500 chars; an over-long value would make
-    // session creation throw after the customer filled the form. The route
-    // must clamp server-side and mirror the SAME truncated address into the
-    // ChitChats payload so the label matches what was stored.
+    // Server must clamp and mirror the same truncated address into both.
     const overLongAddress = {
       name: 'N'.repeat(500),
       line1: 'L'.repeat(500),
@@ -302,22 +299,18 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(payload.address_2).toBe(stored.line2);
     expect(payload.city).toBe(stored.city);
 
-    // Every field is clamped to its shared cap.
     for (const [field, value] of Object.entries(stored)) {
       expect(value.length).toBeLessThanOrEqual(
         ADDRESS_FIELD_MAX_LENGTHS[field as keyof typeof ADDRESS_FIELD_MAX_LENGTHS]
       );
     }
-    // And the metadata value itself fits Stripe's hard cap.
     expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
   });
 
   test('pathological escape inflation: the ChitChats payload derives from the SAME serialized value as the metadata', async () => {
-    // Quote-heavy fields are valid input but double in JSON serialization,
-    // forcing `shippingAddressMetadataValue` into its fallback path (drop
-    // line2, then shorten the longest field). The label must still match
-    // what was stored — so the route builds the ChitChats payload from the
-    // parsed-back metadata value, not from the clamped-but-full address.
+    // Quote-heavy fields force the fallback (drop line2, then shorten); the
+    // payload must be built from the parsed-back stored value, not the
+    // clamped-but-full address.
     const quoteHeavyAddress = {
       name: '"'.repeat(200),
       line1: '"'.repeat(200),
@@ -351,8 +344,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     >;
     expect(payload.name).toBe(stored.name);
     expect(payload.address_1).toBe(stored.line1);
-    // The fallback drops line2 on BOTH sides: absent in the stored JSON and
-    // therefore absent (not merely empty) from the ChitChats payload.
+    // The fallback drops line2 on BOTH sides.
     expect('line2' in stored).toBe(false);
     expect(payload.address_2).toBeUndefined();
     expect(payload.city).toBe(stored.city);

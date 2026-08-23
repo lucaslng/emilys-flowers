@@ -142,13 +142,9 @@ export async function POST(request: Request) {
         );
       }
 
-      // Clamp the validated address, then serialize it ONCE into the exact
-      // string that will be stored as Stripe metadata. BOTH the ChitChats
-      // payload and the metadata derive from that same serialized value (the
-      // payload address is parsed back out of it), so the physical label
-      // always matches what was stored — including the pathological fallback
-      // path where `shippingAddressMetadataValue` drops `line2` or shortens
-      // fields to fit Stripe's 500-char metadata cap.
+      // Serialize once: the ChitChats payload (parsed back out of this exact
+      // string) and the metadata share one value, so the label always
+      // matches what was stored — even when the 500-char fallback kicks in.
       const shippingAddress = truncateDeliveryAddress(addressValidation.value);
       const shippingAddressMetadata = shippingAddressMetadataValue(
         shippingAddress
@@ -204,10 +200,6 @@ export async function POST(request: Request) {
         chitchats_shipment_id: shipment.id,
         chitchats_tracking_url: shipment.tracking_url,
         chitchats_postage_type: rate.postage_type,
-        // The exact serialized value the ChitChats payload was built from —
-        // hard-guaranteed to fit Stripe's 500-char metadata cap (an
-        // over-long value would make session creation throw after the
-        // customer filled the form).
         shipping_address: shippingAddressMetadata,
       };
       sessionParams.success_url = `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}&shipping=${shippingCents}`;

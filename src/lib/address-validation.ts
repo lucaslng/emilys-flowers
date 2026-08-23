@@ -135,16 +135,14 @@ function isKnownProvince(value: string): boolean {
 
 // --- Truncation (Stripe metadata 500-char cap) ---
 
-/**
- * Stripe caps every Checkout Session metadata VALUE at 500 characters; an
- * over-long value makes session creation throw AFTER the customer filled the
- * form. These per-field caps bound the worst case: fully-filled fields
- * serialize to ≈349 characters plus ≈85 characters of JSON overhead — under
- * the cap with margin. The client form enforces them via `maxLength`; the
- * server clamps again (never trust the client).
- */
+/** Stripe caps every Checkout Session metadata value at 500 characters. */
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 
+/**
+ * Per-field caps: fully-filled fields serialize to ≈349 chars + ≈85 chars of
+ * JSON overhead — under the 500-char cap with margin. The client form
+ * enforces them via `maxLength`; the server clamps again (never trust the client).
+ */
 export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
   name: 80,
   line1: 120,
@@ -155,11 +153,8 @@ export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
 };
 
 /**
- * Structural address shape for truncation and for the parsed-back
- * `shipping_address` metadata value (see
- * `shippingAddressMetadataValue`). Deliberately local — NOT imported from
- * `@/lib/chitchats`, because `chitchats.ts` already imports THIS module and
- * an import back would create a cycle.
+ * Structural address shape (mirrors chitchats.ts's `DeliveryAddress` without
+ * importing it — that would cycle, since chitchats.ts imports this module).
  */
 export interface ValidatedDeliveryAddress {
   name: string;
@@ -171,10 +166,7 @@ export interface ValidatedDeliveryAddress {
   postalCode: string;
 }
 
-/**
- * Clamp an ALREADY-VALIDATED address (fields trimmed upstream) to
- * `ADDRESS_FIELD_MAX_LENGTHS`. Pure: a valid address comes back byte-identical.
- */
+/** Clamp an already-validated (trimmed) address to `ADDRESS_FIELD_MAX_LENGTHS`. */
 export function truncateDeliveryAddress(
   address: ValidatedDeliveryAddress
 ): ValidatedDeliveryAddress {
@@ -213,13 +205,10 @@ function serializeShippingAddress(address: ValidatedDeliveryAddress): string {
 }
 
 /**
- * Serialize the delivery address for the `shipping_address` session metadata,
- * HARD-guaranteed to fit Stripe's 500-character metadata VALUE cap (an
- * over-long value makes session creation throw after the customer filled the
- * form). Per-field truncation normally suffices, but JSON escape inflation
- * (each quote/backslash/control char doubles) can still push the serialized
- * form over the cap — so as a last resort drop the optional `line2`, then
- * deterministically shorten the longest remaining field until it fits.
+ * Serialize the address for the `shipping_address` metadata, hard-guaranteed
+ * to fit Stripe's 500-char cap: per-field truncation normally suffices, but
+ * JSON escape inflation (each quote/backslash doubles) can still overflow —
+ * so drop the optional `line2`, then shorten the longest field until it fits.
  */
 export function shippingAddressMetadataValue(
   address: ValidatedDeliveryAddress
@@ -234,10 +223,8 @@ export function shippingAddressMetadataValue(
   value = serializeShippingAddress(withoutLine2);
   if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
 
-  // Still over: shorten the longest field by the overflow amount each pass.
-  // Removing one raw character shrinks the serialized form by 1–2 characters
-  // (escape pairs), so cutting `overflow` raw characters always makes
-  // progress — the loop terminates.
+  // Removing one raw char shrinks the serialized form by 1–2 chars, so
+  // cutting `overflow` raw chars always makes progress — this terminates.
   const current: Record<(typeof METADATA_ADDRESS_FIELDS)[number], string> = {
     name: withoutLine2.name,
     line1: withoutLine2.line1,

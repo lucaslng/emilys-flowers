@@ -235,8 +235,7 @@ describe('ADDRESS_FIELD_MAX_LENGTHS', () => {
         'x'.repeat(cap),
       ])
     );
-    // Sanity: the raw JSON of the capped fields must fit — that's the whole
-    // point of these caps (issue #178).
+    // The capped worst case must fit under the 500-char cap.
     expect(JSON.stringify(worstCase).length).toBeLessThan(
       STRIPE_METADATA_VALUE_MAX_LENGTH
     );
@@ -305,9 +304,7 @@ describe('shippingAddressMetadataValue', () => {
   });
 
   test('always fits the Stripe metadata value cap — pathological escape inflation included', () => {
-    // Every field filled with quote characters: each one doubles in the JSON
-    // serialization (`"` → `\"`), pushing far past what per-field truncation
-    // alone can guarantee.
+    // Quotes double in JSON (`"` → `\"`), far past what field caps alone cover.
     const pathological = {
       name: '"'.repeat(200),
       line1: '"'.repeat(200),
@@ -318,7 +315,6 @@ describe('shippingAddressMetadataValue', () => {
     };
     const value = shippingAddressMetadataValue(pathological);
     expect(value.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
-    // The hard guarantee must not come at the cost of validity.
     expect(() => JSON.parse(value)).not.toThrow();
     expect(typeof JSON.parse(value)).toBe('object');
   });
