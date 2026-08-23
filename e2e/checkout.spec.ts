@@ -6,7 +6,14 @@ import { test, expect, type Page } from "@playwright/test";
 
 /** Sanitized projection shape returned by GET /api/checkout/session. */
 const receiptFixture = {
-  items: [{ name: "Aurora Bloom", quantity: 2, unitAmount: 7999 }],
+  items: [
+    {
+      name: "Aurora Bloom",
+      image: "/products/green-evangeline/01-main.jpg",
+      quantity: 2,
+      unitAmount: 7999,
+    },
+  ],
   subtotal: 15998,
   shipping: 0,
   total: 15998,
@@ -112,6 +119,8 @@ test.describe("Checkout flow", () => {
     await expect(page.locator("h1")).toContainText("Thank you for your order");
     await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
     await expect(page.getByText("Aurora Bloom")).toBeVisible();
+    // The line-item thumbnail uses the image path from the receipt.
+    await expect(page.locator("img[src='/products/green-evangeline/01-main.jpg']")).toHaveCount(1);
     // $159.98 appears 3×: line total, subtotal, total.
     await expect(page.getByText("$159.98")).toHaveCount(3);
     await expect(page.getByText("Free")).toBeVisible();

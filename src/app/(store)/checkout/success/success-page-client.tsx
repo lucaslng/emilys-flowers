@@ -28,7 +28,12 @@ import BloomSpinner from '@/components/ui/BloomSpinner';
 
 /** The sanitized projection returned by GET /api/checkout/session. */
 interface RetrievedOrder {
-  items: Array<{ name: string; quantity: number; unitAmount: number }>;
+  items: Array<{
+    name: string;
+    image: string;
+    quantity: number;
+    unitAmount: number;
+  }>;
   subtotal: number;
   shipping: number;
   total: number;
@@ -64,9 +69,14 @@ function CheckoutSuccessContent() {
     };
   }, [sessionId]);
 
-  const items: LineItem[] = (retrieved?.items ?? []).map((item, index) => ({
+  // Receipt items carry their resolved image path alongside the LineItem
+  // fields the order-math helpers expect.
+  const items: Array<LineItem & { image: string }> = (
+    retrieved?.items ?? []
+  ).map((item, index) => ({
     id: `${index}`,
     name: item.name,
+    image: item.image,
     price: item.unitAmount,
     quantity: item.quantity,
   }));
@@ -206,7 +216,7 @@ function CheckoutSuccessContent() {
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-border bg-blush/30">
                     <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-50" />
                     <img
-                      src={`/placeholders/${item.category ?? 'flower'}.svg`}
+                      src={item.image}
                       alt={item.name}
                       className="h-full w-full object-cover"
                     />

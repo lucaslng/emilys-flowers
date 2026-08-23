@@ -173,7 +173,14 @@ test.describe("WCAG 2.2 AA automated scans", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          items: [{ name: "Aurora Bloom", quantity: 2, unitAmount: 7999 }],
+          items: [
+            {
+              name: "Aurora Bloom",
+              image: "/products/green-evangeline/01-main.jpg",
+              quantity: 2,
+              unitAmount: 7999,
+            },
+          ],
           subtotal: 15998,
           shipping: 0,
           total: 15998,
