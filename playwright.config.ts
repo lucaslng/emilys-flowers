@@ -1,12 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// The product catalog is fetched from Stripe at build time, so the E2E build
-// needs a test key (STRIPE_SECRET_KEY). The served app runs with an empty
-// key so /api/checkout stays in simulated-success mode and never hits the real
-// Stripe API. Next.js does not override an existing env var (even an empty one)
-// with .env values, so the empty prefix on `start` forces `!secretKey` →
-// simulated path.
-const buildKey = process.env.STRIPE_SECRET_KEY ?? "";
+// Pinned deterministic build: FLOWERS_ENABLED/UNDER_CONSTRUCTION bypass the
+// live Flagship evaluation. The Stripe key prefix is conditional — an empty
+// `STRIPE_SECRET_KEY=` would shadow `.env` (Next.js doesn't override existing
+// vars). Specs intercept both checkout APIs via page.route(): no real calls.
+const stripePrefix =
+  process.env.STRIPE_SECRET_KEY !== undefined &&
+  process.env.STRIPE_SECRET_KEY !== ""
+    ? `STRIPE_SECRET_KEY=${process.env.STRIPE_SECRET_KEY} `
+    : "";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,7 +25,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: `FLOWERS_ENABLED=true UNDER_CONSTRUCTION=false STRIPE_SECRET_KEY=${buildKey} bun run build && STRIPE_SECRET_KEY= bun run start`,
+    command: `FLOWERS_ENABLED=true UNDER_CONSTRUCTION=false ${stripePrefix}bun run build && bun run start`,
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

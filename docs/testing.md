@@ -29,23 +29,23 @@
   "Add to Cart") rather than injecting `localStorage`, except for narrow edge
   cases where `page.addInitScript` is clearer.
 
-### Checkout E2E runs in simulated mode
+### Checkout E2E intercepts both checkout APIs
 
 `playwright.config.ts` builds with `STRIPE_SECRET_KEY` (the catalog is
-fetched from Stripe at build time) but serves the app with `STRIPE_SECRET_KEY=`
-(empty) so `/api/checkout` always uses its simulated success path (redirects to
-`/checkout/success?success=true&order=...&items=...` and
-`CheckoutSuccessContent` clears the cart), even when a developer has a real key
-in `.env`. Next.js does not override an existing env var (even empty) with
-`.env` values, so this forces `!secretKey` → simulated path. **E2E must never
-hit the real Stripe API.**
+fetched from Stripe at build time); runtime credentials are irrelevant because
+the specs intercept both network hops with `page.route()`:
+`POST /api/checkout` is fulfilled with a success URL, and
+`GET /api/checkout/session` is fulfilled with a sanitized receipt fixture.
+**E2E must never hit the real Stripe API.**
 
-The API route is also tested directly (empty items → 400 with
-`error: "No items provided"`, valid items → 200 with `url`). Input validation
-lives in `validateCheckoutItems` (`src/lib/order.ts`: `{productId, quantity}`
-wire shape, positive-integer quantities capped at 99) and is unit-tested
-there; the route imports it. The empty-items 400 error string is asserted by
-E2E — keep it stable.
+Success URLs carry only `session_id` — no `items=`/`shipping=` params (there
+is no simulated checkout path; see [stripe-checkout.md](./stripe-checkout.md)).
+Route behavior (validation, catalog resolution, 503-when-unconfigured) is
+covered by unit tests: input validation lives in `validateCheckoutItems`
+(`src/lib/order.ts`: `{productId, quantity}` wire shape, positive-integer
+quantities capped at 99); the empty-items 400 error string
+`"No items provided"` is asserted by the `validateCheckoutItems` tests in
+`order.test.ts` — keep it stable.
 
 `checkout-route.test.ts` mocks `@/lib/catalog-index` so catalog resolution
 never touches Stripe, and asserts that Stripe `line_items` and the ChitChats

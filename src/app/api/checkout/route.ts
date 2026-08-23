@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import {
   validateCheckoutItems,
-  encodeOrderItems,
   generateOrderNumber,
   computeLineItemTotal,
   type CheckoutItemPayload,
@@ -46,20 +45,15 @@ export async function POST(request: Request) {
     }
 
     const secretKey = process.env.STRIPE_SECRET_KEY;
-
-    // No secret key configured (e.g. local dev without a .env.local):
-    // simulate a successful checkout instead of crashing. Simulated mode is
-    // DEGRADED: it still emits an `items=` success URL for E2E synthetic-URL
-    // compatibility, but the payload shape ({productId, quantity}) no longer
-    // decodes to line items (decodeOrderItems requires id/name/price), so the
-    // simulated success page renders the generic confirmation WITHOUT an
-    // itemized receipt. Real success URLs carry no product data at all.
     if (!secretKey) {
-      console.log('[Checkout] No STRIPE_SECRET_KEY; simulating success');
-      const order = generateOrderNumber();
-      const itemsParam = encodeOrderItems(items as LineItem[]);
-      const successUrl = `${origin}/checkout/success?success=true&order=${order}&items=${itemsParam}`;
-      return NextResponse.json({ url: successUrl });
+      // Fail closed when unconfigured — there is no simulated path.
+      console.error(
+        '[Checkout] STRIPE_SECRET_KEY is not set; cannot create a checkout session.'
+      );
+      return NextResponse.json(
+        { error: 'Stripe is not configured.' },
+        { status: 503 }
+      );
     }
 
     // Resolve every productId against the live Stripe catalog: default price
@@ -110,8 +104,8 @@ export async function POST(request: Request) {
         price: r.priceId,
         quantity: r.quantity,
       })),
-      // Real success URLs carry only the session id; the receipt is retrieved
-      // server-side by /api/checkout/session using it.
+      // Session id only — no display-only params; the receipt (shipping
+      // included) is retrieved server-side (issue #177).
       success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };
@@ -195,7 +189,6 @@ export async function POST(request: Request) {
           postalCode: addressValidation.value.postalCode,
         }),
       };
-      sessionParams.success_url = `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}&shipping=${shippingCents}`;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

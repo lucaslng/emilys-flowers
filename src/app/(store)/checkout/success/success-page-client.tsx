@@ -2,18 +2,10 @@
 
 // /checkout/success
 //
-// Shown after a completed Stripe Checkout (or the simulated checkout path used
-// in local dev / E2E). Two URL shapes arrive here:
-//
-//   Simulated (no STRIPE_SECRET_KEY — dev/E2E only):
-//     ?success=true&order=<EF-XXXXXX>&items=<base64url LineItem[]>
-//   Real (Stripe-hosted checkout):
-//     ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
-//
-// The simulated path decodes `items` directly (see `src/lib/order.ts`). The
-// real path carries NO product data in the URL — the receipt is fetched from
-// GET /api/checkout/session?session_id=…, which retrieves the session from
-// Stripe and returns a sanitized projection.
+// Shown after a completed Stripe Checkout. The success URL carries no product
+// data — only ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
+// — and the receipt is fetched from GET /api/checkout/session. Until it
+// resolves (or fails), only the generic confirmation shows.
 //
 // We show a warm confirmation + an order summary that mirrors `/checkout`,
 // clear the cart (the order is already placed), and celebrate with a small
@@ -27,7 +19,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
-import { decodeOrderItems, computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
+import { computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
 import { formatPrice } from '@/lib/format';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
@@ -50,12 +42,9 @@ function CheckoutSuccessContent() {
   const burstAnchorRef = useRef<HTMLDivElement>(null);
 
   const orderParam = searchParams.get('order') ?? '';
-  const encodedItems = searchParams.get('items') ?? '';
   const sessionId = searchParams.get('session_id');
 
-  // Real-path receipt retrieval. Only fired when a session_id is present
-  // (simulated URLs carry items= instead); failures degrade to the generic
-  // confirmation without an order summary.
+  // Receipt retrieval; failures degrade to the generic confirmation.
   const [retrieved, setRetrieved] = useState<RetrievedOrder | null>(null);
   useEffect(() => {
     if (!sessionId) return;
@@ -75,21 +64,13 @@ function CheckoutSuccessContent() {
     };
   }, [sessionId]);
 
-  // Simulated-path items decode wins when present; otherwise fall back to the
-  // retrieved receipt.
-  const decodedItems: LineItem[] = decodeOrderItems(encodedItems);
-  const retrievedItems: LineItem[] = (retrieved?.items ?? []).map(
-    (item, index) => ({
-      id: `${index}`,
-      name: item.name,
-      price: item.unitAmount,
-      quantity: item.quantity,
-    })
-  );
-  const items: LineItem[] =
-    decodedItems.length > 0 ? decodedItems : retrievedItems;
+  const items: LineItem[] = (retrieved?.items ?? []).map((item, index) => ({
+    id: `${index}`,
+    name: item.name,
+    price: item.unitAmount,
+    quantity: item.quantity,
+  }));
   const hasItems = items.length > 0;
-  const fromRetrieval = decodedItems.length === 0 && retrieved !== null;
 
   const order = orderParam || retrieved?.orderNumber || '';
 
@@ -156,24 +137,11 @@ function CheckoutSuccessContent() {
     { scope: root, dependencies: [] }
   );
 
-  // On the real path the retrieved receipt carries Stripe's own amounts;
-  // otherwise the totals come from the decoded line items.
-  const subtotal = fromRetrieval
-    ? (retrieved?.subtotal ?? computeLineItemTotal(items))
-    : computeLineItemTotal(items);
-  // The checkout API appends `&shipping=<cents>` (the real ChitChats rate)
-  // when shipping is configured; fall back to the retrieved shipping, then to
-  // the flat-rate estimate when neither is present or the param is malformed.
-  const shippingParam = searchParams.get('shipping');
-  const shippingFromParam = shippingParam === null ? NaN : parseInt(shippingParam, 10);
-  const shipping = Number.isNaN(shippingFromParam)
-    ? fromRetrieval
-      ? (retrieved?.shipping ?? computeShipping(subtotal))
-      : computeShipping(subtotal)
-    : shippingFromParam;
-  const total = fromRetrieval && retrieved
-    ? retrieved.total
-    : subtotal + shipping;
+  // Amounts come from the retrieved receipt; the compute* fallbacks only
+  // cover defensively-missing fields (issue #177).
+  const subtotal = retrieved?.subtotal ?? computeLineItemTotal(items);
+  const shipping = retrieved?.shipping ?? computeShipping(subtotal);
+  const total = retrieved?.total ?? subtotal + shipping;
   const itemCount = computeLineItemCount(items);
 
   return (

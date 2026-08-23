@@ -185,11 +185,11 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(metadata.chitchats_postage_type).toBe('expedited');
     expect(JSON.parse(metadata.shipping_address)).toEqual(validAddress);
 
-    // Real success URLs carry only the session id placeholder — no items=.
+    // Success URLs carry only the session id placeholder (issue #177).
     const successUrl = params.success_url as string;
     expect(successUrl).toContain('&session_id={CHECKOUT_SESSION_ID}');
     expect(successUrl).not.toContain('&items=');
-    expect(successUrl).toContain('&shipping=968');
+    expect(successUrl).not.toContain('&shipping=');
   });
 
   test('builds the ChitChats shipment payload from catalog-resolved names/prices', async () => {
@@ -257,7 +257,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     ]);
     const metadata = params.metadata as Record<string, string>;
     expect(metadata.chitchats_postage_type).toBe('standard');
-    expect(params.success_url).toContain('&shipping=968');
+    expect(params.success_url).not.toContain('&shipping=');
   });
 
   test('returns 400 with per-field errors when the address is missing', async () => {
@@ -352,22 +352,18 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(params.success_url).not.toContain('&shipping=');
   });
 
-  test('simulates success when STRIPE_SECRET_KEY is absent (items= URL kept for E2E, but no itemized receipt)', async () => {
+  test('returns 503 when STRIPE_SECRET_KEY is absent', async () => {
     delete process.env.STRIPE_SECRET_KEY;
 
     const response = await POST(checkoutRequest({ items: validItems }));
 
-    expect(response.status).toBe(200);
-    const json = (await response.json()) as { url: string };
-    expect(json.url).toContain('/checkout/success?success=true&order=EF-');
-    // The simulated URL still carries `items=` so E2E synthetic-URL
-    // compatibility is preserved — but the payload shape ({productId,
-    // quantity}) no longer decodes to line items, so the simulated success
-    // page renders the generic confirmation WITHOUT an itemized receipt
-    // (pinned by the decodeOrderItems test in order.test.ts).
-    expect(json.url).toContain('&items=');
-    expect(json.url).not.toContain('session_id=');
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: 'Stripe is not configured.',
+    });
+    // Fails closed before any catalog/ChitChats/Stripe calls.
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
 
   // --- Catalog-membership rejections (issue #170) ---
