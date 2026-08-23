@@ -15,7 +15,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? [["html"], ["json", { outputFile: "test-results/e2e-report.json" }]] : [["list"]],
+  // CI shards write blob reports (blob-report/) that the `merge-reports` job
+  // in .github/workflows/test.yml merges into the uploaded HTML report.
+  reporter: process.env.CI ? [["blob"]] : [["list"]],
   use: {
     baseURL: "http://localhost:3000",
     // Deterministic e2e: force reduced motion so the reduced-motion CSS guard

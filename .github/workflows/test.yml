@@ -1,14 +1,14 @@
 name: Tests
 
-# Test pipeline (changes/unit/e2e). Reusable workflow called by deploy.yml on
-# every push — PR checks come from the deploy run's `tests` job, so there is no
-# standalone `pull_request` trigger (that previously duplicated the unit suite
-# on every PR push).
+# Test pipeline (changes/unit/e2e shards + e2e-result/merge-reports). Reusable
+# workflow called by deploy.yml on every push — PR checks come from the deploy
+# run's `tests` job, so there is no standalone `pull_request` trigger (that
+# previously duplicated the unit suite on every PR push).
 #
 # Unit tests always run; E2E runs only when app/e2e-affecting files change
-# (see the `changes` job filter). The e2e job reads the Stripe TEST key from
-# the `preview` GitHub Environment (`deployment: false` — it's a CI job, not a
-# deployment), so no secret is passed from the caller.
+# (see the `changes` job filter). The e2e shard jobs read the Stripe TEST key
+# from the `preview` GitHub Environment (`deployment: false` — they're CI jobs,
+# not deployments), so no secret is passed from the caller.
 on:
   workflow_call:
     outputs:
@@ -16,8 +16,8 @@ on:
         description: Result of the unit job (success/failure/cancelled)
         value: ${{ jobs.unit.outputs.result }}
       e2e-result:
-        description: Result of the e2e job (success/failure/cancelled; empty when skipped)
-        value: ${{ jobs.e2e.outputs.result }}
+        description: Result of the e2e shards (success/failure/cancelled; empty when skipped)
+        value: ${{ jobs.e2e-result.outputs.result }}
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -109,7 +109,7 @@ jobs:
         run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
 
   e2e:
-    name: E2E tests
+    name: E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     needs: [changes]
     # E2E gates production deploys (deploy.yml on main — the only consumer of
     # the e2e result). On non-main pushes the deploy.yml call only needs unit
@@ -125,8 +125,11 @@ jobs:
       deployment: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    outputs:
-      result: ${{ steps.report.outputs.result }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     steps:
       - uses: actions/checkout@v7
 
@@ -172,9 +175,9 @@ jobs:
           key: ${{ steps.pw-cache.outputs.cache-primary-key }}
 
       # .next/cache (Turbopack/webpack incremental state + next/font downloads)
-      # is produced by the production build inside `bun run test:e2e`. Keyed on
-      # the lockfile + Next config so dependency or config changes invalidate
-      # it; restore-keys falls back to the most recent cache otherwise.
+      # is produced by the production build inside the Playwright webServer.
+      # Keyed on the lockfile + Next config so dependency or config changes
+      # invalidate it; restore-keys falls back to the most recent cache otherwise.
       - name: Restore .next/cache
         id: next-cache
         uses: actions/cache/restore@v6
@@ -183,21 +186,96 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/bun.lock') }}-${{ hashFiles('next.config.ts') }}
           restore-keys: ${{ runner.os }}-nextjs-
 
-      - name: Run E2E tests
+      - name: Run E2E tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         # Stripe key feeds the build-time catalog fetch; the served app runs
         # with an empty key so /api/checkout stays in simulated-success mode.
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-        run: bun run test:e2e
+        run: bunx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Save .next/cache
         # always(): a warm cache is valid even when tests fail after a
-        # successful build.
-        if: always() && steps.next-cache.outputs.cache-hit != 'true'
+        # successful build. Shard 1 only: both shards build identically, so its
+        # cache is sufficient — saving from both would race on the same key.
+        if: always() && steps.next-cache.outputs.cache-hit != 'true' && matrix.shardIndex == 1
         uses: actions/cache/save@v6
         with:
           path: .next/cache
           key: ${{ steps.next-cache.outputs.cache-primary-key }}
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          # run_attempt scopes downloads to this attempt so retried runs never
+          # merge stale blob reports from a previous attempt.
+          name: blob-report-${{ github.run_attempt }}-${{ matrix.shardIndex }}
+          path: blob-report/
+          retention-days: 1
+
+  e2e-result:
+    name: E2E result
+    needs: [e2e]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      result: ${{ steps.report.outputs.result }}
+    steps:
+      - name: Report job result
+        id: report
+        if: ${{ always() }}
+        env:
+          SHARDS_RESULT: ${{ needs.e2e.result }}
+        run: |
+          # Aggregate the shard matrix into the workflow_call output contract:
+          # success/failure/cancelled; empty when the shards were skipped
+          # (deploy.yml treats empty as "e2e not applicable").
+          case "$SHARDS_RESULT" in
+            success|failure|cancelled) echo "result=$SHARDS_RESULT" >> "$GITHUB_OUTPUT" ;;
+            *) : ;; # skipped → leave empty
+          esac
+
+  merge-reports:
+    name: Merge Playwright reports
+    needs: [e2e]
+    # Produce a merged report even when a shard failed (!cancelled()), but not
+    # when e2e was skipped entirely.
+    if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Restore bun cache
+        id: bun-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Save bun cache
+        if: always() && steps.bun-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ steps.bun-cache.outputs.cache-primary-key }}
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v8
+        with:
+          path: all-blob-reports
+          pattern: blob-report-${{ github.run_attempt }}-*
+          merge-multiple: true
+
+      - name: Merge into HTML report
+        run: bunx playwright merge-reports --reporter html ./all-blob-reports
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v7
@@ -206,10 +284,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-
-      # Expose the job result as an output. Skipped jobs run no steps,
-      # leaving the output empty.
-      - name: Report job result
-        id: report
-        if: always()
-        run: echo "result=${{ job.status }}" >> "$GITHUB_OUTPUT"
