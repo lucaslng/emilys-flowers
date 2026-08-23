@@ -312,6 +312,52 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
   });
 
+  test('pathological escape inflation: the ChitChats payload derives from the SAME serialized value as the metadata', async () => {
+    // Quote-heavy fields are valid input but double in JSON serialization,
+    // forcing `shippingAddressMetadataValue` into its fallback path (drop
+    // line2, then shorten the longest field). The label must still match
+    // what was stored — so the route builds the ChitChats payload from the
+    // parsed-back metadata value, not from the clamped-but-full address.
+    const quoteHeavyAddress = {
+      name: '"'.repeat(200),
+      line1: '"'.repeat(200),
+      line2: '"'.repeat(200),
+      city: '"'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: quoteHeavyAddress })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(1);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+
+    const payload = checkoutMocks.shipmentCreateCalls[0] as {
+      name: string;
+      address_1: string;
+      address_2?: string;
+      city: string;
+    };
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+    const metadata = params.metadata as Record<string, string>;
+    expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
+
+    const stored = JSON.parse(metadata.shipping_address) as Record<
+      string,
+      string
+    >;
+    expect(payload.name).toBe(stored.name);
+    expect(payload.address_1).toBe(stored.line1);
+    // The fallback drops line2 on BOTH sides: absent in the stored JSON and
+    // therefore absent (not merely empty) from the ChitChats payload.
+    expect('line2' in stored).toBe(false);
+    expect(payload.address_2).toBeUndefined();
+    expect(payload.city).toBe(stored.city);
+  });
+
   test('returns 400 with per-field errors when the address is missing', async () => {
     const response = await POST(checkoutRequest({ items: validItems }));
 

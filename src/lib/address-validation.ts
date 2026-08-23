@@ -155,11 +155,13 @@ export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
 };
 
 /**
- * Structural address shape for truncation. Deliberately local — NOT imported
- * from `@/lib/chitchats`, because `chitchats.ts` already imports THIS module
- * and an import back would create a cycle.
+ * Structural address shape for truncation and for the parsed-back
+ * `shipping_address` metadata value (see
+ * `shippingAddressMetadataValue`). Deliberately local — NOT imported from
+ * `@/lib/chitchats`, because `chitchats.ts` already imports THIS module and
+ * an import back would create a cycle.
  */
-interface ValidatedDeliveryAddress {
+export interface ValidatedDeliveryAddress {
   name: string;
   line1: string;
   /** Apartment/unit line — optional. */
