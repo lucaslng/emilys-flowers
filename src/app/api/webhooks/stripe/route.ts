@@ -205,14 +205,15 @@ export async function POST(request: Request) {
         `[Webhook] Confirmation email sent for session ${session.id}: ${result.id}`
       );
 
-      const stamped = await stampConfirmationMetadata(
+      const stamp = await stampConfirmationMetadata(
         (metadata) => stripe.checkout.sessions.update(session.id, { metadata }),
         session.metadata,
         result.id
       );
-      if (!stamped) {
+      if (!stamp.ok) {
         console.error(
-          `[Webhook] Failed to stamp confirmation metadata for session ${session.id}`
+          `[Webhook] Failed to stamp confirmation metadata for session ${session.id}:`,
+          stamp.error
         );
         // Non-2xx so Stripe redelivers while Resend's idempotency key still
         // dedupes; once a stamp lands, the check above dedupes later retries.

@@ -8,14 +8,15 @@ function sleep(ms: number): Promise<void> {
 /**
  * Stamp confirmation-email state onto a Checkout Session's metadata.
  * `sessions.update` replaces the whole metadata map, so existing keys are
- * merged in. Retries transient failures; returns false when every attempt
- * fails.
+ * merged in. Retries transient failures; returns the last error when every
+ * attempt fails.
  */
 export async function stampConfirmationMetadata(
   updateSessionMetadata: (metadata: Record<string, string>) => Promise<unknown>,
   existingMetadata: Record<string, string> | null | undefined,
   emailId: string
-): Promise<boolean> {
+): Promise<{ ok: true } | { ok: false; error: unknown }> {
+  let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       await updateSessionMetadata({
@@ -23,10 +24,11 @@ export async function stampConfirmationMetadata(
         confirmation_email_sent_at: new Date().toISOString(),
         confirmation_email_id: emailId,
       });
-      return true;
-    } catch {
+      return { ok: true };
+    } catch (error) {
+      lastError = error;
       if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS * attempt);
     }
   }
-  return false;
+  return { ok: false, error: lastError };
 }
