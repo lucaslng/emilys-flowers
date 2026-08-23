@@ -51,8 +51,10 @@ E2E — keep it stable.
 never touches Stripe, and asserts that Stripe `line_items` and the ChitChats
 shipment payload are built from catalog-resolved names/prices.
 `checkout-session-route.test.ts` covers the success-retrieval surface
-(`GET /api/checkout/session`): cs_ id format guard, sanitized projection, and
-the no-leak guarantee for customer_details/metadata. It reuses the shared
+(`GET /api/checkout/session`): cs_ id format guard, sanitized projection,
+rate limiting (via the shared `@opennextjs/cloudflare` mock in
+`rate-limit-mocks.ts`, which fakes the `RATE_LIMITER` binding), and the
+no-leak guarantee for customer_details/metadata. It reuses the shared
 `stripe` mock from `order-emails-mocks.ts` — bun's `mock.module` registry is
 process-global across test files, so test files must not register a second
 `stripe` mock (see the note in `order-emails-mocks.ts`; `checkout-route.test.ts`

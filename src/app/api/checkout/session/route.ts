@@ -16,6 +16,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+import { checkRateLimit } from '@/lib/rate-limit';
+
 /** Only real Stripe Checkout session ids may reach the API. */
 const SESSION_ID_PATTERN = /^cs_(live|test)_[A-Za-z0-9]+$/;
 
@@ -38,6 +40,13 @@ export async function GET(request: Request) {
         { error: 'Stripe is not configured.' },
         { status: 503 }
       );
+    }
+
+    // Rate-limit only requests that would reach Stripe — malformed ids are
+    // already rejected above and must not consume quota.
+    const rateLimited = await checkRateLimit(request);
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const stripe = new Stripe(secretKey, {

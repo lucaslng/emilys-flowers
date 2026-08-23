@@ -9,10 +9,19 @@
 // The `stripe` mock is NOT registered here: bun's `mock.module` registry is
 // process-global across test files (see ./order-emails-mocks.ts), so this
 // file reuses the shared registration and drives it through the exported
-// `orderEmailMocks` state object.
+// `orderEmailMocks` state object. The rate-limit guard's
+// `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts (registered
+// once per process, driven via `rateLimitMocks`).
 
 import { test, expect, describe, beforeEach } from 'bun:test';
-import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
+import {
+  orderEmailMocks,
+  resetOrderEmailMocks,
+} from './order-emails-mocks';
+import {
+  rateLimitMocks,
+  resetRateLimitMocks,
+} from './rate-limit-mocks';
 
 const { GET } = await import('@/app/api/checkout/session/route');
 
@@ -66,6 +75,7 @@ describe('GET /api/checkout/session', () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     resetOrderEmailMocks();
+    resetRateLimitMocks();
     orderEmailMocks.currentSession = makeSession();
   });
 
@@ -149,5 +159,47 @@ describe('GET /api/checkout/session', () => {
     expect((await response.json()).error).toBe(
       'Could not retrieve your order.'
     );
+  });
+
+  test('rate limiter allows the request through and keys it by IP', async () => {
+    const request = new Request(
+      'http://localhost/api/checkout/session?session_id=cs_test_abc123',
+      { method: 'GET', headers: { 'CF-Connecting-IP': '203.0.113.7' } }
+    );
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(rateLimitMocks.limitCalls).toEqual(['203.0.113.7']);
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
+  });
+
+  test('returns 429 with Retry-After when the rate limit is exceeded', async () => {
+    rateLimitMocks.limitSuccess = false;
+
+    const response = await GET(sessionRequest('cs_test_abc123'));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect((await response.json()).error).toBe('Too many requests');
+    // The billable Stripe call must never happen on a rejected request.
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+  });
+
+  test('fails open when getCloudflareContext throws (no Workers runtime)', async () => {
+    rateLimitMocks.contextShouldThrow = true;
+
+    const response = await GET(sessionRequest('cs_test_abc123'));
+
+    expect(response.status).toBe(200);
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
+  });
+
+  test('malformed session ids are rejected before the limiter is consulted', async () => {
+    const response = await GET(sessionRequest('../../etc/passwd'));
+
+    expect(response.status).toBe(400);
+    expect(rateLimitMocks.limitCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
   });
 });
