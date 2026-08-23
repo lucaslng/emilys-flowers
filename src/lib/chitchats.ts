@@ -74,6 +74,13 @@ export interface ChitChatsShipmentInput {
   postal_code: string;
   country_code: string;
   package_contents: 'merchandise';
+  /**
+   * Free-text description of the shipment for ChitChats' customs
+   * declaration. ChitChats derives the declaration from `line_items` when
+   * they are present (always, for us), so this mirrors the same wording as a
+   * fallback.
+   */
+  description: string;
   value: string;
   value_currency: 'cad';
   order_id: string;
@@ -229,19 +236,40 @@ export function pickCheapestRate(rates: ChitChatsRate[]): ChitChatsRate | null {
   return cheapest;
 }
 
-// Weight estimate constants (grams): the parcel itself (box + wrapping +
-// ribbon) is assumed to weigh ~500g, plus ~250g per item.
-const BASE_WEIGHT_GRAMS = 500;
-const WEIGHT_PER_ITEM_GRAMS = 250;
+// Weight estimate constant (grams): each product is assumed to weigh ~250g.
+// There is deliberately no base weight for the parcel itself.
+const WEIGHT_PER_PRODUCT_GRAMS = 250;
 
-/** Estimate shipment weight in grams: 500g base + 250g per item. */
+/** Estimate shipment weight in grams: 250g per product, no base weight. */
 export function estimateShipmentWeight(totalQuantity: number): number {
-  return BASE_WEIGHT_GRAMS + WEIGHT_PER_ITEM_GRAMS * totalQuantity;
+  return WEIGHT_PER_PRODUCT_GRAMS * totalQuantity;
+}
+
+/**
+ * Detailed shipment-level description sent to ChitChats (used for its
+ * customs declaration). Names what the parcel contains — handmade
+ * decorative ribbon flowers, never live plants — and carries the order
+ * number so a shipment can be matched back to its order.
+ */
+function describeShipment(orderNumber: string): string {
+  return `Handmade decorative ribbon flowers and bouquets (artificial floral crafts, no live plants) - Emily's Flowers order ${orderNumber}`;
+}
+
+/**
+ * Detailed customs description for one line item. ChitChats composes the
+ * customs declaration from these when `line_items` are present (which
+ * overrides the shipment-level description), so each line pairs the product
+ * name with what the item physically is.
+ */
+function describeLineItem(name: string): string {
+  return `${name} - handmade decorative ribbon flower arrangement`;
 }
 
 /**
  * Build the ChitChats create-shipment payload for a checkout. Declared value
- * is the order subtotal; line items carry their own line totals; weight comes
+ * is the order subtotal; line items carry their own line totals plus a
+ * detailed goods description (what actually lands on the customs
+ * declaration); the shipment-level `description` mirrors them; weight comes
  * from `estimateShipmentWeight`; fixed 30×20×10 cm parcel; `postage_type`
  * "unknown" so ChitChats returns rates; `ship_date` "today" (required for
  * rates).
@@ -269,6 +297,10 @@ export function buildShipmentPayload({
     postal_code: address.postalCode,
     country_code: 'CA',
     package_contents: 'merchandise',
+    // Shipment-level description for ChitChats' customs declaration.
+    // ChitChats builds the declaration from `line_items` when present, so
+    // this mirrors the same wording as a fallback.
+    description: describeShipment(orderNumber),
     value: (subtotalCents / 100).toFixed(2),
     value_currency: 'cad',
     order_id: orderNumber,
@@ -284,7 +316,10 @@ export function buildShipmentPayload({
     ship_date: 'today',
     line_items: items.map((item) => ({
       quantity: item.quantity,
-      description: item.name,
+      // Per-line goods description — this is what ChitChats actually puts on
+      // the customs declaration when line items are present, so each line
+      // names the product AND what it physically is.
+      description: describeLineItem(item.name),
       value_amount: ((item.price * item.quantity) / 100).toFixed(2),
       currency_code: 'cad',
     })),
