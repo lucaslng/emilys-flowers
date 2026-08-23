@@ -195,6 +195,17 @@ describe('GET /api/checkout/session', () => {
     expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
   });
 
+  test('fails open when the limiter binding itself errors', async () => {
+    rateLimitMocks.limitShouldThrow = true;
+
+    const response = await GET(sessionRequest('cs_test_abc123'));
+
+    expect(response.status).toBe(200);
+    // The limiter was consulted (and threw), but availability wins.
+    expect(rateLimitMocks.limitCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
+  });
+
   test('malformed session ids are rejected before the limiter is consulted', async () => {
     const response = await GET(sessionRequest('../../etc/passwd'));
 
