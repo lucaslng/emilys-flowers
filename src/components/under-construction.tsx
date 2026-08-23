@@ -3,16 +3,19 @@
  *
  * Rendered by the root layout while the storefront is in construction mode,
  * with no Navbar, Footer, cart, or providers around it — so this component
- * owns the entire viewport. A closed ribbon-flower bud sways gently on a
+ * owns the entire viewport. The brand's bouquet sticker floats gently on a
  * frosted wrapping-paper ground, with a stamped Martian Mono heading, a
  * handwritten accent, and a plain mailto contact path. No form, no signup,
  * no backend.
  *
  * Static markup + CSS only (no GSAP, no client boundary): the entrance is a
  * staggered `fade-up` declared under `(prefers-reduced-motion: no-preference)`
- * in globals.css (see `.uc-enter`), and the bud's sway rides the existing
- * `.animate-sway` utility, collapsed by the global reduced-motion guard.
+ * in globals.css (see `.uc-enter`), and the sticker's float rides the
+ * `.sticker-float` utility baked into `BouquetSticker`, collapsed by the
+ * global reduced-motion guard.
  */
+import BouquetSticker from "@/components/ui/BouquetSticker";
+
 export default function UnderConstruction() {
   return (
     <section
@@ -49,66 +52,9 @@ export default function UnderConstruction() {
       {/* Wall label */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className="mx-auto w-full max-w-xl text-center">
-          {/* Ribbon-flower bud, swaying at the stem base */}
+          {/* Bouquet sticker — the brand's hero visual, gently floating */}
           <div className="uc-enter flex justify-center">
-            <svg
-              width="140"
-              height="175"
-              viewBox="0 0 160 200"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-              className="animate-sway origin-bottom"
-              style={{ animationDuration: '5s' }}
-            >
-              {/* Hand-drawn bud strokes — boil like ink settling (the sway
-                  stays on the svg root, so the two transforms compose) */}
-              <g className="line-boil">
-                {/* Stem (warm tan, not green) */}
-                <path
-                  d="M80 76 C 77 118 82 158 80 196"
-                  stroke="#B99A72"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                {/* Leaves */}
-                <path
-                  d="M78 118 C 63 112 55 98 59 84 C 69 94 76 106 78 118 Z"
-                  fill="#B99A72"
-                  fillOpacity={0.15}
-                  stroke="#B99A72"
-                  strokeOpacity={0.55}
-                  strokeWidth={1.5}
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M82 148 C 96 142 104 128 101 114 C 93 122 85 134 82 148 Z"
-                  fill="#B99A72"
-                  fillOpacity={0.15}
-                  stroke="#B99A72"
-                  strokeOpacity={0.55}
-                  strokeWidth={1.5}
-                  strokeLinejoin="round"
-                />
-                {/* Sepals at the bud base */}
-                <path d="M75 68 C 67 73 65 82 68 90 C 73 83 75 77 75 68 Z" fill="#B99A72" fillOpacity={0.35} />
-                <path d="M85 68 C 93 73 95 82 92 90 C 87 83 85 77 85 68 Z" fill="#B99A72" fillOpacity={0.35} />
-                {/* Closed bud — about to open */}
-                <path
-                  d="M80 16 C 60 32 62 62 80 74 C 98 62 100 32 80 16 Z"
-                  fill="#F9E4E4"
-                  stroke="#D4A5A5"
-                  strokeWidth={1.5}
-                />
-                <path d="M80 28 C 68 38 70 58 80 68 C 90 58 92 38 80 28 Z" fill="#F3E4D3" fillOpacity={0.85} />
-                <path d="M80 33 L 80 62" stroke="#D4A5A5" strokeWidth={1} strokeOpacity={0.65} strokeLinecap="round" />
-                {/* Ribbon knot + tails */}
-                <rect x={74.5} y={68} width={11} height={10} rx={1.5} fill="#D4A5A5" />
-                <path d="M76 78 C 70 90 64 102 60 114" stroke="#D4A5A5" strokeWidth={2} strokeLinecap="round" fill="none" />
-                <path d="M84 78 C 90 90 96 102 100 114" stroke="#D4A5A5" strokeWidth={2} strokeLinecap="round" fill="none" />
-              </g>
-            </svg>
+            <BouquetSticker size={150} />
           </div>
 
           <p
