@@ -78,10 +78,14 @@ keyboard-only and focus-not-obscured checks.
 - Running it needs `STRIPE_SECRET_KEY` in the process env (Playwright
   auto-loads `.env` from the test root; in CI the e2e job gets it from the
   `preview` GitHub Environment) or the build fails.
-- Axe scans must wait for the `template.tsx` page-enter animation and
-  ScrollTrigger reveals to settle — the `settlePage` helper scrolls in steps
-  with pauses, because an instant jump down the page misses mid-page reveals
-  and never settles.
+- E2E runs with `reducedMotion: "reduce"` emulated (Playwright `contextOptions`).
+  The reduced-motion CSS guard in `globals.css` renders every reveal at full
+  opacity immediately, so scans are deterministic — scroll-triggered animation
+  timing starves on loaded CI runners (ScrollTrigger evaluates on rAF ticks,
+  which can all land after the page has scrolled back to the top), leaving
+  reveals invisible. The `settlePage` helper still waits for the page-enter
+  animation, hydration/GSAP registration, and settled reveal opacities before
+  scanning.
 - Note: axe-core has no rule for 2.4.11 Focus Not Obscured; that SC is covered
   by the manual focus-obscured check in the same spec.
 

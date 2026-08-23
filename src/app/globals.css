@@ -94,6 +94,9 @@ html {
     scroll-behavior: auto !important;
   }
   .reveal-init { opacity: 1 !important; transform: none !important; }
+  /* Success-receipt sections are revealed by a GSAP timeline targeting
+     `[data-reveal]` (no `reveal-init` class), so guard them here too. */
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
   .page-enter { opacity: 1 !important; transform: none !important; }
 }
 
