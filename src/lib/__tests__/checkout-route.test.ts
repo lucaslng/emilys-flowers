@@ -15,6 +15,10 @@
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
 import type { ChitChatsShipment } from '@/lib/chitchats';
 import { ADDRESS_FIELD_MAX_LENGTHS } from '@/lib/address-validation';
+import {
+  rateLimitMocks,
+  resetRateLimitMocks,
+} from './rate-limit-mocks';
 
 const realChitchats = await import('@/lib/chitchats');
 
@@ -135,6 +139,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     ];
     checkoutMocks.sessionCreateCalls.length = 0;
     checkoutMocks.shipmentCreateCalls.length = 0;
+    resetRateLimitMocks();
   });
 
   test('creates a session with catalog-resolved price ids and the cheapest ChitChats rate as the shipping option', async () => {
@@ -542,5 +547,50 @@ describe('POST /api/checkout with ChitChats configured', () => {
       value: string;
     };
     expect(payload.value).toBe('59.98'); // 2999 * 2 from the catalog
+  });
+
+  // --- Rate limiting (issue #209) ---
+
+  test('consults the limiter with a checkout-prefixed key before any billable call', async () => {
+    const request = new Request('http://localhost/api/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.7',
+      },
+      body: JSON.stringify({ items: validItems, address: validAddress }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(rateLimitMocks.limitCalls).toEqual(['checkout:203.0.113.7']);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(1);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+  });
+
+  test('returns 429 without creating a shipment or Stripe session when rate-limited', async () => {
+    rateLimitMocks.limitSuccess = false;
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: validAddress })
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('retry-after')).toBe('60');
+    expect((await response.json()).error).toBe('Too many requests');
+    // Neither billable external call may happen on a rejected request.
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+  });
+
+  test('shape-invalid payloads are rejected before the limiter is consulted (quota-free)', async () => {
+    const response = await POST(
+      checkoutRequest({ items: [{ productId: 'prod_rose', quantity: 100 }] })
+    );
+
+    expect(response.status).toBe(400);
+    expect(rateLimitMocks.limitCalls).toHaveLength(0);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
 });
