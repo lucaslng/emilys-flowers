@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import {
   validateCheckoutItems,
+  mergeCheckoutItems,
   generateOrderNumber,
   computeLineItemTotal,
   type CheckoutItemPayload,
@@ -46,6 +47,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Merge duplicate productIds (the cart UI does this client-side; the
+    // server must not trust it). Validation runs BOTH before AND after
+    // merging: merging alone first could launder invalid entries — e.g.
+    // fractional or garbage quantities that happen to sum to a valid value —
+    // into lines that pass validation; re-validating the merged list also
+    // fails closed when summed quantities exceed MAX_LINE_ITEM_QUANTITY.
+    const mergedItems = mergeCheckoutItems(
+      items as CheckoutItemPayload[]
+    );
+    const mergedValidation = validateCheckoutItems(mergedItems);
+    if (!mergedValidation.ok) {
+      return NextResponse.json(
+        { error: mergedValidation.error },
+        { status: 400 }
+      );
+    }
+
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
       // Fail closed when unconfigured — there is no simulated path.
@@ -78,7 +96,9 @@ export async function POST(request: Request) {
       unitAmount: number;
       quantity: number;
     }> = [];
-    for (const item of items as CheckoutItemPayload[]) {
+    // Iterate ONLY the merged list — duplicates must never reach Stripe as
+    // separate line_items.
+    for (const item of mergedItems) {
       const entry = catalog.get(item.productId);
       if (!entry) {
         return NextResponse.json(

@@ -502,6 +502,30 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
   });
 
+  test('merges duplicate productIds into ONE Stripe line_item with the summed quantity', async () => {
+    const response = await POST(
+      checkoutRequest({
+        items: [
+          { productId: 'prod_rose', quantity: 2 },
+          { productId: 'prod_bouquet', quantity: 1 },
+          { productId: 'prod_rose', quantity: 3 },
+        ],
+        address: validAddress,
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+
+    // prod_rose appears twice in the request but must reach Stripe once,
+    // with quantities summed (2 + 3 = 5).
+    expect(params.line_items).toEqual([
+      { price: 'price_rose', quantity: 5 },
+      { price: 'price_bouquet', quantity: 1 },
+    ]);
+  });
+
   test('returns 400 for non-positive quantities', async () => {
     for (const quantity of [0, -3]) {
       const response = await POST(

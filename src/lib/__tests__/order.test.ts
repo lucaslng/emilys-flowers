@@ -5,7 +5,10 @@ import {
   computeLineItemCount,
   computeShipping,
   validateCheckoutItems,
+  mergeCheckoutItems,
   MAX_LINE_ITEM_QUANTITY,
+  MAX_LINE_ITEMS,
+  type CheckoutItemPayload,
   type LineItem,
 } from '@/lib/order';
 
@@ -200,5 +203,98 @@ describe('validateCheckoutItems ({productId, quantity} wire shape)', () => {
         { productId: 'prod_rose', quantity: 2, name: 'Ribbon Rose', price: 1 },
       ])
     ).toEqual({ ok: true });
+  });
+
+  test(`exactly ${MAX_LINE_ITEMS} valid items -> ok`, () => {
+    const items: CheckoutItemPayload[] = Array.from(
+      { length: MAX_LINE_ITEMS },
+      (_, i) => ({ productId: `prod_${i}`, quantity: 1 })
+    );
+    expect(validateCheckoutItems(items)).toEqual({ ok: true });
+  });
+
+  test(`${MAX_LINE_ITEMS + 1} items -> Too many line items`, () => {
+    expect(MAX_LINE_ITEMS).toBe(20);
+    const items: CheckoutItemPayload[] = Array.from(
+      { length: MAX_LINE_ITEMS + 1 },
+      (_, i) => ({ productId: `prod_${i}`, quantity: 1 })
+    );
+    expect(validateCheckoutItems(items)).toEqual({
+      ok: false,
+      error: 'Too many line items',
+    });
+  });
+});
+
+describe('mergeCheckoutItems (server-side duplicate merge)', () => {
+  test('distinct productIds pass through unchanged, order-preserving', () => {
+    const items: CheckoutItemPayload[] = [
+      { productId: 'prod_rose', quantity: 2 },
+      { productId: 'prod_bouquet', quantity: 1 },
+      { productId: 'prod_tulip', quantity: 4 },
+    ];
+    expect(mergeCheckoutItems(items)).toEqual(items);
+  });
+
+  test('duplicate productIds are summed ([rose x2, rose x3] -> [rose x5])', () => {
+    expect(
+      mergeCheckoutItems([
+        { productId: 'prod_rose', quantity: 2 },
+        { productId: 'prod_rose', quantity: 3 },
+      ])
+    ).toEqual([{ productId: 'prod_rose', quantity: 5 }]);
+  });
+
+  test('three-way duplicates sum all quantities', () => {
+    expect(
+      mergeCheckoutItems([
+        { productId: 'prod_rose', quantity: 1 },
+        { productId: 'prod_rose', quantity: 2 },
+        { productId: 'prod_rose', quantity: 3 },
+      ])
+    ).toEqual([{ productId: 'prod_rose', quantity: 6 }]);
+  });
+
+  test('interleaved duplicates keep first-seen order', () => {
+    expect(
+      mergeCheckoutItems([
+        { productId: 'prod_rose', quantity: 1 },
+        { productId: 'prod_bouquet', quantity: 2 },
+        { productId: 'prod_rose', quantity: 3 },
+        { productId: 'prod_tulip', quantity: 4 },
+        { productId: 'prod_bouquet', quantity: 5 },
+      ])
+    ).toEqual([
+      { productId: 'prod_rose', quantity: 4 },
+      { productId: 'prod_bouquet', quantity: 7 },
+      { productId: 'prod_tulip', quantity: 4 },
+    ]);
+  });
+
+  test('empty array -> empty array', () => {
+    expect(mergeCheckoutItems([])).toEqual([]);
+  });
+
+  test('does not mutate the input array or its entries', () => {
+    const items: CheckoutItemPayload[] = [
+      { productId: 'prod_rose', quantity: 2 },
+      { productId: 'prod_bouquet', quantity: 1 },
+      { productId: 'prod_rose', quantity: 3 },
+    ];
+    const snapshot = structuredClone(items);
+    mergeCheckoutItems(items);
+    expect(items).toEqual(snapshot);
+  });
+
+  test('a merged line above the per-line cap fails validation (fail closed)', () => {
+    // Two individually-valid lines of 60 sum to 120 > MAX_LINE_ITEM_QUANTITY.
+    const merged = mergeCheckoutItems([
+      { productId: 'prod_rose', quantity: 60 },
+      { productId: 'prod_rose', quantity: 60 },
+    ]);
+    expect(validateCheckoutItems(merged)).toEqual({
+      ok: false,
+      error: 'Invalid line item',
+    });
   });
 });

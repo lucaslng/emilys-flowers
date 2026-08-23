@@ -82,6 +82,12 @@ Key invariants:
 - **No client-supplied financial identifier exists anywhere in the request
   path.** Prices, names and price ids come from the catalog index; unknown
   product ids get a 400. Quantities are capped at 99 per line server-side.
+- **Requests are bounded server-side.** At most 20 distinct lines per request
+  (`MAX_LINE_ITEMS`); more gets a 400 "Too many line items". Duplicate
+  productIds are merged server-side (quantities summed, first-seen order kept)
+  before catalog resolution and pricing, so one product can never reach Stripe
+  as multiple line_items. A merged line exceeding 99 units is rejected with a
+  400 "Invalid line item".
 - **The ChitChats shipment payload is built from the same resolved items** —
   declared customs/insurance value and package descriptions never come from
   the client.
