@@ -260,17 +260,27 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(params.success_url).toContain('&shipping=968');
   });
 
-  test('returns 400 when the address is missing', async () => {
+  test('returns 400 with per-field errors when the address is missing', async () => {
     const response = await POST(checkoutRequest({ items: validItems }));
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       error: 'A delivery address is required to calculate shipping.',
+      fieldErrors: [
+        { field: 'name', message: 'Enter your full name' },
+        { field: 'line1', message: 'Enter your street address' },
+        { field: 'city', message: 'Enter your city' },
+        { field: 'province', message: 'Select a province' },
+        {
+          field: 'postalCode',
+          message: 'Enter a valid Canadian postal code (e.g. M5V 2T6)',
+        },
+      ],
     });
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
   });
 
-  test('returns 400 when the address is invalid', async () => {
+  test('returns 400 with a structured province error when the address is invalid', async () => {
     const response = await POST(
       checkoutRequest({
         items: validItems,
@@ -281,6 +291,34 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       error: 'A delivery address is required to calculate shipping.',
+      fieldErrors: [
+        {
+          field: 'province',
+          message:
+            'Invalid province code "XX". Must be one of: AB, BC, MB, NB, NL, NS, NT, NU, ON, PE, QC, SK, YT.',
+        },
+      ],
+    });
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+  });
+
+  test('returns 400 with a structured postal-code error when the postal code is malformed', async () => {
+    const response = await POST(
+      checkoutRequest({
+        items: validItems,
+        address: { ...validAddress, postalCode: '12345' },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: 'A delivery address is required to calculate shipping.',
+      fieldErrors: [
+        {
+          field: 'postalCode',
+          message: 'Enter a valid Canadian postal code (e.g. M5V 2T6)',
+        },
+      ],
     });
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
   });

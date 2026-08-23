@@ -1,18 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import StarMotif from '@/components/ui/StarMotif';
+import {
+  CA_PROVINCES,
+  normalizeCAPostalCode,
+  validateDeliveryAddressFields,
+  type AddressFieldError,
+  type AddressFieldName,
+  type CaProvince,
+} from '@/lib/address-validation';
 
 /**
  * CheckoutPageClient — "the wrapping desk". The order summary reads like a
  * store receipt (stitched edges, dashed seams) and the payment button is a
  * big stamp. The delivery address is collected once, here; the shipping rate
  * is calculated server-side and shown in Stripe at payment.
+ *
+ * Field validation is shared with the server (`src/lib/address-validation.ts`)
+ * so customers see the exact rule the API enforces — including Canadian
+ * postal-code format — before anything leaves the browser.
  */
 
 /** Delivery address the checkout route uses to calculate shipping. */
@@ -26,34 +38,43 @@ interface DeliveryAddress {
   postalCode: string;
 }
 
-/** Canadian provinces and territories (two-letter codes, as the API expects). */
-const PROVINCES: { code: string; label: string }[] = [
-  { code: 'AB', label: 'Alberta' },
-  { code: 'BC', label: 'British Columbia' },
-  { code: 'MB', label: 'Manitoba' },
-  { code: 'NB', label: 'New Brunswick' },
-  { code: 'NL', label: 'Newfoundland and Labrador' },
-  { code: 'NS', label: 'Nova Scotia' },
-  { code: 'NT', label: 'Northwest Territories' },
-  { code: 'NU', label: 'Nunavut' },
-  { code: 'ON', label: 'Ontario' },
-  { code: 'PE', label: 'Prince Edward Island' },
-  { code: 'QC', label: 'Quebec' },
-  { code: 'SK', label: 'Saskatchewan' },
-  { code: 'YT', label: 'Yukon' },
-];
-
+type RequiredAddressField = Exclude<AddressFieldName, 'line2'>;
 type AddressField = keyof DeliveryAddress;
-/** The required fields — `line2` (apt/suite/unit) is optional. */
-type RequiredAddressField = Exclude<AddressField, 'line2'>;
 
-const REQUIRED_FIELDS: RequiredAddressField[] = [
-  'name',
-  'line1',
-  'city',
-  'province',
-  'postalCode',
-];
+/** Friendly names for the two-letter province codes the API expects. */
+const PROVINCE_LABELS: Record<CaProvince, string> = {
+  AB: 'Alberta',
+  BC: 'British Columbia',
+  MB: 'Manitoba',
+  NB: 'New Brunswick',
+  NL: 'Newfoundland and Labrador',
+  NS: 'Nova Scotia',
+  NT: 'Northwest Territories',
+  NU: 'Nunavut',
+  ON: 'Ontario',
+  PE: 'Prince Edward Island',
+  QC: 'Quebec',
+  SK: 'Saskatchewan',
+  YT: 'Yukon',
+};
+
+const ALL_TOUCHED: Record<RequiredAddressField, boolean> = {
+  name: true,
+  line1: true,
+  city: true,
+  province: true,
+  postalCode: true,
+};
+
+/** DOM element id per validated field — used to move focus to first error. */
+const FIELD_ELEMENT_IDS: Record<AddressFieldName, string> = {
+  name: 'address-name',
+  line1: 'address-line1',
+  line2: 'address-line2',
+  city: 'address-city',
+  province: 'address-province',
+  postalCode: 'address-postal-code',
+};
 
 const EMPTY_ADDRESS: DeliveryAddress = {
   name: '',
@@ -78,8 +99,7 @@ function TextField({
   label,
   value,
   autoComplete,
-  invalid,
-  errorId,
+  error,
   onChange,
   onBlur,
   required = true,
@@ -88,12 +108,14 @@ function TextField({
   label: string;
   value: string;
   autoComplete?: string;
-  invalid: boolean;
-  errorId: string;
+  /** Specific message shown inline when present (undefined = valid). */
+  error?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
   required?: boolean;
 }) {
+  const invalid = Boolean(error);
+  const errorId = `${id}-error`;
   return (
     <div>
       <label
@@ -119,11 +141,48 @@ function TextField({
       />
       {invalid && (
         <p id={errorId} className="mt-1 font-sans text-xs text-[#9C4A2F]">
-          Required
+          {error}
         </p>
       )}
     </div>
   );
+}
+
+/**
+ * Defensively extract structured field errors from a non-OK checkout
+ * response. The body is `{ error, fieldErrors? }` — `fieldErrors` may be
+ * absent or malformed, so every entry is verified before use.
+ */
+function parseServerFieldErrors(data: unknown): AddressFieldError[] {
+  if (typeof data !== 'object' || data === null || !('fieldErrors' in data)) {
+    return [];
+  }
+  const raw = (data as { fieldErrors?: unknown }).fieldErrors;
+  if (!Array.isArray(raw)) return [];
+  const KNOWN_FIELDS = new Set<string>(Object.keys(FIELD_ELEMENT_IDS));
+  return raw.flatMap((entry): AddressFieldError[] => {
+    if (typeof entry !== 'object' || entry === null) return [];
+    const field = (entry as { field?: unknown }).field;
+    const message = (entry as { message?: unknown }).message;
+    if (
+      typeof field !== 'string' ||
+      !KNOWN_FIELDS.has(field) ||
+      typeof message !== 'string' ||
+      message.trim() === ''
+    ) {
+      return [];
+    }
+    return [{ field: field as AddressFieldName, message }];
+  });
+}
+
+/** Read `{ error }` off an untrusted response body, defensively. */
+function parseErrorMessage(data: unknown, fallback: string): string {
+  if (typeof data === 'object' && data !== null && 'error' in data) {
+    const error = (data as { error?: unknown }).error;
+    if (typeof error === 'string' && error.trim() !== '') return error;
+  }
+  return fallback;
 }
 
 export default function CheckoutPageClient() {
@@ -132,34 +191,72 @@ export default function CheckoutPageClient() {
   const [error, setError] = useState('');
   const [address, setAddress] = useState<DeliveryAddress>(EMPTY_ADDRESS);
   const [touched, setTouched] = useState<Record<RequiredAddressField, boolean>>(UNTOUCHED);
+  /** Messages returned by the server, keyed by field. Wins over local ones until edited. */
+  const [serverFieldErrors, setServerFieldErrors] = useState<
+    Partial<Record<AddressFieldName, string>>
+  >({});
 
   const subtotal = getTotal();
 
-  const isFieldValid = (field: RequiredAddressField) => address[field].trim() !== '';
-  const addressComplete = REQUIRED_FIELDS.every(isFieldValid);
-  const showError = (field: RequiredAddressField) => touched[field] && !isFieldValid(field);
+  /** Shared validation rules (presence + province + postal format), in form order. */
+  const invalidFields = useMemo(
+    () => validateDeliveryAddressFields(address),
+    [address]
+  );
+
+  /** The same rules keyed by field for quick inline lookup. */
+  const validationErrors = useMemo(() => {
+    const byField: Partial<Record<AddressFieldName, string>> = {};
+    for (const { field, message } of invalidFields) {
+      byField[field] = message;
+    }
+    return byField;
+  }, [invalidFields]);
+
+  /**
+   * The message to show for a field, if any: server feedback wins until the
+   * customer edits that field; otherwise show the shared rule once touched.
+   */
+  const fieldError = (field: AddressFieldName): string | undefined => {
+    const serverMessage = serverFieldErrors[field];
+    if (serverMessage) return serverMessage;
+    if (field === 'line2') return undefined;
+    return touched[field] ? validationErrors[field] : undefined;
+  };
 
   const updateField = (field: AddressField, value: string) => {
     setAddress((prev) => ({ ...prev, [field]: value }));
+    // Editing a field dismisses any server complaint about it.
+    setServerFieldErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
   const markTouched = (field: RequiredAddressField) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
+  /** Reveal every invalid field and move focus to the first one. */
+  const revealAllErrors = (errors: AddressFieldError[]) => {
+    setTouched(ALL_TOUCHED);
+    const firstInvalid = errors[0]?.field;
+    if (firstInvalid) {
+      document.getElementById(FIELD_ELEMENT_IDS[firstInvalid])?.focus();
+    }
+  };
+
   const handleCheckout = async () => {
     if (loading) return;
 
-    // The button is disabled until the address is complete, but the form can
-    // still be submitted with Enter — validate here too.
-    if (!addressComplete) {
-      setTouched({
-        name: true,
-        line1: true,
-        city: true,
-        province: true,
-        postalCode: true,
-      });
+    // Always give visible feedback for invalid input at submit attempt —
+    // whether the button was clicked or the form submitted with Enter.
+    if (invalidFields.length > 0) {
+      setError('');
+      setServerFieldErrors({});
+      revealAllErrors(invalidFields);
       return;
     }
 
@@ -184,19 +281,46 @@ export default function CheckoutPageClient() {
             line2: (address.line2 ?? '').trim(),
             city: address.city.trim(),
             province: address.province.trim(),
-            postalCode: address.postalCode.trim(),
+            postalCode: normalizeCAPostalCode(address.postalCode),
           },
         }),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session');
+        const serverErrors = parseServerFieldErrors(data);
+        if (serverErrors.length > 0) {
+          // Map each server complaint onto its field; `line2` has no inline
+          // slot, so surface its messages in the banner instead.
+          const byField: Partial<Record<AddressFieldName, string>> = {};
+          const bannerExtras: string[] = [];
+          for (const { field, message } of serverErrors) {
+            if (field === 'line2') {
+              bannerExtras.push(message);
+            } else {
+              byField[field] = message;
+            }
+          }
+          setTouched(ALL_TOUCHED);
+          setServerFieldErrors(byField);
+          setError(
+            bannerExtras.length > 0
+              ? `Please check the highlighted delivery address fields. ${bannerExtras.join(' ')}`
+              : 'Please check the highlighted delivery address fields.'
+          );
+          return;
+        }
+        throw new Error(parseErrorMessage(data, 'Failed to create checkout session'));
       }
 
-      if (data.url) {
-        window.location.href = data.url;
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'url' in data &&
+        typeof (data as { url?: unknown }).url === 'string'
+      ) {
+        window.location.href = (data as { url: string }).url;
       }
     } catch (err) {
       setError(
@@ -273,8 +397,7 @@ export default function CheckoutPageClient() {
                   label="Full name"
                   value={address.name}
                   autoComplete="name"
-                  invalid={showError('name')}
-                  errorId="address-name-error"
+                  error={fieldError('name')}
                   onChange={(value) => updateField('name', value)}
                   onBlur={() => markTouched('name')}
                 />
@@ -283,8 +406,7 @@ export default function CheckoutPageClient() {
                   label="Street address"
                   value={address.line1}
                   autoComplete="address-line1"
-                  invalid={showError('line1')}
-                  errorId="address-line1-error"
+                  error={fieldError('line1')}
                   onChange={(value) => updateField('line1', value)}
                   onBlur={() => markTouched('line1')}
                 />
@@ -293,8 +415,7 @@ export default function CheckoutPageClient() {
                   label="Apt, suite, unit (optional)"
                   value={address.line2 ?? ''}
                   autoComplete="address-line2"
-                  invalid={false}
-                  errorId="address-line2-error"
+                  error={fieldError('line2')}
                   required={false}
                   onChange={(value) => updateField('line2', value)}
                 />
@@ -303,8 +424,7 @@ export default function CheckoutPageClient() {
                   label="City"
                   value={address.city}
                   autoComplete="address-level2"
-                  invalid={showError('city')}
-                  errorId="address-city-error"
+                  error={fieldError('city')}
                   onChange={(value) => updateField('city', value)}
                   onBlur={() => markTouched('city')}
                 />
@@ -324,24 +444,24 @@ export default function CheckoutPageClient() {
                       value={address.province}
                       onChange={(event) => updateField('province', event.target.value)}
                       onBlur={() => markTouched('province')}
-                      aria-invalid={showError('province')}
+                      aria-invalid={Boolean(fieldError('province'))}
                       aria-describedby={
-                        showError('province') ? 'address-province-error' : undefined
+                        fieldError('province') ? 'address-province-error' : undefined
                       }
                       className={`w-full rounded-none border bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors focus:border-rose-line ${
-                        showError('province') ? 'border-[#9C4A2F]' : 'border-border'
+                        fieldError('province') ? 'border-[#9C4A2F]' : 'border-border'
                       }`}
                     >
                       <option value="">Select province</option>
-                      {PROVINCES.map((province) => (
-                        <option key={province.code} value={province.code}>
-                          {province.label} ({province.code})
+                      {CA_PROVINCES.map((code) => (
+                        <option key={code} value={code}>
+                          {PROVINCE_LABELS[code]} ({code})
                         </option>
                       ))}
                     </select>
-                    {showError('province') && (
+                    {fieldError('province') && (
                       <p id="address-province-error" className="mt-1 font-sans text-xs text-[#9C4A2F]">
-                        Required
+                        {fieldError('province')}
                       </p>
                     )}
                   </div>
@@ -350,8 +470,7 @@ export default function CheckoutPageClient() {
                     label="Postal code"
                     value={address.postalCode}
                     autoComplete="postal-code"
-                    invalid={showError('postalCode')}
-                    errorId="address-postal-code-error"
+                    error={fieldError('postalCode')}
                     onChange={(value) => updateField('postalCode', value)}
                     onBlur={() => markTouched('postalCode')}
                   />
@@ -422,7 +541,7 @@ export default function CheckoutPageClient() {
                 type="submit"
                 variant="primary"
                 fullWidth
-                disabled={!addressComplete || loading}
+                disabled={loading}
                 aria-busy={loading}
               >
                 {loading ? (

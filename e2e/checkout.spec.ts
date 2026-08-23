@@ -21,6 +21,14 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/checkout");
 
+    // A complete, valid delivery address is required before Pay submits
+    // (client-side validation blocks incomplete/invalid forms).
+    await page.getByLabel("Full name").fill("Ava Bloom");
+    await page.getByLabel("Street address").fill("12 Rose Lane");
+    await page.getByLabel("City").fill("Toronto");
+    await page.getByLabel("Province").selectOption("ON");
+    await page.getByLabel("Postal code").fill("M5V 2T6");
+
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     // The webServer forces simulated checkout mode (see playwright.config.ts), so
@@ -35,6 +43,31 @@ test.describe("Checkout flow", () => {
     await expect(
       page.getByRole("heading", { name: "Your cart is empty" })
     ).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("invalid postal code shows field errors and stays on checkout", async ({ page }) => {
+    await page.goto("/bouquets");
+    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await page.goto("/checkout");
+
+    await page.getByLabel("Full name").fill("Ava Bloom");
+    await page.getByLabel("Street address").fill("12 Rose Lane");
+    await page.getByLabel("City").fill("Toronto");
+    await page.getByLabel("Province").selectOption("ON");
+    // Malformed postal code — correct format is A1A 1A1.
+    await page.getByLabel("Postal code").fill("ABC");
+
+    await page.getByRole("button", { name: "Pay with Stripe" }).click();
+
+    // Submission is blocked client-side: no navigation happens, and the
+    // invalid field gets an inline message plus a summary banner.
+    await expect(page).toHaveURL(/\/checkout$/);
+    await expect(
+      page.getByText("Enter a valid Canadian postal code")
+    ).toBeVisible();
+    await expect(
+      page.getByText("Please check the highlighted delivery address fields.")
+    ).toBeVisible();
   });
 
   test("POST /api/checkout with empty items returns 400", async ({ page }) => {
