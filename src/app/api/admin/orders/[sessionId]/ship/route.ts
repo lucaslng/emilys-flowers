@@ -1,14 +1,16 @@
 // src/app/api/admin/orders/[sessionId]/ship/route.ts
 //
-// Confirms an order has shipped: verifies the admin session cookie, looks up
-// the Stripe checkout session for the customer's email/name, sends the
-// shipping-notification email, then persists the confirmation on the session
-// metadata (the admin list reads `shipped_at` / `shipping_estimate`).
+// Confirms an order has shipped: format-checks the sessionId path param,
+// verifies the admin session cookie, looks up the Stripe checkout session for
+// the customer's email/name, sends the shipping-notification email, then
+// persists the confirmation on the session metadata (the admin list reads
+// `shipped_at` / `shipping_estimate`).
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { sendShippedEmail } from '@/lib/email';
 import { verifySessionToken } from '@/lib/admin-auth';
+import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
 
 export async function POST(
   request: NextRequest,
@@ -16,6 +18,16 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params;
+
+    // Format guard first — never forward a crafted id to Stripe. Mirrors the
+    // receipt route so malformed ids surface as a clean 400, not a raw
+    // Stripe SDK error / 500.
+    if (!isValidCheckoutSessionId(sessionId)) {
+      return NextResponse.json(
+        { error: 'Invalid session id.' },
+        { status: 400 }
+      );
+    }
 
     const adminSession = await verifySessionToken(
       request.cookies.get('admin_session')?.value

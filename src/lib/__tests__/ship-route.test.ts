@@ -31,16 +31,40 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
       .sign(new TextEncoder().encode(ADMIN_SESSION_SECRET))}`;
   });
 
-  function shipRequest(): NextRequest {
-    return new NextRequest('http://localhost/api/admin/orders/cs_test_123/ship', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        cookie: adminCookie,
-      },
-      body: JSON.stringify({ estimatedShippingTime: '2-4 business days' }),
-    });
+  function shipRequest(sessionId = 'cs_test_123'): NextRequest {
+    return new NextRequest(
+      `http://localhost/api/admin/orders/${sessionId}/ship`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          cookie: adminCookie,
+        },
+        body: JSON.stringify({ estimatedShippingTime: '2-4 business days' }),
+      }
+    );
   }
+
+  test.each([
+    ['empty string', ''],
+    ['missing prefix', 'abc123'],
+    ['wrong object type', 'seti_abc123'],
+    ['pi id', 'pi_abc123'],
+    ['subclassed id', 'cs_test'],
+    ['trailing underscore only', 'cs_test_'],
+    ['path traversal', '../../etc/passwd'],
+    ['uppercase prefix', 'CS_TEST_abc123'],
+  ])('rejects %s without hitting Stripe', async (_label, bad) => {
+    const response = await POST(shipRequest(bad), {
+      params: Promise.resolve({ sessionId: bad }),
+    });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe('Invalid session id.');
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
 
   test('returns 200 without sending a duplicate email when already shipped', async () => {
     orderEmailMocks.currentSession = {

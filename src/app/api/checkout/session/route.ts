@@ -22,9 +22,7 @@ import Stripe from 'stripe';
 
 import { checkRateLimit } from '@/lib/rate-limit';
 import { resolveReceiptImage } from '@/lib/receipt-images';
-
-/** Only real Stripe Checkout session ids may reach the API. */
-const SESSION_ID_PATTERN = /^cs_(live|test)_[A-Za-z0-9]+$/;
+import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
 
 export async function GET(request: Request) {
   try {
@@ -32,7 +30,7 @@ export async function GET(request: Request) {
       new URL(request.url).searchParams.get('session_id') ?? '';
 
     // Format guard first — never forward a crafted id to Stripe.
-    if (!SESSION_ID_PATTERN.test(sessionId)) {
+    if (!isValidCheckoutSessionId(sessionId)) {
       return NextResponse.json(
         { error: 'Invalid session id.' },
         { status: 400 }

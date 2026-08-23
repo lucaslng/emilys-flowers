@@ -36,7 +36,7 @@ Resend domain).
 | `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE) |
 | `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `admin_session` JWT cookie |
 | `src/app/api/admin/logout/route.ts` | Clears the `admin_session` cookie |
-| `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Sends the shipped email + persists metadata |
+| `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Format-checks `sessionId` (`cs_(live|test)`, shared helper in `src/lib/stripe-session-id.ts`; malformed → 400), then sends the shipped email + persists metadata |
 
 ## Environment variables
 
