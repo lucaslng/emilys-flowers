@@ -120,4 +120,61 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
       })
     );
   });
+
+  test('clamps an oversized estimatedShippingTime to the 500-char metadata cap', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+    const oversized = `  ${'a'.repeat(600)}  `;
+
+    const response = await POST(
+      new NextRequest(
+        'http://localhost/api/admin/orders/cs_test_123/ship',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', cookie: adminCookie },
+          body: JSON.stringify({ estimatedShippingTime: oversized }),
+        }
+      ),
+      { params: Promise.resolve({ sessionId: 'cs_test_123' }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    const estimate = (
+      orderEmailMocks.stripeUpdateCalls[0].params.metadata as Record<
+        string,
+        string
+      >
+    ).shipping_estimate;
+    expect(estimate).toBe('a'.repeat(500));
+  });
+
+  test('returns an observable error with emailSent when the metadata update fails', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+    orderEmailMocks.stripeUpdateShouldThrow = true;
+
+    const response = await POST(shipRequest(), {
+      params: Promise.resolve({ sessionId: 'cs_test_123' }),
+    });
+
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.emailSent).toBe(true);
+    expect(typeof body.error).toBe('string');
+    // The message must warn that the email already went out so the admin
+    // does not blindly resubmit and duplicate it.
+    expect(body.error).toMatch(/already/i);
+    expect(body.error).toMatch(/do not resubmit/i);
+    // The email itself was still delivered exactly once.
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+  });
 });

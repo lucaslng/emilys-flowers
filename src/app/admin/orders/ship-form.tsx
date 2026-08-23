@@ -31,6 +31,20 @@ export default function ShipForm({ sessionId }: { sessionId: string }) {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
+        // A metadata-stamp failure (`emailSent: true`) means the shipped
+        // email already went out — the server's message carries the
+        // do-not-resubmit guidance, so surface it verbatim instead of the
+        // generic retry prompt.
+        if (
+          data &&
+          typeof data === 'object' &&
+          data.emailSent === true &&
+          typeof data.error === 'string'
+        ) {
+          setError(data.error);
+          setLoading(false);
+          return;
+        }
         throw new Error(
           data && typeof data.error === 'string'
             ? data.error
