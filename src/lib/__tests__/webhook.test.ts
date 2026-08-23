@@ -268,19 +268,41 @@ describe('POST /api/webhooks/stripe', () => {
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
   });
 
-  test('returns 200 when the email sends but the metadata stamp fails', async () => {
+  test('returns 500 when every metadata stamp attempt fails', async () => {
     orderEmailMocks.currentEvent = completedEvent();
     orderEmailMocks.currentSession = makeSession();
     orderEmailMocks.stripeUpdateShouldThrow = true;
 
     const response = await POST(completedRequest());
 
-    // The email was delivered; returning 200 (instead of 500) avoids Stripe
-    // retrying and re-sending once Resend's 24h idempotency window expires.
+    // Non-2xx makes Stripe redeliver while Resend's idempotency key still
+    // dedupes; once a stamp lands, the metadata check dedupes later retries.
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: 'Failed to stamp confirmation metadata',
+    });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateAttempts).toBe(3);
+  });
+
+  test('recovers from a transient stamp failure and returns 200', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession();
+    orderEmailMocks.stripeUpdateFailuresRemaining = 1;
+
+    const response = await POST(completedRequest());
+
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true });
     expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
-    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateAttempts).toBe(2);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(
+      expect.objectContaining({
+        confirmation_email_sent_at: expect.any(String),
+        confirmation_email_id: 're_123',
+      })
+    );
   });
 
   test('skips re-sending when the session already has a confirmation stamp', async () => {
