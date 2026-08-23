@@ -5,6 +5,7 @@ import {
   itemListSchema,
   productSchema,
   breadcrumbSchema,
+  serializeJsonLd,
 } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/site";
 import type { Product } from "@/types";
@@ -111,5 +112,36 @@ describe("breadcrumbSchema", () => {
         item: `${SITE_URL}/flowers`,
       },
     ]);
+  });
+});
+
+describe("serializeJsonLd", () => {
+  test("escapes </script> so it cannot break out of the script tag", () => {
+    const serialized = serializeJsonLd(
+      productSchema(product({ name: `Rose</script><script>alert(1)</script>` })),
+    );
+    expect(serialized).not.toContain("</script>");
+    expect(serialized).toContain("\\u003c/script>");
+  });
+
+  test("escapes every raw < in string values", () => {
+    const serialized = serializeJsonLd({ name: "a < b <c" });
+    expect(serialized).not.toContain("<");
+    expect(serialized).toBe('{"name":"a \\u003c b \\u003cc"}');
+  });
+
+  test("round-trips to identical semantics after escaping", () => {
+    const schema = productSchema(
+      product({
+        name: "</script> Rose & Peony",
+        description: "Handcrafted <em>ribbon</em> flower",
+      }),
+    );
+    expect(JSON.parse(serializeJsonLd(schema))).toEqual(schema);
+  });
+
+  test("escapes U+2028 and U+2029 line separators", () => {
+    const serialized = serializeJsonLd({ name: "a\u2028b\u2029c" });
+    expect(serialized).toBe('{"name":"a\\u2028b\\u2029c"}');
   });
 });
