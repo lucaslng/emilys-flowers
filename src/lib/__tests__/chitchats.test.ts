@@ -226,6 +226,38 @@ describe('validateDeliveryAddress', () => {
     }
   });
 
+  test('normalizes the postal code to canonical "A1A 1A1" form', () => {
+    for (const input of ['m5v2t6', 'M5V-2T6', ' m5v 2t6 ', 'M5V  2T6']) {
+      const result = validateDeliveryAddress({
+        name: 'Ada Lovelace',
+        line1: '1 Analytical Way',
+        city: 'Toronto',
+        province: 'ON',
+        postalCode: input,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.postalCode).toBe('M5V 2T6');
+      }
+    }
+  });
+
+  test('rejects a malformed postal code', () => {
+    for (const postalCode of ['12345', 'ABCDEF', 'M5V 2T', 'D5V 2T6']) {
+      const result = validateDeliveryAddress({
+        name: 'Ada Lovelace',
+        line1: '1 Analytical Way',
+        city: 'Toronto',
+        province: 'ON',
+        postalCode,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toContain('postal code');
+      }
+    }
+  });
+
   test('rejects a missing address', () => {
     expect(validateDeliveryAddress(undefined).ok).toBe(false);
     expect(validateDeliveryAddress(null).ok).toBe(false);

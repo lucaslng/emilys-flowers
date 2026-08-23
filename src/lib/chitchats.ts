@@ -16,25 +16,16 @@
 // createShipment) read `process.env` and are server-only.
 
 import type { LineItem } from '@/lib/order';
+import {
+  normalizeCAPostalCode,
+  validateDeliveryAddressFields,
+} from '@/lib/address-validation';
 
-/** Canadian province/territory codes accepted by ChitChats. */
-export const CA_PROVINCES = [
-  'AB',
-  'BC',
-  'MB',
-  'NB',
-  'NL',
-  'NS',
-  'NT',
-  'NU',
-  'ON',
-  'PE',
-  'QC',
-  'SK',
-  'YT',
-] as const;
-
-export type CaProvince = (typeof CA_PROVINCES)[number];
+// Shared contract re-exports: `CA_PROVINCES` / `CaProvince` used to live here;
+// they now come from the client-safe `@/lib/address-validation` so both sides
+// of checkout enforce identical rules. Re-exported for backward compatibility.
+export { CA_PROVINCES } from '@/lib/address-validation';
+export type { CaProvince } from '@/lib/address-validation';
 
 export interface ChitChatsRate {
   postage_type: string;
@@ -307,7 +298,13 @@ export type DeliveryAddressValidation =
 /**
  * Validate a checkout delivery address: name, line1, city, province and
  * postalCode required non-empty strings; `line2` (apartment/unit) optional.
- * Strings are trimmed; the province is normalized to uppercase.
+ *
+ * Field rules are delegated to the shared `validateDeliveryAddressFields`
+ * contract (identical to what the client form enforces). Strings are trimmed;
+ * the province is normalized to uppercase and the postal code to the
+ * canonical "A1A 1A1" form on success. Legacy single-string error messages
+ * are preserved for backward compatibility — structured per-field errors are
+ * available via `validateDeliveryAddressFields` directly.
  */
 export function validateDeliveryAddress(
   address: unknown
@@ -318,6 +315,7 @@ export function validateDeliveryAddress(
       error: 'A delivery address is required to calculate shipping.',
     };
   }
+
   const record = address as Record<string, unknown>;
   const name = typeof record.name === 'string' ? record.name.trim() : '';
   const line1 = typeof record.line1 === 'string' ? record.line1.trim() : '';
@@ -328,19 +326,45 @@ export function validateDeliveryAddress(
       ? record.province.trim().toUpperCase()
       : '';
   const postalCode =
-    typeof record.postalCode === 'string' ? record.postalCode.trim() : '';
+    typeof record.postalCode === 'string'
+      ? normalizeCAPostalCode(record.postalCode)
+      : '';
 
-  if (!name || !line1 || !city || !province || !postalCode) {
+  // Field rules come from the shared contract — identical to what the client
+  // checkout form enforces.
+  const fieldErrors = validateDeliveryAddressFields({
+    name,
+    line1,
+    city,
+    province,
+    postalCode,
+  });
+  if (fieldErrors.length > 0) {
+    // Preserve the legacy single-string error messages: blank/missing fields
+    // get the generic "missing required fields" message; a non-empty invalid
+    // province or postal code gets its specific shared-contract message.
+    if (name && line1 && city && province && postalCode) {
+      const provinceError = fieldErrors.find(
+        (error) => error.field === 'province'
+      );
+      if (provinceError) {
+        return { ok: false, error: provinceError.message };
+      }
+      const postalError = fieldErrors.find(
+        (error) => error.field === 'postalCode'
+      );
+      if (postalError) {
+        return { ok: false, error: postalError.message };
+      }
+    }
     return {
       ok: false,
       error: 'Delivery address is missing required fields (name, line1, city, province, postalCode).',
     };
   }
-  if (!CA_PROVINCES.includes(province as CaProvince)) {
-    return {
-      ok: false,
-      error: `Invalid province code "${province}". Must be one of: ${CA_PROVINCES.join(', ')}.`,
-    };
-  }
-  return { ok: true, value: { name, line1, line2, city, province, postalCode } };
+
+  return {
+    ok: true,
+    value: { name, line1, line2, city, province, postalCode },
+  };
 }
