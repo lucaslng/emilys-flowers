@@ -43,8 +43,9 @@ is no simulated checkout path; see [stripe-checkout.md](./stripe-checkout.md)).
 Route behavior (validation, catalog resolution, 503-when-unconfigured) is
 covered by unit tests: input validation lives in `validateCheckoutItems`
 (`src/lib/order.ts`: `{productId, quantity}` wire shape, positive-integer
-quantities capped at 99), and `checkout-route.test.ts` asserts the
-empty-items 400 error string `"No items provided"` — keep it stable.
+quantities capped at 99); the empty-items 400 error string
+`"No items provided"` is asserted by the `validateCheckoutItems` tests in
+`order.test.ts` — keep it stable.
 
 `checkout-route.test.ts` mocks `@/lib/catalog-index` so catalog resolution
 never touches Stripe, and asserts that Stripe `line_items` and the ChitChats

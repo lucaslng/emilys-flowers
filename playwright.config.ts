@@ -11,7 +11,8 @@ import { defineConfig, devices } from "@playwright/test";
 // with page.route() — POST /api/checkout and GET /api/checkout/session are
 // fulfilled with fixtures — so runtime credentials are irrelevant.
 const stripePrefix =
-  process.env.STRIPE_SECRET_KEY !== undefined
+  process.env.STRIPE_SECRET_KEY !== undefined &&
+  process.env.STRIPE_SECRET_KEY !== ""
     ? `STRIPE_SECRET_KEY=${process.env.STRIPE_SECRET_KEY} `
     : "";
 

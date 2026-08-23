@@ -59,11 +59,10 @@ to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount).
   live in `src/lib/order.ts` and operate on the flat `LineItem` shape; the
   provider's `getTotal`/`getItemCount` flatten `CartItem[]` to `LineItem[]` via
   `toLineItems` and delegate to them.
-- `decodeOrderItems` enforces the same semantic shape as the checkout boundary
-  (`validateCheckoutItems`: non-empty ids, positive-integer quantity ≤
-  `MAX_LINE_ITEM_QUANTITY` = 99) plus non-empty names and positive-integer
-  prices, so a crafted `items`
-  URL param can't surface negative/fractional totals on the success page.
+- There is no client-side order decoding: legacy `items=`/`shipping=` URL
+  params are ignored, and the success page renders exclusively from the
+  sanitized session-retrieval projection (see
+  [stripe-checkout.md](./stripe-checkout.md)).
 
 ## Checkout — server-side price resolution
 
