@@ -65,51 +65,12 @@ export function computeShipping(subtotalCents: number): number {
 // --- Validation ---
 
 /**
- * Validate the checkout payload's line items.
- * - items must be a non-empty array (error: "No items provided")
- * - each item: non-empty id, non-empty name, positive-integer price (cents),
- *   positive-integer quantity capped at MAX_LINE_ITEM_QUANTITY
- *   (else error: "Invalid line item")
- */
-export function validateLineItems(items: unknown): LineItemsValidation {
-  if (!Array.isArray(items) || items.length === 0) {
-    return { ok: false, error: "No items provided" };
-  }
-  for (const item of items) {
-    if (
-      item === null ||
-      typeof item !== "object" ||
-      !("id" in item) ||
-      typeof item.id !== "string" ||
-      item.id.trim() === "" ||
-      !("name" in item) ||
-      typeof item.name !== "string" ||
-      item.name.trim() === "" ||
-      !("price" in item) ||
-      typeof item.price !== "number" ||
-      !Number.isInteger(item.price) ||
-      item.price <= 0 ||
-      !("quantity" in item) ||
-      typeof item.quantity !== "number" ||
-      !Number.isInteger(item.quantity) ||
-      item.quantity <= 0 ||
-      item.quantity > MAX_LINE_ITEM_QUANTITY ||
-      ("category" in item &&
-        item.category !== "flower" &&
-        item.category !== "bouquet")
-    ) {
-      return { ok: false, error: "Invalid line item" };
-    }
-  }
-  return { ok: true };
-}
-
-/**
  * Validate the checkout REQUEST payload — the `{productId, quantity}` pairs
  * the client is allowed to send. Names/prices are deliberately absent from
- * this shape; the server resolves them from the Stripe catalog. Same
- * non-empty-array / positive-integer-quantity semantics as
- * `validateLineItems`, plus the MAX_LINE_ITEM_QUANTITY cap.
+ * this shape; the server resolves them from the Stripe catalog.
+ * - items must be a non-empty array (error: "No items provided")
+ * - each item: non-empty productId, positive-integer quantity capped at
+ *   MAX_LINE_ITEM_QUANTITY (else error: "Invalid line item")
  */
 export function validateCheckoutItems(items: unknown): LineItemsValidation {
   if (!Array.isArray(items) || items.length === 0) {
@@ -166,10 +127,10 @@ export function decodeOrderItems(encoded: string): LineItem[] {
 function isLineItem(v: unknown): v is LineItem {
   if (typeof v !== 'object' || v === null) return false;
   const o = v as Record<string, unknown>;
-  // Mirrors the semantic checks in validateLineItems so the success-page
-  // receipt can never surface items the checkout boundary would reject
-  // (empty ids/names, zero/negative/non-integer prices or quantities,
-  // over-cap quantities).
+  // Mirrors the semantic checks enforced at the checkout boundary
+  // (`validateCheckoutItems`) so the success-page receipt can never surface
+  // items that boundary would reject (empty ids/names, zero/negative/
+  // non-integer prices or quantities, over-cap quantities).
   const categoryOk =
     o.category === undefined ||
     o.category === 'flower' ||

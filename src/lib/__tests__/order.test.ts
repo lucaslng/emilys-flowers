@@ -6,7 +6,6 @@ import {
   computeLineItemTotal,
   computeLineItemCount,
   computeShipping,
-  validateLineItems,
   validateCheckoutItems,
   MAX_LINE_ITEM_QUANTITY,
   type LineItem,
@@ -84,9 +83,22 @@ describe('encodeOrderItems / decodeOrderItems', () => {
     expect(decoded[0].id).toBe('ok');
   });
 
-  // Regression: the decode schema must mirror validateLineItems' semantic
-  // checks so a crafted `items` URL param can never surface negative,
-  // fractional, zero, or blank line items in the success-page receipt.
+  test('filters out array and number entries', () => {
+    const payload = JSON.stringify([
+      ['x'],
+      42,
+      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
+    ]);
+    const b64 = btoa(unescape(encodeURIComponent(payload)));
+    expect(decodeOrderItems(b64)).toEqual([
+      { id: 'ok', name: 'Ok', price: 100, quantity: 1 },
+    ]);
+  });
+
+  // Regression: the decode schema must mirror the semantic checks enforced at
+  // the checkout boundary (`validateCheckoutItems`) so a crafted `items` URL
+  // param can never surface negative, fractional, zero, or blank line items in
+  // the success-page receipt.
   const invalidItems: Array<[string, unknown]> = [
     ['negative price', { id: 'x', name: 'X', price: -500, quantity: 1 }],
     ['zero price', { id: 'x', name: 'X', price: 0, quantity: 1 }],
@@ -222,30 +234,8 @@ describe('computeShipping', () => {
   });
 });
 
-describe('validateLineItems quantity cap', () => {
-  test(`quantity ${MAX_LINE_ITEM_QUANTITY} (cap) -> ok`, () => {
-    expect(
-      validateLineItems([
-        { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY },
-      ])
-    ).toEqual({ ok: true });
-  });
-
-  test(`quantity ${MAX_LINE_ITEM_QUANTITY + 1} -> 'Invalid line item'`, () => {
-    expect(
-      validateLineItems([
-        { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY + 1 },
-      ])
-    ).toEqual({ ok: false, error: 'Invalid line item' });
-  });
-
-  test('huge quantity -> Invalid line item', () => {
-    expect(
-      validateLineItems([{ id: 'x', name: 'X', price: 100, quantity: 100000 }])
-    ).toEqual({ ok: false, error: 'Invalid line item' });
-  });
-
-  test('decodeOrderItems mirrors the cap (over-cap items are dropped)', () => {
+describe('decodeOrderItems quantity cap', () => {
+  test('drops over-cap items (mirrors the checkout boundary cap)', () => {
     const payload = JSON.stringify([
       { id: 'x', name: 'X', price: 100, quantity: MAX_LINE_ITEM_QUANTITY + 1 },
     ]);
