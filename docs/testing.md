@@ -10,8 +10,8 @@
   (`stripe-catalog.test.ts`), the client-safe listing helpers
   (`product-utils.test.ts`), the exported `cartReducer`, the `toLineItems`
   seam, and the extracted pure helpers (`formatPrice` in `src/lib/format.ts`;
-  `computeLineItemTotal` / `computeLineItemCount` / `computeShipping`,
-  `validateLineItems`, and `validateCheckoutItems` in `src/lib/order.ts`).
+  `computeLineItemTotal` / `computeLineItemCount` / `computeShipping` and
+  `validateCheckoutItems` in `src/lib/order.ts`).
 - Use `import { test, expect, describe } from "bun:test"`. The `@/*` path alias
   resolves automatically (bun reads `tsconfig.json` paths).
 - No happy-dom / testing-library — keep unit tests dependency-free; if a
@@ -96,7 +96,7 @@ keyboard-only and focus-not-obscured checks.
 
 When adding source that should be unit-testable as pure logic, export the
 function (as `cartReducer`, `formatPrice`, `computeCartTotal`,
-`computeCartItemCount`, `computeShipping`, and `validateLineItems` are
+`computeCartItemCount`, `computeShipping`, and `validateCheckoutItems` are
 exported) rather than reaching for a DOM test harness. Price formatting goes
 through `formatPrice` (`src/lib/format.ts`); cart/order math and the
 free-shipping threshold ($50 = 5000¢) go through the `compute*` helpers in

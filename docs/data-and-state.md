@@ -55,12 +55,14 @@ to `localStorage` key `emilys-flowers-cart` (hydrated client-side on mount).
 - The `cartReducer`, the `toLineItems` seam, and `sanitizeStoredCart` are
   exported from that module for isolated unit testing.
 - The order math (`computeLineItemTotal`, `computeLineItemCount`,
-  `computeShipping`) and `validateLineItems` live in `src/lib/order.ts` and
-  operate on the flat `LineItem` shape; the provider's `getTotal`/`getItemCount`
-  flatten `CartItem[]` to `LineItem[]` via `toLineItems` and delegate to them.
-- `decodeOrderItems` enforces the same semantic shape as `validateLineItems`
-  (non-empty id/name, positive-integer price/quantity, quantity ≤
-  `MAX_LINE_ITEM_QUANTITY` = 99), so a crafted `items`
+  `computeShipping`) and checkout-payload validation (`validateCheckoutItems`)
+  live in `src/lib/order.ts` and operate on the flat `LineItem` shape; the
+  provider's `getTotal`/`getItemCount` flatten `CartItem[]` to `LineItem[]` via
+  `toLineItems` and delegate to them.
+- `decodeOrderItems` enforces the same semantic shape as the checkout boundary
+  (`validateCheckoutItems`: non-empty ids, positive-integer quantity ≤
+  `MAX_LINE_ITEM_QUANTITY` = 99) plus non-empty names and positive-integer
+  prices, so a crafted `items`
   URL param can't surface negative/fractional totals on the success page.
 
 ## Checkout — server-side price resolution
