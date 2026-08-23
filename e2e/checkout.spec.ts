@@ -13,13 +13,20 @@ test.describe("Checkout flow", () => {
 
     await expect(page.getByRole("button", { name: "Pay with Stripe" })).toBeVisible();
     // Order summary should show the item
-    await expect(page.locator("h2")).toContainText("Order Summary");
+    await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
   });
 
   test("clicking Pay with Stripe redirects to success page and clears cart", async ({ page }) => {
     await page.goto("/bouquets");
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/checkout");
+
+    // The Pay button stays disabled until the delivery address form is filled.
+    await page.fill("#address-name", "Emily Chen");
+    await page.fill("#address-line1", "123 Main Street");
+    await page.fill("#address-city", "Toronto");
+    await page.selectOption("#address-province", "ON");
+    await page.fill("#address-postal-code", "M5V 2T6");
 
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
