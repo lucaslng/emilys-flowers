@@ -162,7 +162,8 @@ Two GitHub Actions workflows handle CI and deploys (not Cloudflare's built-in
 Workers Builds):
 
 - **`.github/workflows/test.yml`** — the single source of truth for the test
-  jobs (`changes`/`unit`/`e2e`). Called as a **reusable workflow** by
+  jobs (`changes`/`unit`/`e2e` shards + `e2e-result`/`merge-reports`). Called
+  as a **reusable workflow** by
   `deploy.yml` on every push — PR checks come from that same run, so there is
   no standalone `pull_request` trigger (removed to stop the unit suite from
   running twice on every PR push).
@@ -172,10 +173,11 @@ Workers Builds):
   `.github/workflows/`). Docs/config-only PRs skip E2E. When called from
   `deploy.yml`, E2E additionally runs only on `main` pushes — the sole consumer
   of the e2e result is `deploy-production` — so non-main pushes run unit only
-  instead of a discarded ~10 min suite. Exposes
-  `unit-result` / `e2e-result` outputs for `deploy.yml` gating (set via
-  `job.status` report steps — the `jobs.<job>.result` expression in output
-  values is buggy and resolves empty).
+   instead of a discarded ~10 min suite. Exposes
+   `unit-result` / `e2e-result` outputs for `deploy.yml` gating — unit via its
+   `job.status` report step, e2e via an `e2e-result` aggregator job that reads
+   the shard matrix's `needs.e2e.result` (the `jobs.<job>.result` expression in
+   output values is buggy and resolves empty).
 - **`.github/workflows/deploy.yml`** — push-triggered. Calls `test.yml` with
   `secrets: inherit` (the `tests` job), then deploys based on branch:
   - `main` push → `deploy-production` job →

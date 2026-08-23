@@ -66,6 +66,14 @@ credentials, so `enable-flowers-page` fails open to enabled (flowers catalogue
 visible) and `under-construction` fails open to off (store renders normally) in
 E2E.
 
+### CI sharding
+
+In CI the suite runs sharded 2-way (`--shard=N/2`, one runner per shard; see
+the `e2e` matrix job in `.github/workflows/test.yml`). Each shard writes a
+blob report (`blob-report/`, the config's CI reporter), and a `merge-reports`
+job downloads them and merges them into the uploaded `playwright-report/`
+HTML artifact.
+
 ## Accessibility (WCAG 2.2 AA, axe-core)
 
 `e2e/accessibility.spec.ts` uses `@axe-core/playwright` (devDependency) to scan
