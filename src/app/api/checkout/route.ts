@@ -24,6 +24,7 @@ import {
   type AddressFieldError,
   type ValidatedDeliveryAddress,
 } from '@/lib/address-validation';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
@@ -55,6 +56,17 @@ export async function POST(request: Request) {
         { error: 'Stripe is not configured.' },
         { status: 503 }
       );
+    }
+
+    // Rate-limit before any billable external call (catalog fetch, ChitChats
+    // shipment creation, Stripe session): this surface is unauthenticated yet
+    // creates real ChitChats shipments, so scripted floods are an abuse
+    // vector (issue #209). Cheap rejections above stay quota-free; everything
+    // past this point counts against the caller's bucket. Surface-prefixed
+    // key keeps it separate from the receipt surface's.
+    const rateLimited = await checkRateLimit(request, 'checkout');
+    if (rateLimited) {
+      return rateLimited;
     }
 
     // Resolve every productId against the live Stripe catalog: default price

@@ -46,8 +46,9 @@ export async function GET(request: Request) {
     }
 
     // Rate-limit only requests that would reach Stripe — malformed ids are
-    // already rejected above and must not consume quota.
-    const rateLimited = await checkRateLimit(request);
+    // already rejected above and must not consume quota. Surface-prefixed
+    // key keeps this bucket separate from POST /api/checkout's.
+    const rateLimited = await checkRateLimit(request, 'checkout-session');
     if (rateLimited) {
       return rateLimited;
     }
