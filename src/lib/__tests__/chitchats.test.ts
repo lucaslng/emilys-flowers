@@ -82,14 +82,14 @@ describe('parsePaymentAmountToCents', () => {
 });
 
 describe('estimateShipmentWeight', () => {
-  test('base weight only when there are no items', () => {
-    expect(estimateShipmentWeight(0)).toBe(500);
+  test('zero when there are no items (no base weight)', () => {
+    expect(estimateShipmentWeight(0)).toBe(0);
   });
 
   test('adds 250g per item', () => {
-    expect(estimateShipmentWeight(1)).toBe(750);
-    expect(estimateShipmentWeight(2)).toBe(1000);
-    expect(estimateShipmentWeight(3)).toBe(1250);
+    expect(estimateShipmentWeight(1)).toBe(250);
+    expect(estimateShipmentWeight(2)).toBe(500);
+    expect(estimateShipmentWeight(3)).toBe(750);
   });
 });
 
@@ -118,13 +118,15 @@ describe('buildShipmentPayload', () => {
       postal_code: 'M5V 2T6',
       country_code: 'CA',
       package_contents: 'merchandise',
+      description:
+        "Handmade decorative ribbon flowers and bouquets (artificial floral crafts, no live plants) - Emily's Flowers order EF-ABC123",
       value: '149.98',
       value_currency: 'cad',
       order_id: 'EF-ABC123',
       order_store: 'other',
       package_type: 'parcel',
       weight_unit: 'g',
-      weight: 1250, // 500g base + 250g × 3 items
+      weight: 750, // 250g × 3 items
       size_unit: 'cm',
       size_x: 30,
       size_y: 20,
@@ -132,8 +134,18 @@ describe('buildShipmentPayload', () => {
       postage_type: 'unknown',
       ship_date: 'today',
       line_items: [
-        { quantity: 2, description: 'Ribbon Rose', value_amount: '59.98', currency_code: 'cad' },
-        { quantity: 1, description: 'Blush Romance Bouquet', value_amount: '89.99', currency_code: 'cad' },
+        {
+          quantity: 2,
+          description: 'Ribbon Rose - handmade decorative ribbon flower arrangement',
+          value_amount: '59.98',
+          currency_code: 'cad',
+        },
+        {
+          quantity: 1,
+          description: 'Blush Romance Bouquet - handmade decorative ribbon flower arrangement',
+          value_amount: '89.99',
+          currency_code: 'cad',
+        },
       ],
     });
   });
