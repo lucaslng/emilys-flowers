@@ -211,13 +211,13 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(payload.value).toBe('149.97');
     expect(payload.line_items).toEqual([
       {
-        description: 'Ribbon Rose',
+        description: 'Ribbon Rose - handmade decorative ribbon flower arrangement',
         value_amount: '59.98',
         quantity: 2,
         currency_code: 'cad',
       },
       {
-        description: 'Blush Romance Bouquet',
+        description: 'Blush Romance Bouquet - handmade decorative ribbon flower arrangement',
         value_amount: '89.99',
         quantity: 1,
         currency_code: 'cad',

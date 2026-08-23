@@ -21,8 +21,14 @@
    ChitChats credentials are configured, the route validates the address,
    builds a create-shipment payload (`postage_type: "unknown"`, `ship_date:
    "today"`) from **catalog-resolved** names/prices/subtotal — never raw
-   client values — and POSTs it to ChitChats. The response's `rates` array is
-   the only way to get rates.
+   client values — and POSTs it to ChitChats. The payload describes the goods
+   clearly for customs: a shipment-level `description` plus per-line
+   descriptions (`{product} - handmade decorative ribbon flower
+   arrangement`); ChitChats builds the customs declaration from the line
+   items when present, so those per-line descriptions are what land on it.
+   Weight is estimated at **250g per product with no base weight**
+   (`estimateShipmentWeight`). The response's `rates` array is the only way
+   to get rates.
 3. **Cheapest rate charged as a Stripe shipping option.** The route picks the
    rate with the lowest `payment_amount` (string dollars, total to charge:
    postage + insurance + taxes + fees) and adds it as a single
