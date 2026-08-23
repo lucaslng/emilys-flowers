@@ -132,3 +132,120 @@ export function validateDeliveryAddressFields(
 function isKnownProvince(value: string): boolean {
   return CA_PROVINCES.includes(value.toUpperCase() as CaProvince);
 }
+
+// --- Truncation (Stripe metadata 500-char cap) ---
+
+/** Stripe caps every Checkout Session metadata value at 500 characters. */
+export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
+
+/**
+ * Per-field caps: fully-filled fields serialize to ≈349 chars + ≈85 chars of
+ * JSON overhead — under the 500-char cap with margin. The client form
+ * enforces them via `maxLength`; the server clamps again (never trust the client).
+ */
+export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
+  name: 80,
+  line1: 120,
+  line2: 80,
+  city: 60,
+  province: 2,
+  postalCode: 7,
+};
+
+/**
+ * Structural address shape (mirrors chitchats.ts's `DeliveryAddress` without
+ * importing it — that would cycle, since chitchats.ts imports this module).
+ */
+export interface ValidatedDeliveryAddress {
+  name: string;
+  line1: string;
+  /** Apartment/unit line — optional. */
+  line2?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+}
+
+/** Clamp an already-validated (trimmed) address to `ADDRESS_FIELD_MAX_LENGTHS`. */
+export function truncateDeliveryAddress(
+  address: ValidatedDeliveryAddress
+): ValidatedDeliveryAddress {
+  const clamp = (field: AddressFieldName, value: string) =>
+    value.slice(0, ADDRESS_FIELD_MAX_LENGTHS[field]);
+  return {
+    name: clamp('name', address.name),
+    line1: clamp('line1', address.line1),
+    // `line2` is optional — preserve absence instead of materializing ''.
+    ...(address.line2 === undefined
+      ? {}
+      : { line2: clamp('line2', address.line2) }),
+    city: clamp('city', address.city),
+    province: clamp('province', address.province),
+    postalCode: clamp('postalCode', address.postalCode),
+  };
+}
+
+const METADATA_ADDRESS_FIELDS = [
+  'name',
+  'line1',
+  'city',
+  'province',
+  'postalCode',
+] as const satisfies readonly Exclude<AddressFieldName, 'line2'>[];
+
+function serializeShippingAddress(address: ValidatedDeliveryAddress): string {
+  return JSON.stringify({
+    name: address.name,
+    line1: address.line1,
+    line2: address.line2,
+    city: address.city,
+    province: address.province,
+    postalCode: address.postalCode,
+  });
+}
+
+/**
+ * Serialize the address for the `shipping_address` metadata, hard-guaranteed
+ * to fit Stripe's 500-char cap: per-field truncation normally suffices, but
+ * JSON escape inflation (each quote/backslash doubles) can still overflow —
+ * so drop the optional `line2`, then shorten the longest field until it fits.
+ */
+export function shippingAddressMetadataValue(
+  address: ValidatedDeliveryAddress
+): string {
+  const truncated = truncateDeliveryAddress(address);
+
+  let value = serializeShippingAddress(truncated);
+  if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+
+  // Escape inflation: drop the optional apartment/unit line and retry.
+  const { line2: _line2, ...withoutLine2 } = truncated;
+  value = serializeShippingAddress(withoutLine2);
+  if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+
+  // Removing one raw char shrinks the serialized form by 1–2 chars, so
+  // cutting `overflow` raw chars always makes progress — this terminates.
+  const current: Record<(typeof METADATA_ADDRESS_FIELDS)[number], string> = {
+    name: withoutLine2.name,
+    line1: withoutLine2.line1,
+    city: withoutLine2.city,
+    province: withoutLine2.province,
+    postalCode: withoutLine2.postalCode,
+  };
+  while (true) {
+    value = serializeShippingAddress(current);
+    if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
+    let longest: (typeof METADATA_ADDRESS_FIELDS)[number] | null = null;
+    for (const field of METADATA_ADDRESS_FIELDS) {
+      if (longest === null || current[field].length > current[longest].length) {
+        longest = field;
+      }
+    }
+    if (longest === null || current[longest].length === 0) return value;
+    const overflow = value.length - STRIPE_METADATA_VALUE_MAX_LENGTH;
+    current[longest] = current[longest].slice(
+      0,
+      Math.max(0, current[longest].length - overflow)
+    );
+  }
+}

@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import StarMotif from '@/components/ui/StarMotif';
 import {
+  ADDRESS_FIELD_MAX_LENGTHS,
   CA_PROVINCES,
   normalizeCAPostalCode,
   validateDeliveryAddressFields,
@@ -103,6 +104,7 @@ function TextField({
   onChange,
   onBlur,
   required = true,
+  maxLength,
 }: {
   id: string;
   label: string;
@@ -113,6 +115,7 @@ function TextField({
   onChange: (value: string) => void;
   onBlur?: () => void;
   required?: boolean;
+  maxLength?: number;
 }) {
   const invalid = Boolean(error);
   const errorId = `${id}-error`;
@@ -131,6 +134,7 @@ function TextField({
         autoComplete={autoComplete}
         required={required}
         value={value}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
         aria-invalid={invalid}
@@ -397,6 +401,7 @@ export default function CheckoutPageClient() {
                   label="Full name"
                   value={address.name}
                   autoComplete="name"
+                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.name}
                   error={fieldError('name')}
                   onChange={(value) => updateField('name', value)}
                   onBlur={() => markTouched('name')}
@@ -406,6 +411,7 @@ export default function CheckoutPageClient() {
                   label="Street address"
                   value={address.line1}
                   autoComplete="address-line1"
+                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.line1}
                   error={fieldError('line1')}
                   onChange={(value) => updateField('line1', value)}
                   onBlur={() => markTouched('line1')}
@@ -415,6 +421,7 @@ export default function CheckoutPageClient() {
                   label="Apt, suite, unit (optional)"
                   value={address.line2 ?? ''}
                   autoComplete="address-line2"
+                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.line2}
                   error={fieldError('line2')}
                   required={false}
                   onChange={(value) => updateField('line2', value)}
@@ -424,6 +431,7 @@ export default function CheckoutPageClient() {
                   label="City"
                   value={address.city}
                   autoComplete="address-level2"
+                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.city}
                   error={fieldError('city')}
                   onChange={(value) => updateField('city', value)}
                   onBlur={() => markTouched('city')}
@@ -470,6 +478,7 @@ export default function CheckoutPageClient() {
                     label="Postal code"
                     value={address.postalCode}
                     autoComplete="postal-code"
+                    maxLength={ADDRESS_FIELD_MAX_LENGTHS.postalCode}
                     error={fieldError('postalCode')}
                     onChange={(value) => updateField('postalCode', value)}
                     onBlur={() => markTouched('postalCode')}

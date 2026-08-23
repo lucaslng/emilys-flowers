@@ -28,7 +28,11 @@
    items when present, so those per-line descriptions are what land on it.
    Weight is estimated at **250g per product with no base weight**
    (`estimateShipmentWeight`). The response's `rates` array is the only way
-   to get rates.
+   to get rates. Address fields are **server-side truncated** to shared caps
+   (`src/lib/address-validation.ts`) before entering both the ChitChats
+   payload and the `shipping_address` session metadata, keeping the Stripe
+   metadata value under its 500-character limit (an over-long value would
+   make session creation throw after the customer filled the form).
 3. **Cheapest rate charged as a Stripe shipping option.** The route picks the
    rate with the lowest `payment_amount` (string dollars, total to charge:
    postage + insurance + taxes + fees) and adds it as a single

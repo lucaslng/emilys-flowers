@@ -18,6 +18,7 @@
 
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
 import type { ChitChatsShipment } from '@/lib/chitchats';
+import { ADDRESS_FIELD_MAX_LENGTHS } from '@/lib/address-validation';
 
 const realChitchats = await import('@/lib/chitchats');
 
@@ -258,6 +259,95 @@ describe('POST /api/checkout with ChitChats configured', () => {
     const metadata = params.metadata as Record<string, string>;
     expect(metadata.chitchats_postage_type).toBe('standard');
     expect(params.success_url).not.toContain('&shipping=');
+  });
+
+  test('truncates over-long address fields in BOTH the ChitChats payload and the shipping_address metadata', async () => {
+    // Server must clamp and mirror the same truncated address into both.
+    const overLongAddress = {
+      name: 'N'.repeat(500),
+      line1: 'L'.repeat(500),
+      line2: 'A'.repeat(500),
+      city: 'C'.repeat(500),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: overLongAddress })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(1);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+
+    const payload = checkoutMocks.shipmentCreateCalls[0] as {
+      name: string;
+      address_1: string;
+      address_2: string;
+      city: string;
+    };
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+    const metadata = params.metadata as Record<string, string>;
+    const stored = JSON.parse(metadata.shipping_address) as Record<
+      string,
+      string
+    >;
+
+    // The ChitChats label mirrors exactly what was stored in metadata.
+    expect(payload.name).toBe(stored.name);
+    expect(payload.address_1).toBe(stored.line1);
+    expect(payload.address_2).toBe(stored.line2);
+    expect(payload.city).toBe(stored.city);
+
+    for (const [field, value] of Object.entries(stored)) {
+      expect(value.length).toBeLessThanOrEqual(
+        ADDRESS_FIELD_MAX_LENGTHS[field as keyof typeof ADDRESS_FIELD_MAX_LENGTHS]
+      );
+    }
+    expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
+  });
+
+  test('pathological escape inflation: the ChitChats payload derives from the SAME serialized value as the metadata', async () => {
+    // Quote-heavy fields force the fallback (drop line2, then shorten); the
+    // payload must be built from the parsed-back stored value, not the
+    // clamped-but-full address.
+    const quoteHeavyAddress = {
+      name: '"'.repeat(200),
+      line1: '"'.repeat(200),
+      line2: '"'.repeat(200),
+      city: '"'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: quoteHeavyAddress })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(1);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+
+    const payload = checkoutMocks.shipmentCreateCalls[0] as {
+      name: string;
+      address_1: string;
+      address_2?: string;
+      city: string;
+    };
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+    const metadata = params.metadata as Record<string, string>;
+    expect(metadata.shipping_address.length).toBeLessThanOrEqual(500);
+
+    const stored = JSON.parse(metadata.shipping_address) as Record<
+      string,
+      string
+    >;
+    expect(payload.name).toBe(stored.name);
+    expect(payload.address_1).toBe(stored.line1);
+    // The fallback drops line2 on BOTH sides.
+    expect('line2' in stored).toBe(false);
+    expect(payload.address_2).toBeUndefined();
+    expect(payload.city).toBe(stored.city);
   });
 
   test('returns 400 with per-field errors when the address is missing', async () => {

@@ -21,7 +21,10 @@ import {
 } from '@/lib/chitchats';
 import {
   validateDeliveryAddressFields,
+  truncateDeliveryAddress,
+  shippingAddressMetadataValue,
   type AddressFieldError,
+  type ValidatedDeliveryAddress,
 } from '@/lib/address-validation';
 
 export async function POST(request: Request) {
@@ -133,9 +136,20 @@ export async function POST(request: Request) {
         );
       }
 
+      // Serialize once: the ChitChats payload (parsed back out of this exact
+      // string) and the metadata share one value, so the label always
+      // matches what was stored — even when the 500-char fallback kicks in.
+      const shippingAddress = truncateDeliveryAddress(addressValidation.value);
+      const shippingAddressMetadata = shippingAddressMetadataValue(
+        shippingAddress
+      );
+      const storedAddress = JSON.parse(
+        shippingAddressMetadata
+      ) as ValidatedDeliveryAddress;
+
       const subtotalCents = computeLineItemTotal(resolvedItems);
       const payload = buildShipmentPayload({
-        address: addressValidation.value,
+        address: storedAddress,
         items: resolvedItems,
         orderNumber,
         subtotalCents,
@@ -180,14 +194,7 @@ export async function POST(request: Request) {
         chitchats_shipment_id: shipment.id,
         chitchats_tracking_url: shipment.tracking_url,
         chitchats_postage_type: rate.postage_type,
-        shipping_address: JSON.stringify({
-          name: addressValidation.value.name,
-          line1: addressValidation.value.line1,
-          line2: addressValidation.value.line2,
-          city: addressValidation.value.city,
-          province: addressValidation.value.province,
-          postalCode: addressValidation.value.postalCode,
-        }),
+        shipping_address: shippingAddressMetadata,
       };
     }
 
