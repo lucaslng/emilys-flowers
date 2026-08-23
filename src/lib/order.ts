@@ -32,6 +32,9 @@ export interface CheckoutItemPayload {
 /** Hard cap on units per line, enforced server-side at the checkout boundary. */
 export const MAX_LINE_ITEM_QUANTITY = 99;
 
+/** Hard cap on distinct lines per checkout request, enforced server-side at the checkout boundary. */
+export const MAX_LINE_ITEMS = 20;
+
 export type LineItemsValidation =
   | { ok: true }
   | { ok: false; error: string };
@@ -59,12 +62,16 @@ export function computeShipping(subtotalCents: number): number {
  * the client is allowed to send. Names/prices are deliberately absent from
  * this shape; the server resolves them from the Stripe catalog.
  * - items must be a non-empty array (error: "No items provided")
+ * - at most MAX_LINE_ITEMS entries (else error: "Too many line items")
  * - each item: non-empty productId, positive-integer quantity capped at
  *   MAX_LINE_ITEM_QUANTITY (else error: "Invalid line item")
  */
 export function validateCheckoutItems(items: unknown): LineItemsValidation {
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, error: "No items provided" };
+  }
+  if (items.length > MAX_LINE_ITEMS) {
+    return { ok: false, error: "Too many line items" };
   }
   for (const item of items) {
     if (
@@ -83,6 +90,33 @@ export function validateCheckoutItems(items: unknown): LineItemsValidation {
     }
   }
   return { ok: true };
+}
+
+/**
+ * Merge duplicate `productId` entries by summing their quantities, preserving
+ * first-seen order. Pure — the input array and its entries are never mutated.
+ * The cart UI merges duplicates client-side; this is the server-side twin so a
+ * crafted request can't smuggle the same product in as multiple lines.
+ */
+export function mergeCheckoutItems(
+  items: CheckoutItemPayload[]
+): CheckoutItemPayload[] {
+  const merged: CheckoutItemPayload[] = [];
+  const indexByProductId = new Map<string, number>();
+  for (const item of items) {
+    const existingIndex = indexByProductId.get(item.productId);
+    if (existingIndex === undefined) {
+      indexByProductId.set(item.productId, merged.length);
+      merged.push({ productId: item.productId, quantity: item.quantity });
+    } else {
+      const existing = merged[existingIndex];
+      merged[existingIndex] = {
+        productId: existing.productId,
+        quantity: existing.quantity + item.quantity,
+      };
+    }
+  }
+  return merged;
 }
 
 /**
