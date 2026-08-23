@@ -23,22 +23,32 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.RESEND_API_KEY = 're_test_mock';
     process.env.ADMIN_SESSION_SECRET = ADMIN_SESSION_SECRET;
+    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request (fail closed
+    // when unset), so the allowlist and the cookie's groups claim must match.
+    process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetOrderEmailMocks();
-    adminCookie = `admin_session=${await new SignJWT({ sub: 'admin-1' })
+    adminCookie = `admin_session=${await new SignJWT({
+      sub: 'admin-1',
+      groups: ['admins'],
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('8h')
       .sign(new TextEncoder().encode(ADMIN_SESSION_SECRET))}`;
   });
 
-  function shipRequest(sessionId = 'cs_test_123'): NextRequest {
+  // `cookie === null` omits the header entirely (unauthenticated request).
+  function shipRequest(
+    sessionId = 'cs_test_123',
+    cookie: string | null = adminCookie
+  ): NextRequest {
     return new NextRequest(
       `http://localhost/api/admin/orders/${sessionId}/ship`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          cookie: adminCookie,
+          ...(cookie !== null ? { cookie } : {}),
         },
         body: JSON.stringify({ estimatedShippingTime: '2-4 business days' }),
       }
@@ -119,5 +129,53 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
         shipping_estimate: '2-4 business days',
       })
     );
+  });
+
+  test('returns 401 without hitting Stripe or email when no cookie is present', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+
+    const response = await POST(shipRequest('cs_test_123', null), {
+      params: Promise.resolve({ sessionId: 'cs_test_123' }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized.' });
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('returns 401 when the session groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
+    // Validly signed with the correct secret, but the bearer was removed from
+    // every allowed group — per-request group enforcement must reject it.
+    const revokedCookie = `admin_session=${await new SignJWT({
+      sub: 'admin-1',
+      groups: ['some-other-group'],
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(ADMIN_SESSION_SECRET))}`;
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+
+    const response = await POST(shipRequest('cs_test_123', revokedCookie), {
+      params: Promise.resolve({ sessionId: 'cs_test_123' }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized.' });
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
   });
 });

@@ -150,7 +150,9 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
   `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
   `GET /api/admin/logout` clears the cookie. The page and the ship route
-  verify the `admin_session` JWT.
+  verify the `admin_session` JWT and re-check it against
+  `ADMIN_OIDC_GROUPS` on every request, so removing a user from the IdP
+  admin group revokes their session immediately rather than at next login.
 - Order list: latest 25 paid Checkout Sessions (`expand: ['data.line_items']`),
   filtered to `payment_status === 'paid'`, sorted newest first. Each card
   shows the order number (`metadata.order_number`, falling back to the session

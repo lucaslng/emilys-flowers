@@ -268,6 +268,87 @@ describe('createSessionToken / verifySessionToken', () => {
 
     expect(await verifySessionToken(token)).toBeNull();
   });
+
+  test('returns null when the token groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
+    // Signed while the user was in 'old-admins'; the env now allows only
+    // 'admins', so the session must be rejected despite a valid signature.
+    const config = getOidcConfig(CALLBACK_URL);
+    const token = await new SignJWT({ sub: 'user-42', groups: ['old-admins'] })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(config.sessionSecret));
+
+    expect(await verifySessionToken(token)).toBeNull();
+  });
+
+  test('returns null when the allowlist is tightened and excludes all token groups', async () => {
+    process.env.ADMIN_OIDC_GROUPS = 'shop-owners';
+    const token = await new SignJWT({
+      sub: 'user-42',
+      groups: ['staff', 'customers'],
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(process.env.ADMIN_SESSION_SECRET!));
+
+    expect(await verifySessionToken(token)).toBeNull();
+  });
+
+  test('returns null when ADMIN_OIDC_GROUPS is empty (fail closed)', async () => {
+    const config = getOidcConfig(CALLBACK_URL);
+    const token = await new SignJWT({ sub: 'user-42', groups: ['admins'] })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(config.sessionSecret));
+
+    process.env.ADMIN_OIDC_GROUPS = '';
+    expect(await verifySessionToken(token)).toBeNull();
+
+    // Whitespace-only entries are trimmed away, leaving an empty allowlist.
+    process.env.ADMIN_OIDC_GROUPS = ' ,  ';
+    expect(await verifySessionToken(token)).toBeNull();
+  });
+
+  test('returns null when ADMIN_OIDC_GROUPS is unset (fail closed)', async () => {
+    const config = getOidcConfig(CALLBACK_URL);
+    const token = await new SignJWT({ sub: 'user-42', groups: ['admins'] })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(config.sessionSecret));
+
+    delete process.env.ADMIN_OIDC_GROUPS;
+    expect(await verifySessionToken(token)).toBeNull();
+  });
+
+  test('returns null for a token with no groups claim (fail closed)', async () => {
+    const config = getOidcConfig(CALLBACK_URL);
+    const token = await new SignJWT({ sub: 'user-42' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(config.sessionSecret));
+
+    expect(await verifySessionToken(token)).toBeNull();
+  });
+
+  test('accepts a single-string groups claim that intersects the allowlist', async () => {
+    const config = getOidcConfig(CALLBACK_URL);
+    const token = await new SignJWT({ sub: 'user-42', groups: 'admins' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('8h')
+      .sign(new TextEncoder().encode(config.sessionSecret));
+
+    expect(await verifySessionToken(token)).toEqual({
+      sub: 'user-42',
+      email: undefined,
+      groups: 'admins',
+    });
+  });
 });
 
 describe('exchangeCodeForTokens', () => {
