@@ -24,14 +24,27 @@ bindings:
 - `env.production` → Worker `emilys-flowers-production` (live Stripe keys)
 - `env.preview` → Worker `emilys-flowers-preview` (test Stripe keys)
 
-**Non-inheritable keys** (`assets`, `services`, `images`, `observability`) are
-repeated in each `[env.*]` stanza — Wrangler environments do not inherit them
-from the top level. Critically, the `WORKER_SELF_REFERENCE` `service` field in
-each env points to **that env's Worker name** (`emilys-flowers-production` /
-`emilys-flowers-preview`), not the top-level `emilys-flowers`. Get this wrong
-and OpenNext's revalidation binding breaks. The top-level config (including the
-`WORKER_SELF_REFERENCE` → `emilys-flowers` binding) is kept for
-`bun run preview` / local dev.
+**Non-inheritable keys** (`assets`, `services`, `images`, `observability`,
+`ratelimits`) are repeated in each `[env.*]` stanza — Wrangler environments do
+not inherit them from the top level. Critically, the `WORKER_SELF_REFERENCE`
+`service` field in each env points to **that env's Worker name**
+(`emilys-flowers-production` / `emilys-flowers-preview`), not the top-level
+`emilys-flowers`. Get this wrong and OpenNext's revalidation binding breaks.
+The top-level config (including the `WORKER_SELF_REFERENCE` →
+`emilys-flowers` binding) is kept for `bun run preview` / local dev.
+
+The `ratelimits` array defines the `RATE_LIMITER` binding (10 requests /
+60 s, used by `src/lib/rate-limit.ts` to protect Stripe API quota). It is
+declared in **all three** config blocks — top level plus both `[env.*]`
+stanzas — with a **distinct `namespace_id` per block** (`1001` top-level,
+`1002` production, `1003` preview; string-wrapped ints, account-unique) so
+each environment keeps an independent counter. Note that `bun run cf-typegen`
+regenerates a `RATE_LIMITER: RateLimit` entry in `cloudflare-env.d.ts`, but
+the generated file currently breaks `tsc --noEmit` elsewhere (its
+`NodeJS.ProcessEnv` augmentation makes env vars non-optional, breaking
+`delete process.env.X` in unit tests, and its runtime-types section conflicts
+with lib.dom), so `rate-limit.ts` types the binding structurally instead and
+the generated file stays ungenerated (it's gitignored).
 
 ## Under-construction gate (Flagship)
 

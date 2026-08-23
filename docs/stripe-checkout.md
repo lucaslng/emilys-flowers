@@ -92,6 +92,12 @@ Key invariants:
   against `^cs_(live|test)_` before calling Stripe and returns ONLY a
   sanitized projection (`items/subtotal/shipping/total/orderNumber`) — never
   `customer_details` or metadata.
+- **The retrieval route is rate-limited** (`src/lib/rate-limit.ts`) at
+  10 requests / 60 s per client IP via the Workers `RATE_LIMITER` ratelimit
+  binding, guarding Stripe API quota. Exceeding it returns 429 with
+  `Retry-After: 60`. The guard is a graceful no-op wherever the binding
+  doesn't exist (local dev, Node runtime, tests) and fails open if the
+  limiter itself errors — availability beats quota protection.
 
 The `origin` is derived from `request.url` — the Worker knows its own host
 from the incoming request, so there is no `NEXT_PUBLIC_BASE_URL` /
