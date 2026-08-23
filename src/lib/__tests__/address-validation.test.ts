@@ -1,0 +1,203 @@
+// src/lib/__tests__/address-validation.test.ts
+//
+// Unit tests for the shared delivery-address validation contract
+// (`src/lib/address-validation.ts`) — the same rules enforced by both the
+// client checkout form and the server (`POST /api/checkout`).
+
+import { test, expect, describe } from 'bun:test';
+import {
+  ADDRESS_FIELD_MESSAGES,
+  CA_POSTAL_CODE_REGEX,
+  CA_PROVINCES,
+  isValidCAPostalCode,
+  normalizeCAPostalCode,
+  validateDeliveryAddressFields,
+} from '@/lib/address-validation';
+
+describe('isValidCAPostalCode', () => {
+  test('accepts canonical "A1A 1A1" codes', () => {
+    expect(isValidCAPostalCode('M5V 2T6')).toBe(true);
+    expect(isValidCAPostalCode('K1A 0B1')).toBe(true);
+  });
+
+  test('is case-insensitive', () => {
+    expect(isValidCAPostalCode('m5v 2t6')).toBe(true);
+    expect(isValidCAPostalCode('m5v2t6')).toBe(true);
+  });
+
+  test('accepts hyphen and missing separators', () => {
+    expect(isValidCAPostalCode('M5V-2T6')).toBe(true);
+    expect(isValidCAPostalCode('M5V2T6')).toBe(true);
+  });
+
+  test('rejects empty and short input', () => {
+    expect(isValidCAPostalCode('')).toBe(false);
+    expect(isValidCAPostalCode('   ')).toBe(false);
+    expect(isValidCAPostalCode('M5V')).toBe(false);
+  });
+
+  test('rejects letters-only or digits-only garbage', () => {
+    expect(isValidCAPostalCode('ABC')).toBe(false);
+    expect(isValidCAPostalCode('12345')).toBe(false);
+  });
+
+  test('rejects excluded first-position letters (D/F/I/O/Q/U/W/Z)', () => {
+    expect(isValidCAPostalCode('D5V 2T6')).toBe(false);
+    expect(isValidCAPostalCode('O5V 2T6')).toBe(false);
+    expect(isValidCAPostalCode('Z5V 2T6')).toBe(false);
+  });
+
+  test('rejects excluded third-position letters (D/F/I/O/Q/U)', () => {
+    expect(isValidCAPostalCode('M5F 2T6')).toBe(false);
+    expect(isValidCAPostalCode('M5O 2T6')).toBe(false);
+    expect(isValidCAPostalCode('M5U 2T6')).toBe(false);
+  });
+
+  test('rejects trailing characters', () => {
+    expect(isValidCAPostalCode('M5V 2T61')).toBe(false);
+    expect(isValidCAPostalCode('M5V 2T6 ')).toBe(true); // trimmed, not trailing junk
+    expect(isValidCAPostalCode('M5V 2T6X')).toBe(false);
+  });
+});
+
+describe('CA_POSTAL_CODE_REGEX', () => {
+  test('has no global/sticky flags so .test() is stateless', () => {
+    expect(CA_POSTAL_CODE_REGEX.global).toBe(false);
+    expect(CA_POSTAL_CODE_REGEX.sticky).toBe(false);
+    // Repeated .test() calls on the same regex must agree.
+    expect(CA_POSTAL_CODE_REGEX.test('M5V 2T6')).toBe(true);
+    expect(CA_POSTAL_CODE_REGEX.test('M5V 2T6')).toBe(true);
+  });
+});
+
+describe('normalizeCAPostalCode', () => {
+  test('canonicalizes to uppercase with a single-space separator', () => {
+    expect(normalizeCAPostalCode('m5v 2t6')).toBe('M5V 2T6');
+    expect(normalizeCAPostalCode('M5V-2T6')).toBe('M5V 2T6');
+    expect(normalizeCAPostalCode('M5V2T6')).toBe('M5V 2T6');
+  });
+
+  test('trims surrounding whitespace', () => {
+    expect(normalizeCAPostalCode('  M5V 2T6  ')).toBe('M5V 2T6');
+  });
+
+  test('collapses mixed/extra separators', () => {
+    expect(normalizeCAPostalCode('m5v - 2t6')).toBe('M5V 2T6');
+    expect(normalizeCAPostalCode('M5V  2T6')).toBe('M5V 2T6');
+  });
+
+  test('is best-effort for invalid input (no throwing)', () => {
+    expect(normalizeCAPostalCode('abc')).toBe('ABC');
+    expect(normalizeCAPostalCode('')).toBe('');
+  });
+});
+
+describe('validateDeliveryAddressFields', () => {
+  const validAddress = {
+    name: 'Ada Lovelace',
+    line1: '1 Analytical Way',
+    line2: 'Apt 4',
+    city: 'Toronto',
+    province: 'ON',
+    postalCode: 'M5V 2T6',
+  };
+
+  test('returns [] for a fully valid address', () => {
+    expect(validateDeliveryAddressFields(validAddress)).toEqual([]);
+  });
+
+  test('returns [] when line2 is absent (optional field)', () => {
+    const { line2: _line2, ...withoutLine2 } = validAddress;
+    expect(validateDeliveryAddressFields(withoutLine2)).toEqual([]);
+  });
+
+  test('never errors on line2, even when blank', () => {
+    expect(
+      validateDeliveryAddressFields({ ...validAddress, line2: '   ' })
+    ).toEqual([]);
+  });
+
+  test('non-object/null input yields one error per required field in form order', () => {
+    const expected = (
+      ['name', 'line1', 'city', 'province', 'postalCode'] as const
+    ).map((field) => ({ field, message: ADDRESS_FIELD_MESSAGES[field] }));
+
+    expect(validateDeliveryAddressFields(null)).toEqual(expected);
+    expect(validateDeliveryAddressFields(undefined)).toEqual(expected);
+    expect(validateDeliveryAddressFields(42)).toEqual(expected);
+    expect(validateDeliveryAddressFields('address')).toEqual(expected);
+  });
+
+  test.each(['name', 'line1', 'city', 'province', 'postalCode'] as const)(
+    'missing %s yields its ADDRESS_FIELD_MESSAGES message',
+    (field) => {
+      const blank: Record<string, unknown> = { ...validAddress };
+      delete blank[field];
+      expect(validateDeliveryAddressFields(blank)).toEqual([
+        { field, message: ADDRESS_FIELD_MESSAGES[field] },
+      ]);
+
+      const whitespace: Record<string, unknown> = { ...validAddress };
+      whitespace[field] = '   ';
+      expect(validateDeliveryAddressFields(whitespace)).toEqual([
+        { field, message: ADDRESS_FIELD_MESSAGES[field] },
+      ]);
+    }
+  );
+
+  test('invalid non-empty province reports the province-code message', () => {
+    expect(
+      validateDeliveryAddressFields({ ...validAddress, province: 'XX' })
+    ).toEqual([
+      {
+        field: 'province',
+        message:
+          'Invalid province code "XX". Must be one of: AB, BC, MB, NB, NL, NS, NT, NU, ON, PE, QC, SK, YT.',
+      },
+    ]);
+  });
+
+  test('province matching is case-insensitive', () => {
+    expect(validateDeliveryAddressFields({ ...validAddress, province: 'on' })).toEqual([]);
+  });
+
+  test('invalid postal code reports the postal message', () => {
+    expect(
+      validateDeliveryAddressFields({ ...validAddress, postalCode: '12345' })
+    ).toEqual([
+      { field: 'postalCode', message: ADDRESS_FIELD_MESSAGES.postalCode },
+    ]);
+  });
+
+  test('collects every invalid field at once, in form order', () => {
+    const errors = validateDeliveryAddressFields({
+      name: '',
+      line1: '1 Analytical Way',
+      city: '',
+      province: 'XX',
+      postalCode: 'ABC',
+    });
+    expect(errors.map((error) => error.field)).toEqual([
+      'name',
+      'city',
+      'province',
+      'postalCode',
+    ]);
+  });
+
+  test('non-string field values are treated as missing', () => {
+    expect(
+      validateDeliveryAddressFields({
+        ...validAddress,
+        name: 42,
+        postalCode: null,
+      }).map((error) => error.field)
+    ).toEqual(['name', 'postalCode']);
+  });
+
+  test('CA_PROVINCES contains all 13 provinces and territories', () => {
+    expect(CA_PROVINCES).toEqual([
+      'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT',
+    ]);
+  });
+});

@@ -6,9 +6,9 @@ import { test, expect, type Page } from "@playwright/test";
 //   - POST /api/checkout        → fulfilled with a success URL
 //   - GET /api/checkout/session → fulfilled with a sanitized receipt fixture
 //
-// so the served app's runtime credentials are irrelevant. The route logic
-// itself (validation, catalog resolution, 503-when-unconfigured) is covered by
-// unit tests in src/lib/__tests__/checkout-route.test.ts.
+// so the served app's runtime credentials are irrelevant. Route behavior
+// itself (validation, catalog resolution, 503-when-unconfigured) is covered
+// by unit tests in src/lib/__tests__/checkout-route.test.ts.
 
 /** Sanitized projection shape returned by GET /api/checkout/session. */
 const receiptFixture = {
@@ -42,6 +42,16 @@ async function mockCheckoutApis(
   );
 }
 
+// A complete, valid delivery address is required before Pay submits
+// (client-side validation blocks incomplete/invalid forms).
+async function fillDeliveryAddress(page: Page) {
+  await page.getByLabel("Full name").fill("Ava Bloom");
+  await page.getByLabel("Street address").fill("12 Rose Lane");
+  await page.getByLabel("City").fill("Toronto");
+  await page.getByLabel("Province").selectOption("ON");
+  await page.getByLabel("Postal code").fill("M5V 2T6");
+}
+
 test.describe("Checkout flow", () => {
   test("checkout page with empty cart shows empty message", async ({ page }) => {
     await page.goto("/checkout");
@@ -55,7 +65,7 @@ test.describe("Checkout flow", () => {
 
     await expect(page.getByRole("button", { name: "Pay with Stripe" })).toBeVisible();
     // Order summary should show the item
-    await expect(page.locator("h2")).toContainText("Order Summary");
+    await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
   });
 
   test("clicking Pay with Stripe redirects to success page and clears cart", async ({ page }) => {
@@ -64,6 +74,7 @@ test.describe("Checkout flow", () => {
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/checkout");
 
+    await fillDeliveryAddress(page);
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     // The intercepted POST returns our success URL; the receipt comes from
@@ -82,12 +93,37 @@ test.describe("Checkout flow", () => {
     ).toBeVisible({ timeout: 5_000 });
   });
 
+  test("invalid postal code shows field errors and stays on checkout", async ({ page }) => {
+    await page.goto("/bouquets");
+    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await page.goto("/checkout");
+
+    await page.getByLabel("Full name").fill("Ava Bloom");
+    await page.getByLabel("Street address").fill("12 Rose Lane");
+    await page.getByLabel("City").fill("Toronto");
+    await page.getByLabel("Province").selectOption("ON");
+    // Malformed postal code — correct format is A1A 1A1.
+    await page.getByLabel("Postal code").fill("ABC");
+
+    await page.getByRole("button", { name: "Pay with Stripe" }).click();
+
+    // Submission is blocked client-side: no navigation happens, and the
+    // invalid field gets an inline message plus a summary banner.
+    await expect(page).toHaveURL(/\/checkout$/);
+    await expect(
+      page.getByText("Enter a valid Canadian postal code")
+    ).toBeVisible();
+    await expect(
+      page.getByText("Please check the highlighted delivery address fields.")
+    ).toBeVisible();
+  });
+
   test("success page renders the retrieved receipt", async ({ page }) => {
     await mockCheckoutApis(page);
     await page.goto(successUrl);
 
     await expect(page.locator("h1")).toContainText("Thank you for your order");
-    await expect(page.locator("h2")).toContainText("Order Summary");
+    await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
     await expect(page.getByText("Aurora Bloom")).toBeVisible();
     // 2 x $79.99 = $159.98; free shipping at/above $50 → total $159.98.
     // The value appears in the line total, subtotal, and total rows.

@@ -19,6 +19,10 @@ import {
   validateDeliveryAddress,
   type ChitChatsShipment,
 } from '@/lib/chitchats';
+import {
+  validateDeliveryAddressFields,
+  type AddressFieldError,
+} from '@/lib/address-validation';
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
@@ -120,8 +124,16 @@ export async function POST(request: Request) {
     if (isChitchatsConfigured()) {
       const addressValidation = validateDeliveryAddress(address);
       if (!addressValidation.ok) {
+        // Structured per-field errors (from the shared contract, on the raw
+        // request address) let the client form highlight exactly which
+        // fields the customer must fix. The `error` string is unchanged.
+        const fieldErrors: AddressFieldError[] =
+          validateDeliveryAddressFields(address);
         return NextResponse.json(
-          { error: 'A delivery address is required to calculate shipping.' },
+          {
+            error: 'A delivery address is required to calculate shipping.',
+            fieldErrors,
+          },
           { status: 400 }
         );
       }

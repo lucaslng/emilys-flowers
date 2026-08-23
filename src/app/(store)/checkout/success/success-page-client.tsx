@@ -14,7 +14,7 @@
 //
 // We show a warm confirmation + an order summary that mirrors `/checkout`,
 // clear the cart (the order is already placed), and celebrate with a small
-// petal burst from the confirmation seal.
+// petal burst released from the thank-you heading.
 //
 // `useSearchParams()` is wrapped in <Suspense> per Next.js 16's static-render
 // requirement (the fallback is a branded BloomSpinner placeholder).
@@ -30,7 +30,6 @@ import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import BloomSpinner from '@/components/ui/BloomSpinner';
-import StarMotif from '@/components/ui/StarMotif';
 
 /** The sanitized projection returned by GET /api/checkout/session. */
 interface RetrievedOrder {
@@ -45,7 +44,7 @@ function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const { clearCart } = useCart();
   const root = useRef<HTMLDivElement>(null);
-  const sealRef = useRef<HTMLDivElement>(null);
+  const burstAnchorRef = useRef<HTMLDivElement>(null);
 
   const orderParam = searchParams.get('order') ?? '';
   const sessionId = searchParams.get('session_id');
@@ -89,9 +88,9 @@ function CheckoutSuccessContent() {
   }, [clearCart]);
 
   // Orchestrated mount reveal: one staggered timeline across every
-  // [data-reveal] section (seal → heading → subtitle → pill → summary →
+  // [data-reveal] section (heading → subtitle → pill → summary →
   // line items → totals → CTAs → reassurance), plus a three-wave petal
-  // burst released downward from the confirmation seal. Reduced motion
+  // burst released downward from the thank-you heading. Reduced motion
   // skips the timeline + the burst (firePetalBurst also no-ops on its own).
   useGSAP(
     () => {
@@ -117,12 +116,12 @@ function CheckoutSuccessContent() {
           }
         );
 
-        // Petal celebration: the seal "blooms" and releases three staggered
-        // waves of petals that drift down over the receipt. Viewport coords
-        // (the petal layer is position: fixed).
-        const seal = sealRef.current;
-        if (seal) {
-          const r = seal.getBoundingClientRect();
+        // Petal celebration: releases three staggered waves of petals that
+        // drift down over the receipt. Viewport coords (the petal layer is
+        // position: fixed).
+        const anchor = burstAnchorRef.current;
+        if (anchor) {
+          const r = anchor.getBoundingClientRect();
           const cx = r.left + r.width / 2;
           const cy = r.top + r.height / 2;
           const vw = window.innerWidth;
@@ -158,44 +157,7 @@ function CheckoutSuccessContent() {
     <div ref={root} className="mx-auto max-w-2xl">
       {/* ── Hero — the thank-you card ─────────────────────────────── */}
       <div className="relative text-center">
-        <StarMotif size={40} className="mx-auto text-rose opacity-70" />
-        {/* Confirmation seal — a slow-turning floral emblem inside a
-            hand-drawn dashed ring that boils like a hand-stamped circle. */}
-        <div ref={sealRef} data-reveal className="mt-4 flex flex-col items-center">
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-surface">
-            <svg
-              aria-hidden="true"
-              className="line-boil-fine absolute inset-0 h-full w-full text-rose-line"
-              viewBox="0 0 80 80"
-              fill="none"
-            >
-              <circle
-                cx="40"
-                cy="40"
-                r="37.5"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeDasharray="7 6"
-                strokeLinecap="round"
-              />
-            </svg>
-            <BloomSpinner size={48} color="#D4A5A5" />
-          </div>
-          {/* Hand-drawn arrow pointing at the heading */}
-          <svg
-            aria-hidden="true"
-            width="20"
-            height="34"
-            viewBox="0 0 20 34"
-            fill="none"
-            className="line-boil-fine mt-2 text-rose-line"
-          >
-            <path d="M10 2 C 12 12 8 22 10 30" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-            <path d="M10 30 L 4 22 M 10 30 L 16 22" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-          </svg>
-        </div>
-
-        <div data-reveal className="mt-6">
+        <div ref={burstAnchorRef} data-reveal className="mt-6">
           <h1 className="font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
             Thank you for your order
           </h1>
