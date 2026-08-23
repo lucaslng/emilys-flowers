@@ -1,5 +1,3 @@
-// StoreShell.tsx
-
 import type { ReactNode } from "react";
 import { CartProvider } from "@/lib/cart-context";
 import { PetalBurstProvider } from "@/lib/petal-burst";

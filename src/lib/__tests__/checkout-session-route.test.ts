@@ -1,11 +1,8 @@
-// src/lib/__tests__/checkout-session-route.test.ts
-//
 // Tests for `GET /api/checkout/session` — the checkout-success retrieval
 // surface. The session id is format-checked against ^cs_(live|test)_ BEFORE
 // any Stripe call, and the response is a sanitized projection only:
 // { items, subtotal, shipping, total, orderNumber }. customer_details and
 // metadata must never leak.
-//
 // The `stripe` mock is NOT registered here: bun's `mock.module` registry is
 // process-global across test files (see ./order-emails-mocks.ts), so this
 // file reuses the shared registration and drives it through the exported

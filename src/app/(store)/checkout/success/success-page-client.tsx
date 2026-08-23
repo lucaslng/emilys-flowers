@@ -1,16 +1,9 @@
 'use client';
 
-// /checkout/success
-//
 // Shown after a completed Stripe Checkout. The success URL carries no product
-// data — only ?success=true&order=<EF-XXXXXX>&session_id={CHECKOUT_SESSION_ID}
-// — and the receipt is fetched from GET /api/checkout/session. Until it
-// resolves (or fails), only the generic confirmation shows.
-//
-// We show a warm confirmation + an order summary that mirrors `/checkout`,
-// clear the cart (the order is already placed), and celebrate with a small
-// petal burst released from the thank-you heading.
-//
+// data — the receipt is fetched from GET /api/checkout/session; until it
+// resolves (or fails), only the generic confirmation shows. The cart clears
+// on mount (the order is already placed) and a petal burst celebrates.
 // `useSearchParams()` is wrapped in <Suspense> per Next.js 16's static-render
 // requirement (the fallback is a branded BloomSpinner placeholder).
 

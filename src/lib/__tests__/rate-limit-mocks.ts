@@ -1,10 +1,7 @@
-// src/lib/__tests__/rate-limit-mocks.ts
-//
 // Shared mock registration for `@opennextjs/cloudflare` (the module that
 // exposes Workers bindings to the app). bun's `mock.module` registry is
 // PROCESS-GLOBAL across test files, so this is registered exactly once here;
 // test files drive it through the exported `rateLimitMocks` state object.
-//
 // The real `getCloudflareContext()` throws outside the Workers/OpenNext
 // runtime, so the fake mirrors both shapes: a working context with a
 // controllable `RATE_LIMITER`, and a throwing context.

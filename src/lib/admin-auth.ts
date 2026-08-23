@@ -1,14 +1,7 @@
-// src/lib/admin-auth.ts
-//
-// Server-only OIDC (OpenID Connect) admin authentication + session helpers.
-// Replaces the old password-based admin auth: the login route redirects to the
-// provider's authorize endpoint (PKCE + state), the callback route exchanges
-// the code for tokens, verifies the ID token against the provider's JWKS,
-// checks group membership, and issues an HS256-signed session JWT in the
-// `admin_session` cookie.
-//
-// Web Crypto + `jose` only — no Node-only APIs (this runs on Cloudflare
-// Workers via OpenNext).
+// Server-only OIDC admin authentication + session helpers (login redirect,
+// callback token exchange, HS256 session JWT in the `admin_session` cookie).
+// Web Crypto + `jose` only — no Node-only APIs (runs on Cloudflare Workers
+// via OpenNext).
 
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 

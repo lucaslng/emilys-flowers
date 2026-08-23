@@ -1,7 +1,4 @@
-// e2e/accessibility.spec.ts
-//
 // WCAG 2.2 AA automated scan + keyboard verification (issue #114).
-//
 // Automated scanning uses @axe-core/playwright with the five AA tags. Note that
 // axe-core's `target-size` rule (SC 2.5.8) is shipped `enabled: false`, so it
 // is not part of a tag run — the five tags are still passed exactly as

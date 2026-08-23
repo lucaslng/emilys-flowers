@@ -1,26 +1,15 @@
 'use client';
 
 /**
- * PetalBurst — a "petal burst" delight effect for the add-to-cart moment.
+ * PetalBurst — a "petal burst" delight effect for the add-to-cart moment:
+ * small petal SVGs fly from an origin point (e.g. the Add to Cart button) to a
+ * target point (e.g. the cart icon), spinning and fading as they travel.
  *
- * Small petal SVGs fly from an origin point (e.g. the "Add to Cart" button) to a
- * target point (e.g. the cart icon in the navbar), spinning and fading as they travel.
- *
- * ── API ──────────────────────────────────────────────────────────────────────
- *   <PetalBurstLayer ref={layerRef} />   // place ONCE, near the root of a client tree
- *
- *   const layerRef = useRef<PetalBurstHandle>(null);
- *   layerRef.current?.burst(
- *     { x, y },   // viewport coords of the origin (e.g. button.getBoundingClientRect() center)
- *     { x, y },   // viewport coords of the target (e.g. cart icon center)
- *   );
- *
- * Exported:
- *   - PetalBurstLayer  : the overlay component (fixed, inset-0, pointer-events-none, high z)
- *   - PetalBurstHandle : ref handle type with `burst(from, to): void`
- *
- * Coordinates are viewport-relative because the layer is `position: fixed`.
- * Respects prefers-reduced-motion: when reduced, `burst()` is a no-op.
+ * Mount <PetalBurstLayer ref={layerRef} /> ONCE near the root of a client tree,
+ * then call layerRef.current?.burst(from, to) with viewport coordinates
+ * (e.g. getBoundingClientRect() centers). Exports PetalBurstLayer + the
+ * PetalBurstHandle ref type. Coordinates are viewport-relative because the
+ * layer is `position: fixed`; under prefers-reduced-motion, burst() is a no-op.
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
@@ -72,7 +61,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
         const layer = layerRef.current;
         if (!layer) return;
 
-        // 6–10 petals, each with a randomized brand color.
         const count = 6 + Math.floor(Math.random() * 5);
         const petals: HTMLDivElement[] = [];
         for (let i = 0; i < count; i++) {
@@ -104,7 +92,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
           const duration = 0.7 + Math.random() * 0.3; // 0.7–1.0s
           const offset = i * 0.04; // ~0.04s stagger between petals
 
-          // Start small + transparent at the origin.
           gsap.set(petal, {
             x: startX,
             y: startY,
@@ -134,7 +121,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
               offset + duration - 0.28,
             );
 
-          // Scale: bloom up, then ease down as it "lands".
           tl.to(petal, { scale: 1, duration: duration * 0.45, ease: 'power1.out' }, offset)
             .to(
               petal,

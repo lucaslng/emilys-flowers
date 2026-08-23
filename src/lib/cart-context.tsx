@@ -14,8 +14,6 @@ import {
 import { CartItem, Product } from '@/types';
 import { computeLineItemTotal, computeLineItemCount, type LineItem } from '@/lib/order';
 
-// --- State & Actions ---
-
 interface CartState {
   items: CartItem[];
 }
@@ -89,8 +87,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
-// --- Cart → line-item seam ---
-// AGENTS.md: the order math lives in `src/lib/order.ts` and operates on the
+// Cart → line-item seam. AGENTS.md: the order math lives in `src/lib/order.ts` and operates on the
 // flat `LineItem` shape. `CartItem` is cart-internal; this seam flattens it at
 // the cart's edge so the provider (and any cart consumer) reuses the same
 // helpers the checkout success page uses.
@@ -145,8 +142,6 @@ function isCartItem(v: unknown): v is CartItem {
   );
 }
 
-// --- Context ---
-
 interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product) => void;
@@ -160,8 +155,6 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'emilys-flowers-cart';
-
-// --- Provider ---
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
@@ -193,7 +186,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Hydrate from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -207,7 +199,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Persist to localStorage whenever items change
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
@@ -299,8 +290,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     </CartContext.Provider>
   );
 }
-
-// --- Hook ---
 
 export function useCart(): CartContextType {
   const context = useContext(CartContext);

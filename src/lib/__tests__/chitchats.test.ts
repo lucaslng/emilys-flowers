@@ -1,7 +1,5 @@
-// src/lib/__tests__/chitchats.test.ts
-//
-// Unit tests for the pure ChitChats helpers (no network calls — these are
-// isomorphic functions in `src/lib/chitchats.ts`).
+// Unit tests for the pure ChitChats helpers in `src/lib/chitchats.ts`
+// (isomorphic functions, no network calls).
 
 import { test, expect, describe } from 'bun:test';
 import {

@@ -39,18 +39,15 @@ export default function BouquetsPageClient({
   const filtered = useMemo(() => {
     let result = [...products];
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       result = result.filter((p) => p.tags.includes(selectedCategory));
     }
 
-    // Filter by price range
     result = result.filter(
       (p) =>
         p.price >= selectedPriceRange[0] && p.price <= selectedPriceRange[1]
     );
 
-    // Sort
     switch (selectedSort) {
       case 'price-asc':
         result.sort((a, b) => a.price - b.price);

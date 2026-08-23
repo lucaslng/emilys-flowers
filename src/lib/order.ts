@@ -36,8 +36,8 @@ export type LineItemsValidation =
   | { ok: true }
   | { ok: false; error: string };
 
-// --- Order/cart math (pure, unit-tested) ---
-// AGENTS.md: all order/cart math stays in cents and lives in this module.
+// AGENTS.md: all order/cart math stays in cents, is pure/unit-tested, and
+// lives in this module.
 
 /** Sum of (price * quantity) across line items, in cents. */
 export function computeLineItemTotal(items: LineItem[]): number {
@@ -53,8 +53,6 @@ export function computeLineItemCount(items: LineItem[]): number {
 export function computeShipping(subtotalCents: number): number {
   return subtotalCents >= 5000 ? 0 : 599;
 }
-
-// --- Validation ---
 
 /**
  * Validate the checkout REQUEST payload — the `{productId, quantity}` pairs

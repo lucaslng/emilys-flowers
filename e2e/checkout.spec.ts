@@ -64,7 +64,6 @@ test.describe("Checkout flow", () => {
     await page.goto("/checkout");
 
     await expect(page.getByRole("button", { name: "Pay with Stripe" })).toBeVisible();
-    // Order summary should show the item
     await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
   });
 

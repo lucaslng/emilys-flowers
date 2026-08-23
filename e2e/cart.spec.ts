@@ -12,7 +12,6 @@ test.describe("Cart functionality", () => {
   test("add item to cart from bouquets page", async ({ page }) => {
     await page.goto("/bouquets");
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
-    // Cart badge should show "1"
     await expect(page.locator("#cart-icon span")).toContainText("1");
   });
 
@@ -21,14 +20,11 @@ test.describe("Cart functionality", () => {
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/cart");
 
-    // Product name visible via remove button aria-label
     const removeButton = page.getByRole("button", { name: /Remove.*from cart/ }).first();
     await expect(removeButton).toBeVisible();
 
-    // Quantity shows "1" via the dedicated test id
     await expect(page.getByTestId("cart-item-quantity")).toContainText("1");
 
-    // Proceed to Checkout visible
     await expect(page.getByRole("link", { name: "Proceed to Checkout" })).toBeVisible();
   });
 
@@ -59,11 +55,9 @@ test.describe("Cart functionality", () => {
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await page.goto("/cart");
 
-    // Find and click the remove button
     const removeButton = page.getByRole("button", { name: /Remove.*from cart/ }).first();
     await removeButton.click();
 
-    // Cart should be empty again
     await expect(
       page.getByRole("heading", { name: "Your cart is empty" })
     ).toBeVisible();
@@ -74,10 +68,8 @@ test.describe("Cart functionality", () => {
     await page.getByRole("button", { name: "Add to Cart" }).first().click();
     await expect(page.locator("#cart-icon span")).toContainText("1");
 
-    // Reload the page
     await page.reload();
 
-    // Cart badge should still show "1" (localStorage persistence)
     await expect(page.locator("#cart-icon span")).toContainText("1");
   });
 
@@ -95,7 +87,6 @@ test.describe("Cart functionality", () => {
     await expect(
       page.getByRole("heading", { name: "Your cart is empty" })
     ).toBeVisible({ timeout: 5_000 });
-    // And no ghost line items rendered
     await expect(page.getByTestId("cart-item-quantity")).toHaveCount(0);
   });
 });

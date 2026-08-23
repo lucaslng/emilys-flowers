@@ -1,5 +1,3 @@
-// src/app/admin/orders/page.tsx
-//
 // OIDC-gated admin page: reviews recent paid Stripe checkout sessions and
 // lets the shop owner confirm shipment (which emails the customer). Reads the
 // `admin_session` JWT cookie; unauthenticated visitors get an OIDC sign-in

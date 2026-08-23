@@ -1,5 +1,3 @@
-// under-construction.tsx
-
 /**
  * UnderConstruction — the full-page "coming soon" screen.
  *

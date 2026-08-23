@@ -1,7 +1,4 @@
-// src/lib/__tests__/order-emails-mocks.ts
-//
 // Shared mock registrations for the order-email route tests (webhook + ship).
-//
 // bun's `mock.module` registry is PROCESS-GLOBAL: a registration is shared
 // across every test file in one `bun test` process and is never torn down.
 // Registering the same module from more than one test file silently replaces
@@ -10,7 +7,6 @@
 // `resend` mocks live here and are registered EXACTLY ONCE — the helper
 // module is evaluated a single time per process regardless of how many test
 // files import it.
-//
 // Test files drive the mocks by mutating the exported `orderEmailMocks`
 // state object (property writes, never reassignment) and call
 // `resetOrderEmailMocks()` in `beforeEach`.
