@@ -63,8 +63,7 @@ export default async function nextConfig(): Promise<NextConfig> {
     process.env.UNDER_CONSTRUCTION = String(await evaluateUnderConstruction());
   }
 
-  // Scan product images once per build; workers inherit the manifest via env
-  // (receipt-images resolves checkout-success thumbnails from it at runtime).
+  // Scan once per build; workers inherit the manifest via env.
   if (process.env.PRODUCT_IMAGES === undefined) {
     process.env.PRODUCT_IMAGES = JSON.stringify(scanProductImages());
   }

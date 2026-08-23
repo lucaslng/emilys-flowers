@@ -69,8 +69,6 @@ function CheckoutSuccessContent() {
     };
   }, [sessionId]);
 
-  // Receipt items carry their resolved image path alongside the LineItem
-  // fields the order-math helpers expect.
   const items: Array<LineItem & { image: string }> = (
     retrieved?.items ?? []
   ).map((item, index) => ({

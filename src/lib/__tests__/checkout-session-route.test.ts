@@ -89,8 +89,7 @@ describe('GET /api/checkout/session', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       items: [
-        // No PRODUCT_IMAGES manifest in tests → both names miss the lookup
-        // and fall back to the category placeholder SVG.
+        // No PRODUCT_IMAGES in tests → placeholder fallbacks.
         { name: 'Ribbon Rose', image: '/placeholders/flower.svg', quantity: 2, unitAmount: 2999 },
         {
           name: 'Blush Romance Bouquet',

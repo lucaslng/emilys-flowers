@@ -15,8 +15,7 @@
 //
 // A format-valid id Stripe doesn't know maps to 404 (missing resource), not
 // 500 — other Stripe failures stay 500.
-// `image` is a same-origin path only: either the build-time product photo
-// manifest (PRODUCT_IMAGES) or a /placeholders/*.svg fallback.
+// `image` is always a same-origin path (build-time manifest or placeholder).
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -65,8 +64,7 @@ export async function GET(request: Request) {
 
     const lineItems = session.line_items?.data ?? [];
     const items = lineItems.map((lineItem) => {
-      // Resolve the display name once; it drives both the label and the
-      // image lookup (which slugifies it against the build-time manifest).
+      // One name drives both the label and the image lookup.
       const name = resolveLineItemName(lineItem);
       return {
         name,
@@ -129,11 +127,7 @@ function resolveLineItemName(lineItem: Stripe.LineItem): string {
   return lineItem.description ?? 'Your order';
 }
 
-/**
- * Category for the image fallback, from the expanded product's metadata.
- * Only 'bouquet' is honored — anything else (or absent) falls back to flower,
- * so arbitrary metadata can never shape a response path.
- */
+// Only 'bouquet' is honored so arbitrary metadata can't shape a response path.
 function resolveLineItemCategory(lineItem: Stripe.LineItem): string | undefined {
   const product = lineItem.price?.product;
   if (

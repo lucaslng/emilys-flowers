@@ -18,8 +18,7 @@ import { cache } from 'react';
 import type { Product } from '@/types';
 import { slugify } from '@/lib/slugify';
 
-// Backward compat: slugify used to live here; it now lives in the shared
-// pure module so Workers-safe code can use it without importing Stripe.
+// Re-exported from the shared module so existing imports keep working.
 export { slugify };
 
 /**
