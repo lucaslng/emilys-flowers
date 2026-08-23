@@ -1,18 +1,10 @@
-// receipt-images.ts
-//
-// Workers-safe module (no node:fs, no Stripe SDK): resolves the thumbnail for
-// a checkout-success receipt line item. The slug → image manifest is scanned
-// at build time by product-image-manifest.ts and inlined into the bundle via
-// next.config.ts's `env` config as PRODUCT_IMAGES; this module only parses
-// that JSON.
+// Workers-safe (no node:fs): parses the build-time PRODUCT_IMAGES manifest
+// inlined by next.config.ts and resolves receipt line items to image paths.
 
 import { slugify } from '@/lib/slugify';
 
-/**
- * Memoized parse of PRODUCT_IMAGES. Keyed on the raw env value: in production
- * it never changes after build, so the JSON is parsed exactly once; tests can
- * swap process.env.PRODUCT_IMAGES between calls without a reset hook.
- */
+// Keyed on the raw env value: parsed once in production, but tests can swap
+// process.env.PRODUCT_IMAGES without a reset hook.
 let cachedRaw: string | undefined;
 let cachedManifest: Record<string, string> = {};
 
@@ -31,30 +23,24 @@ function getManifest(): Record<string, string> {
         !Array.isArray(parsed)
       ) {
         for (const [slug, image] of Object.entries(parsed)) {
-          // Only same-origin /products/ paths are accepted — the manifest is
-          // build-generated, but stay defensive about what reaches <img src>.
+          // Only same-origin paths may reach <img src>.
           if (typeof image === 'string' && image.startsWith('/products/')) {
             cachedManifest[slug] = image;
           }
         }
       }
     } catch {
-      // Malformed JSON → empty manifest; every lookup falls back to a placeholder.
+      // Invalid JSON → empty manifest; lookups fall back to placeholders.
     }
   }
   return cachedManifest;
 }
 
-/** Placeholder SVG for a category — mirrors stripe-catalog's PLACEHOLDER_IMAGES. */
 function categoryPlaceholder(category?: string): string {
   return `/placeholders/${category === 'bouquet' ? 'bouquet' : 'flower'}.svg`;
 }
 
-/**
- * Resolve the receipt image for a purchased line item: slugify the product
- * name, look it up in the build-time manifest, and fall back to the category
- * placeholder when there's no real photo.
- */
+/** Manifest lookup by product name; category placeholder on a miss. */
 export function resolveReceiptImage(name: string, category?: string): string {
   const hit = getManifest()[slugify(name)];
   return hit ?? categoryPlaceholder(category);

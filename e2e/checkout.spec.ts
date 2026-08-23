@@ -119,7 +119,6 @@ test.describe("Checkout flow", () => {
     await expect(page.locator("h1")).toContainText("Thank you for your order");
     await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
     await expect(page.getByText("Aurora Bloom")).toBeVisible();
-    // The line-item thumbnail uses the image path from the receipt.
     await expect(page.locator("img[src='/products/green-evangeline/01-main.jpg']")).toHaveCount(1);
     // $159.98 appears 3×: line total, subtotal, total.
     await expect(page.getByText("$159.98")).toHaveCount(3);
