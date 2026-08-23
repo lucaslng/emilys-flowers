@@ -137,6 +137,19 @@ function isKnownProvince(value: string): boolean {
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 
 /**
+ * Clamp a free-form string to Stripe's metadata-value cap: trim surrounding
+ * whitespace first, then hard-slice. Same treatment `truncateDeliveryAddress`
+ * gives each address field, for values that aren't address fields (e.g. the
+ * admin ship route's `estimatedShippingTime`).
+ */
+export function clampMetadataValue(
+  value: string,
+  maxLength: number = STRIPE_METADATA_VALUE_MAX_LENGTH
+): string {
+  return value.trim().slice(0, maxLength);
+}
+
+/**
  * Per-field caps: fully-filled fields serialize to ≈349 chars + ≈85 chars of
  * JSON overhead — under the 500-char cap with margin. The client form
  * enforces them via `maxLength`; the server clamps again (never trust the client).
