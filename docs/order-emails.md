@@ -169,7 +169,12 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   (the update replaces the whole map, so the current keys are spread in). The
   page reloads after a ~1s success message. The route is **idempotent**: if
   `metadata.shipped_at` already exists it returns 200 without sending a
-  duplicate shipped email (duplicate submits are a benign no-op).
+  duplicate shipped email (duplicate submits are a benign no-op). If the
+  metadata stamp itself fails, the route returns
+  `500 { error, emailSent: true }` instead of swallowing the error — the form
+  surfaces the server's message verbatim. Resubmitting within 24 hours is
+  deduped by the `shipped-${sessionId}` email idempotency key and retries the
+  stamp; after 24 hours a resubmit risks a duplicate shipped email.
 
 ### OIDC setup
 
@@ -192,6 +197,59 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev`) and
   register the derived callback URL (that root + `/api/admin/callback`) in the
   provider when testing a preview branch.
+
+### `ADMIN_SESSION_SECRET` rotation runbook
+
+`ADMIN_SESSION_SECRET` is the HS256 key that signs the `admin_session` JWT
+cookie (`src/lib/admin-auth.ts`). There is **no server-side session
+revocation**: logout only clears the cookie client-side
+(`src/app/api/admin/logout/route.ts`), and the JWT carries no
+`jti`/denylist/version claim. An exported cookie keeps working until its 8h
+expiry — **rotating the secret is today's only kill switch**. Every
+outstanding session JWT instantly fails signature verification against the new
+value (`verifySessionToken` returns `null`, fail-closed), so the next admin
+request redirects to the OIDC login.
+
+**When to rotate:** suspected cookie exfiltration or admin compromise,
+departure of someone with access to the secret (e.g. a Cloudflare dashboard
+member), or periodic hygiene. The two Workers have independent secrets —
+rotating one does not affect the other; rotate both unless an incident is
+provably scoped to one environment.
+
+**Procedure** (~2 minutes):
+
+1. Generate a new secret (≥ 32 chars) and stash it somewhere safe until step 4
+   — `wrangler secret put` replaces the old value with no undo:
+
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. Rotate on both Workers. The change takes effect immediately — no redeploy
+   needed (when you do deploy later, keep passing `--keep-vars`, which every
+   deploy requires — see [deployment.md](./deployment.md)):
+
+   ```bash
+   echo "<new-secret>" | bunx wrangler secret put ADMIN_SESSION_SECRET --env production
+   echo "<new-secret>" | bunx wrangler secret put ADMIN_SESSION_SECRET --env preview
+   ```
+
+3. Verify: open `/admin/orders` in a browser that still holds a pre-rotation
+   `admin_session` cookie — it must bounce to the OIDC login instead of
+   rendering orders — then sign in again and confirm the order list renders.
+4. Roll back only if you rotated to a broken value (e.g. < 32 chars → the
+   admin page shows a config error and verification fails closed): re-put the
+   stashed pre-rotation value from step 1. Never roll back to a *compromised*
+   secret — generate another fresh one instead.
+
+**Decision on targeted revocation (token-version claim): deferred (2026-08).**
+Adding a version claim checked against a Workers KV/env value would allow
+per-user invalidation without nuking all sessions. Deferred because this is a
+single-admin storefront where sessions already expire after 8h, rotation is
+rare and cheap, and targeted revocation would add a KV binding plus a
+claim-check path on every admin request for a threat model that doesn't
+currently justify it. Revisit if the site gains multiple admins, longer
+session TTLs, or compliance requirements.
 
 ## Notes / gotchas
 

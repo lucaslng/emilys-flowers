@@ -82,6 +82,12 @@ Key invariants:
 - **No client-supplied financial identifier exists anywhere in the request
   path.** Prices, names and price ids come from the catalog index; unknown
   product ids get a 400. Quantities are capped at 99 per line server-side.
+- **Requests are bounded server-side.** At most 20 distinct lines per request
+  (`MAX_LINE_ITEMS`); more gets a 400 "Too many line items". Duplicate
+  productIds are merged server-side (quantities summed, first-seen order kept)
+  before catalog resolution and pricing, so one product can never reach Stripe
+  as multiple line_items. A merged line exceeding 99 units is rejected with a
+  400 "Invalid line item".
 - **The ChitChats shipment payload is built from the same resolved items** —
   declared customs/insurance value and package descriptions never come from
   the client.
@@ -96,12 +102,18 @@ Key invariants:
   against the build-time `PRODUCT_IMAGES` manifest (scanned from
   `public/products/<slug>/` in `next.config.ts`) and falls back to the
   category placeholder SVG. No other product data or metadata is exposed.
-- **The retrieval route is rate-limited** (`src/lib/rate-limit.ts`) at
+- **Both checkout API routes are rate-limited** (`src/lib/rate-limit.ts`) at
   10 requests / 60 s per client IP via the Workers `RATE_LIMITER` ratelimit
-  binding, guarding Stripe API quota. Exceeding it returns 429 with
-  `Retry-After: 60`. The guard is a graceful no-op wherever the binding
-  doesn't exist (local dev, Node runtime, tests) and fails open if the
-  limiter itself errors — availability beats quota protection.
+  binding, guarding Stripe/ChitChats quota. `POST /api/checkout` is limited
+  just before the first billable external call (issue #209 — it creates real
+  ChitChats shipments and is unauthenticated); `GET /api/checkout/session` is
+  limited only after the session-id format guard, so malformed ids stay
+  quota-free. Limiter keys are surface-prefixed (`checkout:${ip}`,
+  `checkout-session:${ip}`) so each route has its own bucket — receipt-page
+  refreshes can't lock a client out of checkout. Exceeding either limit
+  returns 429 with `Retry-After: 60`. The guard is a graceful no-op wherever
+  the binding doesn't exist (local dev, Node runtime, tests) and fails open
+  if the limiter itself errors — availability beats quota protection.
 
 The `origin` is derived from `request.url` — the Worker knows its own host
 from the incoming request, so there is no `NEXT_PUBLIC_BASE_URL` /

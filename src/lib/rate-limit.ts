@@ -1,8 +1,9 @@
 // src/lib/rate-limit.ts
 //
-// Per-IP rate limiting for billable API surfaces, backed by the Cloudflare
-// Workers ratelimit binding (`RATE_LIMITER` in wrangler.jsonc — 10 requests
-// per 60 s per key).
+// Per-surface, per-IP rate limiting for billable API surfaces, backed by the
+// Cloudflare Workers ratelimit binding (`RATE_LIMITER` in wrangler.jsonc —
+// 10 requests per 60 s per key). Keys are surface-prefixed so each surface
+// gets its own bucket.
 //
 // Deliberate deviation from the repo's `process.env` convention: object
 // bindings cannot ride through `process.env` (OpenNext's populateProcessEnv
@@ -35,14 +36,17 @@ interface RateLimiterBinding {
 /**
  * Returns `null` when the request is allowed (or when limiting is
  * unavailable), or a ready-to-return 429 response when the caller exceeded
- * the limit for their IP.
+ * the limit for their IP on the given surface. `surface` prefixes the
+ * limiter key (`${surface}:${ip}`) so call sites get isolated buckets.
  */
 export async function checkRateLimit(
-  request: Request
+  request: Request,
+  surface: string
 ): Promise<Response | null> {
   // CF-Connecting-IP is always set by Cloudflare in production; the fallback
   // keeps local Miniflare-emulated testing functional.
-  const key = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const key = `${surface}:${ip}`;
 
   try {
     const { env } = getCloudflareContext() as unknown as {

@@ -188,7 +188,7 @@ describe('GET /api/checkout/session', () => {
     }
   });
 
-  test('rate limiter allows the request through and keys it by IP', async () => {
+  test('rate limiter allows the request through and keys it by surface-prefixed IP', async () => {
     const request = new Request(
       'http://localhost/api/checkout/session?session_id=cs_test_abc123',
       { method: 'GET', headers: { 'CF-Connecting-IP': '203.0.113.7' } }
@@ -197,7 +197,9 @@ describe('GET /api/checkout/session', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(rateLimitMocks.limitCalls).toEqual(['203.0.113.7']);
+    expect(rateLimitMocks.limitCalls).toEqual([
+      'checkout-session:203.0.113.7',
+    ]);
     expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
   });
 

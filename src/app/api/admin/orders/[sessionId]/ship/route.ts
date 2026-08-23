@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 import { sendShippedEmail } from '@/lib/email';
 import { verifySessionToken } from '@/lib/admin-auth';
 import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
+import { clampMetadataValue } from '@/lib/address-validation';
 
 export async function POST(
   request: NextRequest,
@@ -46,9 +47,11 @@ export async function POST(
       );
     }
 
+    // Trim + clamp to Stripe's 500-char metadata-value cap — an oversized
+    // `shipping_estimate` would make the `sessions.update` below fail.
     const estimatedShippingTime =
       typeof body.estimatedShippingTime === 'string'
-        ? body.estimatedShippingTime.trim()
+        ? clampMetadataValue(body.estimatedShippingTime)
         : '';
     if (!estimatedShippingTime) {
       return NextResponse.json(
@@ -113,12 +116,23 @@ export async function POST(
         },
       });
     } catch (error) {
-      // Non-fatal: the email was already delivered. Returning an error here
-      // would make the admin retry and risk a duplicate shipped email once
-      // Resend's 24h idempotency-key window expires.
+      // The shipped email was already delivered, but the failure must be
+      // observable: the order is NOT stamped as shipped, so the admin has to
+      // know. Within Resend's 24h idempotency window a resubmit is the safe
+      // recovery path — the `shipped-${sessionId}` key dedupes the email and
+      // the retry completes the missing stamp; only after 24h does a
+      // resubmit risk a duplicate email.
       console.error(
         `[Admin ship] Failed to stamp shipped metadata for session ${sessionId}:`,
         error
+      );
+      return NextResponse.json(
+        {
+          error:
+            'The shipped email was already sent, but saving the shipping record on the order failed. Resubmitting within 24 hours will NOT send a duplicate email — the email idempotency key dedupes it — and retries the save. After 24 hours, resubmitting COULD send a duplicate shipped email.',
+          emailSent: true,
+        },
+        { status: 500 }
       );
     }
 
