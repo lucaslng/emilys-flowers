@@ -17,65 +17,18 @@ async function scan(page: Page) {
 }
 
 /**
- * Wait for the page to be scan-ready:
- * 1. The `template.tsx` page-enter animation (300ms) so the whole page is fully
- *    opaque (axe color-contrast checks on mid-fade content would be false
- *    positives).
- * 2. Fire every ScrollTrigger reveal by scrolling through the page.
- * 3. Wait for every reveal (including staggered children) to settle at
- *    opacity 1, so axe never samples an element mid-transition.
+ * Reduced motion is forced via playwright.config.ts contextOptions, and the
+ * reduced-motion CSS guard in globals.css renders .page-enter and every
+ * reveal (.reveal-init / [data-reveal]) at full opacity immediately (SSR HTML
+ * included) — Reveal.tsx takes its early-return path and never registers
+ * ScrollTrigger reveals. So no scroll-settling or animation polling is needed
+ * before a scan; just wait for the page-enter element to reach full opacity.
  */
 async function settlePage(page: Page) {
   await page.waitForFunction(() => {
     const el = document.querySelector(".page-enter");
     return !el || getComputedStyle(el).opacity === "1";
   });
-
-  // GSAP/ScrollTrigger only registers the reveals once React hydrates. Under
-  // CI load hydration can land *after* the scroll loop below has already run,
-  // leaving every below-the-fold reveal untriggered (opacity 0) and the final
-  // wait polling forever. Wait until at least one reveal root carries
-  // GSAP-written inline styles (or no reveal roots exist) before scrolling.
-  await page.waitForFunction(() => {
-    const roots = document.querySelectorAll(".reveal-init, [data-reveal]");
-    if (roots.length === 0) return true;
-    return Array.from(roots).some((el) => el.getAttribute("style") !== null);
-  });
-
-  // Trigger all ScrollTrigger reveals by scrolling down in steps with pauses
-  // (a single instant jump to the bottom misses mid-page reveals), then
-  // return to the top so the page is in a scannable state.
-  await page.evaluate(async () => {
-    const height = document.body.scrollHeight;
-    const step = Math.max(window.innerHeight, 200);
-    for (let y = 0; y <= height; y += step) {
-      window.scrollTo(0, y);
-      await new Promise((r) => setTimeout(r, 80));
-    }
-    window.scrollTo(0, 0);
-    await new Promise((r) => setTimeout(r, 120));
-  });
-
-  await page.waitForFunction(
-    () => {
-      const roots = Array.from(
-        document.querySelectorAll(".reveal-init, [data-reveal]")
-      );
-      if (roots.length === 0) return true;
-      // Stagger reveals animate the root's direct children (product cards,
-      // reason rows, cart items), so check both the roots and their children.
-      const targets: Element[] = [];
-      for (const root of roots) {
-        targets.push(root);
-        targets.push(...Array.from(root.children));
-      }
-      return targets.every((el) => getComputedStyle(el).opacity === "1");
-    },
-    // Second arg is `arg` (passed to the callback), not options — pass
-    // undefined so the timeout below is applied as options.
-    undefined,
-    { timeout: 5_000 }
-  );
 }
 
 interface ActiveElementInfo {
@@ -85,8 +38,99 @@ interface ActiveElementInfo {
   disabled: boolean;
 }
 
+/** One keyboard focus stop, snapshotted in-page at stop time (rects change as
+ *  later tabs scroll the page, so everything is captured synchronously inside
+ *  the focusin handler). */
+interface FocusStop {
+  onBody: boolean;
+  isSkipLink: boolean;
+  insideNav: boolean;
+  positionFixed: boolean;
+  tag: string;
+  text: string; // trimmed, sliced to 60
+  label: string | null; // aria-label only (label fallbacks derive from text)
+  disabled: boolean;
+  matchesFocusVisible: boolean;
+  outlineStyle: string;
+  outlineWidth: string;
+  rect: { top: number; bottom: number; left: number; right: number };
+  navRect: {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+  } | null; // null when no <nav> in doc
+}
+
+/** Install an in-page focusin recorder so a whole Tab sequence can be
+ *  inspected with one round-trip instead of one evaluate per keypress.
+ *  Idempotent: the listener is installed once per document; each call just
+ *  starts a fresh log so repeated sequences never accumulate stale stops. */
+async function recordFocusStops(page: Page) {
+  await page.evaluate(() => {
+    const w = window as typeof window & {
+      __focusLog?: FocusStop[];
+      __focusRecorder?: () => void;
+    };
+    if (!w.__focusRecorder) {
+      const recorder = () => {
+        const el = document.activeElement as HTMLElement | null;
+        const onBody = !el || el === document.body;
+        const nav = document.querySelector("nav");
+        const cs = onBody ? null : getComputedStyle(el);
+        const er = onBody ? null : el.getBoundingClientRect();
+        const nr = nav?.getBoundingClientRect() ?? null;
+        (w.__focusLog ??= []).push({
+          onBody,
+          isSkipLink: !onBody && el.classList.contains("skip-link"),
+          insideNav: !onBody && nav !== null && nav.contains(el),
+          positionFixed: cs?.position === "fixed",
+          tag: onBody ? "BODY" : el.tagName,
+          text: onBody ? "" : (el.textContent ?? "").trim().slice(0, 60),
+          label: onBody ? null : el.getAttribute("aria-label"),
+          disabled:
+            !onBody && el instanceof HTMLButtonElement ? el.disabled : false,
+          matchesFocusVisible: !onBody && el.matches(":focus-visible"),
+          outlineStyle: cs ? cs.outlineStyle : "none",
+          outlineWidth: cs ? cs.outlineWidth : "0px",
+          rect: er ?? { top: 0, bottom: 0, left: 0, right: 0 },
+          navRect: nr
+            ? {
+                top: nr.top,
+                bottom: nr.bottom,
+                left: nr.left,
+                right: nr.right,
+              }
+            : null,
+        });
+      };
+      w.__focusRecorder = recorder;
+      document.addEventListener("focusin", recorder, true);
+    }
+    w.__focusLog = [];
+  });
+}
+
+async function readFocusLog(page: Page): Promise<FocusStop[]> {
+  return page.evaluate(
+    () =>
+      (window as typeof window & { __focusLog?: FocusStop[] }).__focusLog ?? []
+  );
+}
+
+function toActiveElementInfo(stop: FocusStop): ActiveElementInfo {
+  return {
+    tag: stop.tag,
+    text: stop.text,
+    label: stop.label,
+    disabled: stop.disabled,
+  };
+}
+
 /** Describe the currently focused element (null when focus is on <body>). */
-async function getActiveElementInfo(page: Page): Promise<ActiveElementInfo | null> {
+async function getActiveElementInfo(
+  page: Page
+): Promise<ActiveElementInfo | null> {
   return page.evaluate(() => {
     const el = document.activeElement as HTMLElement | null;
     if (!el || el === document.body) return null;
@@ -99,19 +143,54 @@ async function getActiveElementInfo(page: Page): Promise<ActiveElementInfo | nul
   });
 }
 
-/** Press Tab up to `maxTabs` times until `predicate` matches the focused
- *  element; returns the focused element info (last one seen on timeout). */
+/**
+ * Press Tab until `predicate` matches a focus stop (up to `maxTabs` presses).
+ * Presses are batched in chunks against the in-page focus log — one evaluate
+ * per chunk instead of one per keypress; real trusted Tab events preserve
+ * native focus order and scroll-into-view. Returns the matched stop's info,
+ * or the last stop seen if there is no match within `maxTabs`.
+ */
 async function tabUntil(
   page: Page,
   predicate: (info: ActiveElementInfo) => boolean,
   maxTabs = 60
 ): Promise<ActiveElementInfo | null> {
-  for (let i = 0; i < maxTabs; i++) {
-    await page.keyboard.press("Tab");
-    const info = await getActiveElementInfo(page);
-    if (info && predicate(info)) return info;
+  const CHUNK = 10;
+  await recordFocusStops(page);
+  let pressed = 0;
+  let prevStops = 0;
+  let lastSeen: ActiveElementInfo | null = null;
+  while (pressed < maxTabs) {
+    const size = Math.min(CHUNK, maxTabs - pressed);
+    for (let i = 0; i < size; i++) await page.keyboard.press("Tab");
+    pressed += size;
+    const stops = (await readFocusLog(page)).filter((stop) => !stop.onBody);
+    const infos = stops.map(toActiveElementInfo);
+    const idx = infos.findIndex((info) => predicate(info));
+    if (idx !== -1) {
+      // Real Tabs moved focus sequentially, so live focus sits on the chunk's
+      // last stop. If every press in this chunk landed on a page element
+      // (stop count grew by exactly `size`), walking back that many stops
+      // with real Shift+Tab events is exact. Otherwise a press fell into
+      // browser chrome; fall back to verified stepping until live focus
+      // satisfies the predicate again.
+      if (stops.length - prevStops === size) {
+        for (let i = 0; i < stops.length - 1 - idx; i++) {
+          await page.keyboard.press("Shift+Tab");
+        }
+      } else {
+        for (let i = 0; i <= size; i++) {
+          await page.keyboard.press("Shift+Tab");
+          const here = await getActiveElementInfo(page);
+          if (here && predicate(here)) break;
+        }
+      }
+      return infos[idx];
+    }
+    lastSeen = infos.at(-1) ?? lastSeen;
+    prevStops = stops.length;
   }
-  return getActiveElementInfo(page);
+  return lastSeen;
 }
 
 test.describe("WCAG 2.2 AA automated scans", () => {
@@ -276,25 +355,17 @@ test.describe("Keyboard-only flow (WCAG 2.1.1)", () => {
     await expect(page).toHaveURL(/#main/);
 
     // ── Focus indicator (WCAG 2.4.7): every focus stop must be visibly focused.
+    // Tabs are batched through the in-page focus log; stops are inspected in
+    // order afterwards (snapshots were captured at stop time).
     const focusFailures: string[] = [];
-    for (let i = 0; i < 20; i++) {
-      await page.keyboard.press("Tab");
-      const info = await page.evaluate(() => {
-        const el = document.activeElement as HTMLElement | null;
-        if (!el || el === document.body) return null;
-        const cs = getComputedStyle(el);
-        return {
-          matchesFocusVisible: el.matches(":focus-visible"),
-          outlineStyle: cs.outlineStyle,
-          outlineWidth: cs.outlineWidth,
-          tag: el.tagName,
-          label: el.getAttribute("aria-label") ?? (el.textContent ?? "").trim().slice(0, 40),
-        };
-      });
-      if (!info) break;
-      if (!info.matchesFocusVisible && info.outlineStyle === "none") {
+    await recordFocusStops(page);
+    for (let i = 0; i < 20; i++) await page.keyboard.press("Tab");
+    for (const stop of await readFocusLog(page)) {
+      if (stop.onBody) break;
+      if (!stop.matchesFocusVisible && stop.outlineStyle === "none") {
+        const label = stop.label ?? stop.text.slice(0, 40);
         focusFailures.push(
-          `${info.tag} "${info.label}" has no focus indicator (:focus-visible=${info.matchesFocusVisible}, outline=${info.outlineStyle} ${info.outlineWidth})`
+          `${stop.tag} "${label}" has no focus indicator (:focus-visible=${stop.matchesFocusVisible}, outline=${stop.outlineStyle} ${stop.outlineWidth})`
         );
       }
     }
@@ -351,42 +422,38 @@ test.describe("Keyboard-only flow (WCAG 2.1.1)", () => {
 test.describe("Focus not obscured by sticky nav (WCAG 2.4.11, manual check)", () => {
   test("focused elements are not scrolled under the sticky navbar", async ({ page }) => {
     // axe-core has no rule for SC 2.4.11 (Focus Not Obscured), so check it
-    // manually: after each Tab, the focused element's bounding box must not
-    // overlap the sticky nav's bounding box (a focus scrolled under the nav
-    // would be hidden). Bounded to the first several focus stops.
+    // manually: at each focus stop, the focused element's bounding box must
+    // not overlap the sticky nav's bounding box (a focus scrolled under the
+    // nav would be hidden). Bounded to the first several focus stops; tabs
+    // are batched through the in-page focus log (snapshots at stop time).
     await page.goto("/");
 
     const failures: string[] = [];
-    for (let i = 0; i < 12; i++) {
-      await page.keyboard.press("Tab");
-      const result = await page.evaluate(() => {
-        const el = document.activeElement as HTMLElement | null;
-        if (!el || el === document.body) return { ok: true, skipped: "body" };
-        // The skip link is intentionally position: fixed above the nav (globals.css).
-        if (el.classList.contains("skip-link")) return { ok: true, skipped: "skip-link" };
-        const nav = document.querySelector("nav");
-        if (!nav) return { ok: true, skipped: "no-nav" };
-        // Elements inside the navbar are, by definition, rendered within it.
-        if (nav.contains(el)) return { ok: true, skipped: "inside-nav" };
-        if (getComputedStyle(el).position === "fixed") {
-          return { ok: true, skipped: "fixed" };
-        }
-        const nr = nav.getBoundingClientRect();
-        const er = el.getBoundingClientRect();
-        const overlaps =
-          er.left < nr.right && er.right > nr.left && er.top < nr.bottom && er.bottom > nr.top;
-        return {
-          ok: !overlaps,
-          tag: el.tagName,
-          label: el.getAttribute("aria-label") ?? (el.textContent ?? "").trim().slice(0, 40),
-          navRect: { top: nr.top, bottom: nr.bottom },
-          elRect: { top: er.top, bottom: er.bottom, left: er.left, right: er.right },
-        };
-      });
-      if (result && !result.ok) {
+    await recordFocusStops(page);
+    for (let i = 0; i < 12; i++) await page.keyboard.press("Tab");
+    for (const stop of await readFocusLog(page)) {
+      if (stop.onBody) continue;
+      // The skip link is intentionally position: fixed above the nav
+      // (globals.css); elements inside the navbar are, by definition,
+      // rendered within it.
+      if (
+        stop.isSkipLink ||
+        stop.insideNav ||
+        stop.positionFixed ||
+        stop.navRect === null
+      ) {
+        continue;
+      }
+      const nr = stop.navRect;
+      const er = stop.rect;
+      const overlaps =
+        er.left < nr.right && er.right > nr.left && er.top < nr.bottom && er.bottom > nr.top;
+      if (overlaps) {
+        const label = stop.label ?? stop.text.slice(0, 40);
         failures.push(
-          `${result.tag} "${result.label}" overlaps the sticky nav ` +
-            `(nav ${JSON.stringify(result.navRect)} vs element ${JSON.stringify(result.elRect)})`
+          `${stop.tag} "${label}" overlaps the sticky nav ` +
+            `(nav ${JSON.stringify({ top: nr.top, bottom: nr.bottom })} ` +
+            `vs element ${JSON.stringify(er)})`
         );
       }
     }

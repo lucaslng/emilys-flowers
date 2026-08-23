@@ -91,9 +91,11 @@ keyboard-only and focus-not-obscured checks.
   opacity immediately, so scans are deterministic — scroll-triggered animation
   timing starves on loaded CI runners (ScrollTrigger evaluates on rAF ticks,
   which can all land after the page has scrolled back to the top), leaving
-  reveals invisible. The `settlePage` helper still waits for the page-enter
-  animation, hydration/GSAP registration, and settled reveal opacities before
-  scanning.
+  reveals invisible. The `settlePage` helper only waits for the page-enter
+  element to reach full opacity — the CSS guard makes scroll-settling and
+  reveal polling unnecessary before a scan. Keyboard sequences batch their
+  per-stop inspection into a single in-page focus log (real Tab key events,
+  one round-trip) instead of one evaluate per keypress.
 - Note: axe-core has no rule for 2.4.11 Focus Not Obscured; that SC is covered
   by the manual focus-obscured check in the same spec.
 
