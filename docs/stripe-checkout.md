@@ -90,7 +90,12 @@ Key invariants:
   (`src/app/api/checkout/session/route.ts`), which format-checks the id
   against `^cs_(live|test)_` before calling Stripe and returns ONLY a
   sanitized projection (`items/subtotal/shipping/total/orderNumber`) — never
-  `customer_details` or metadata.
+  `customer_details` or metadata. Each projected item is
+  `{name, image, quantity, unitAmount}`, where `image` is a same-origin path:
+  `resolveReceiptImage` (`src/lib/receipt-images.ts`) slugifies the item name
+  against the build-time `PRODUCT_IMAGES` manifest (scanned from
+  `public/products/<slug>/` in `next.config.ts`) and falls back to the
+  category placeholder SVG. No other product data or metadata is exposed.
 - **The retrieval route is rate-limited** (`src/lib/rate-limit.ts`) at
   10 requests / 60 s per client IP via the Workers `RATE_LIMITER` ratelimit
   binding, guarding Stripe API quota. Exceeding it returns 429 with

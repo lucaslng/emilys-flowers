@@ -3,6 +3,7 @@
 import type { NextConfig } from "next";
 import { evaluateFlowersEnabled } from "./src/lib/flowers-flag";
 import { evaluateUnderConstruction } from "./src/lib/under-construction";
+import { scanProductImages } from "./src/lib/product-image-manifest";
 
 // Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it
 // only in development. Production builds keep a strict CSP.
@@ -62,10 +63,17 @@ export default async function nextConfig(): Promise<NextConfig> {
     process.env.UNDER_CONSTRUCTION = String(await evaluateUnderConstruction());
   }
 
+  // Scan product images once per build; workers inherit the manifest via env
+  // (receipt-images resolves checkout-success thumbnails from it at runtime).
+  if (process.env.PRODUCT_IMAGES === undefined) {
+    process.env.PRODUCT_IMAGES = JSON.stringify(scanProductImages());
+  }
+
   return {
     env: {
       UNDER_CONSTRUCTION: process.env.UNDER_CONSTRUCTION ?? "false",
       FLOWERS_ENABLED: process.env.FLOWERS_ENABLED ?? "false",
+      PRODUCT_IMAGES: process.env.PRODUCT_IMAGES ?? "{}",
     },
     async headers() {
       return [

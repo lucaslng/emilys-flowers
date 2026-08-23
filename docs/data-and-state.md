@@ -27,6 +27,14 @@ catalog is fetched once per build.
   page shows a gallery of all images. `ProductImage`
   (`src/components/shop/ProductImage.tsx`) still falls back to the category SVG
   on image-load error.
+- A slug → primary-image manifest is also scanned once per build by
+  `scanProductImages` (`src/lib/product-image-manifest.ts`, Node-only) and
+  inlined as JSON via the `PRODUCT_IMAGES` env config in `next.config.ts` (same
+  build-time-inline pattern as `UNDER_CONSTRUCTION`/`FLOWERS_ENABLED`). At
+  runtime, `resolveReceiptImage` (`src/lib/receipt-images.ts`, Workers-safe —
+  no `node:fs`) parses that JSON and maps a receipt line item's name to its
+  real photo, falling back to the category placeholder. The checkout-success
+  receipt API uses it to give each projected item an `image` path.
 - `next.config.ts` `images.remotePatterns` is empty (no remote hosts).
 - Because the catalog is fetched at build time, `STRIPE_SECRET_KEY` must be
   present during `next build` (see `docs/deployment.md`).
@@ -82,6 +90,9 @@ resolved items.
 Real checkout success URLs carry only `session_id={CHECKOUT_SESSION_ID}`; the
 success page fetches its receipt from `GET /api/checkout/session`, which
 format-checks the id before calling Stripe and returns a sanitized projection
-(`items/subtotal/shipping/total/orderNumber` — never customer_details or
-metadata). There is no simulated path: success URLs carry no product data, so
-nothing displayed can be altered by hand-editing the URL.
+(`items` — each `{name, image, quantity, unitAmount}` where `image` is a
+same-origin path resolved from the build-time `PRODUCT_IMAGES` manifest with a
+category-placeholder fallback — plus `subtotal/shipping/total/orderNumber`;
+never customer_details or metadata). There is no simulated path: success URLs
+carry no product data, so nothing displayed can be altered by hand-editing the
+URL.
