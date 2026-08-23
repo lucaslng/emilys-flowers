@@ -23,7 +23,7 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: `STRIPE_SECRET_KEY=${buildKey} bun run build && STRIPE_SECRET_KEY= bun run start`,
+    command: `FLOWERS_ENABLED=true UNDER_CONSTRUCTION=false STRIPE_SECRET_KEY=${buildKey} bun run build && STRIPE_SECRET_KEY= bun run start`,
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -13,7 +13,7 @@ test.describe("Checkout flow", () => {
 
     await expect(page.getByRole("button", { name: "Pay with Stripe" })).toBeVisible();
     // Order summary should show the item
-    await expect(page.locator("h2")).toContainText("Order Summary");
+    await expect(page.getByRole("heading", { name: "Order Summary" })).toBeVisible();
   });
 
   test("clicking Pay with Stripe redirects to success page and clears cart", async ({ page }) => {
