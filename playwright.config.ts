@@ -18,6 +18,12 @@ export default defineConfig({
   reporter: process.env.CI ? [["html"], ["json", { outputFile: "test-results/e2e-report.json" }]] : [["list"]],
   use: {
     baseURL: "http://localhost:3000",
+    // Deterministic e2e: force reduced motion so the reduced-motion CSS guard
+    // renders every reveal at full opacity immediately — scroll-triggered
+    // animation timing starves on loaded CI runners (ScrollTrigger evaluates
+    // on rAF ticks, which can all land after the page has scrolled back to
+    // the top), leaving reveals invisible and settlePage polling forever.
+    contextOptions: { reducedMotion: "reduce" },
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
