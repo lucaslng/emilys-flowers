@@ -16,6 +16,11 @@ import path from 'node:path';
 import Stripe from 'stripe';
 import { cache } from 'react';
 import type { Product } from '@/types';
+import { slugify } from '@/lib/slugify';
+
+// Backward compat: slugify used to live here; it now lives in the shared
+// pure module so Workers-safe code can use it without importing Stripe.
+export { slugify };
 
 /**
  * Universal placeholder used whenever a Stripe product has no description.
@@ -29,15 +34,6 @@ const PLACEHOLDER_IMAGES: Record<Product['category'], string> = {
   flower: '/placeholders/flower.svg',
   bouquet: '/placeholders/bouquet.svg',
 };
-
-/** Derive a URL slug from a product name, e.g. "Cream White Rose" → "cream-white-rose". */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 function toCategory(raw: unknown): Product['category'] {
   return raw === 'bouquet' ? 'bouquet' : 'flower';

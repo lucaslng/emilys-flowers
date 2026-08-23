@@ -8,18 +8,21 @@
 // Stripe call, the session + line items are retrieved from Stripe, and ONLY a
 // sanitized projection is returned:
 //
-//   { items: [{name, quantity, unitAmount}], subtotal, shipping, total, orderNumber }
+//   { items: [{name, image, quantity, unitAmount}], subtotal, shipping, total, orderNumber }
 //
 // customer_details and metadata are NEVER returned — the browser must not
 // learn the customer's contact details or the shipment/address metadata.
 //
 // A format-valid id Stripe doesn't know maps to 404 (missing resource), not
 // 500 — other Stripe failures stay 500.
+// `image` is a same-origin path only: either the build-time product photo
+// manifest (PRODUCT_IMAGES) or a /placeholders/*.svg fallback.
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 import { checkRateLimit } from '@/lib/rate-limit';
+import { resolveReceiptImage } from '@/lib/receipt-images';
 
 /** Only real Stripe Checkout session ids may reach the API. */
 const SESSION_ID_PATTERN = /^cs_(live|test)_[A-Za-z0-9]+$/;
@@ -61,11 +64,17 @@ export async function GET(request: Request) {
     });
 
     const lineItems = session.line_items?.data ?? [];
-    const items = lineItems.map((lineItem) => ({
-      name: resolveLineItemName(lineItem),
-      quantity: lineItem.quantity ?? 0,
-      unitAmount: lineItem.price?.unit_amount ?? 0,
-    }));
+    const items = lineItems.map((lineItem) => {
+      // Resolve the display name once; it drives both the label and the
+      // image lookup (which slugifies it against the build-time manifest).
+      const name = resolveLineItemName(lineItem);
+      return {
+        name,
+        image: resolveReceiptImage(name, resolveLineItemCategory(lineItem)),
+        quantity: lineItem.quantity ?? 0,
+        unitAmount: lineItem.price?.unit_amount ?? 0,
+      };
+    });
 
     const subtotal =
       session.amount_subtotal ??
@@ -118,4 +127,22 @@ function resolveLineItemName(lineItem: Stripe.LineItem): string {
     return product.name;
   }
   return lineItem.description ?? 'Your order';
+}
+
+/**
+ * Category for the image fallback, from the expanded product's metadata.
+ * Only 'bouquet' is honored — anything else (or absent) falls back to flower,
+ * so arbitrary metadata can never shape a response path.
+ */
+function resolveLineItemCategory(lineItem: Stripe.LineItem): string | undefined {
+  const product = lineItem.price?.product;
+  if (
+    product &&
+    typeof product === 'object' &&
+    !('deleted' in product) &&
+    product.metadata?.category === 'bouquet'
+  ) {
+    return 'bouquet';
+  }
+  return undefined;
 }

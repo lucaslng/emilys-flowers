@@ -63,7 +63,11 @@ function makeSession(): object {
           quantity: 1,
           price: {
             unit_amount: 8999,
-            product: { id: 'prod_bouquet', name: 'Blush Romance Bouquet' },
+            product: {
+              id: 'prod_bouquet',
+              name: 'Blush Romance Bouquet',
+              metadata: { category: 'bouquet' },
+            },
           },
         },
       ],
@@ -85,8 +89,15 @@ describe('GET /api/checkout/session', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       items: [
-        { name: 'Ribbon Rose', quantity: 2, unitAmount: 2999 },
-        { name: 'Blush Romance Bouquet', quantity: 1, unitAmount: 8999 },
+        // No PRODUCT_IMAGES manifest in tests → both names miss the lookup
+        // and fall back to the category placeholder SVG.
+        { name: 'Ribbon Rose', image: '/placeholders/flower.svg', quantity: 2, unitAmount: 2999 },
+        {
+          name: 'Blush Romance Bouquet',
+          image: '/placeholders/bouquet.svg',
+          quantity: 1,
+          unitAmount: 8999,
+        },
       ],
       subtotal: 14997,
       shipping: 968,
