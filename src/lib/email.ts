@@ -142,8 +142,8 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
       ${addressBlock}
     </table>
     <p style="margin:20px 0 0;">
-      Every ribbon is tied with care, and we can't wait for your flowers to arrive.
-      Thank you for supporting a small handmade shop.
+      We can't wait for your flowers to arrive.
+      Thank you for supporting a small handmade shop!
     </p>
     <p style="margin:16px 0 0; color:${EMAIL_MUTED}; font-size:13px;">
       Warmly,<br/>Emily's Flowers
