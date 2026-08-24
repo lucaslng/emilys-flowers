@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { formatPrice } from '@/lib/format';
+import { formatCAD, formatPrice, formatShippingLabel } from '@/lib/format';
 
 /**
  * Order email sending via Resend.
@@ -106,8 +106,7 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
     })
     .join('');
 
-  const shippingLabel =
-    data.shippingCents === 0 ? 'Free' : `$${formatPrice(data.shippingCents)}`;
+  const shippingLabel = formatShippingLabel(data.shippingCents);
 
   const addressBlock = data.shippingAddress
     ? `
@@ -157,8 +156,7 @@ function buildOrderConfirmationText(data: OrderConfirmationData): string {
     (item) =>
       `- ${item.name} x ${item.quantity} — $${formatPrice(item.unitAmountCents * item.quantity)}`
   );
-  const shippingLine =
-    data.shippingCents === 0 ? 'Free' : `$${formatPrice(data.shippingCents)}`;
+  const shippingLine = formatShippingLabel(data.shippingCents);
 
   return [
     `${greeting(data.customerName)}`,

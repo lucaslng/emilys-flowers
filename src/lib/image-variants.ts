@@ -8,6 +8,11 @@
 
 export const VARIANT_WIDTHS: number[] = [320, 480, 640, 960, 1280, 1600];
 
+// Canonical product-image extension rule (jpg/jpeg/png/webp/avif,
+// case-insensitive) shared by the manifest scanner and the Stripe catalog.
+export const IMAGE_EXT_SOURCE = 'jpe?g|png|webp|avif';
+export const IMAGE_EXT = new RegExp(`\\.(?:${IMAGE_EXT_SOURCE})$`, 'i');
+
 /**
  * Returns the closest value in VARIANT_WIDTHS to `width`. On ties the larger
  * width wins (e.g. 400 -> 480, 800 -> 960).
@@ -24,8 +29,10 @@ export function nearestVariantWidth(width: number): number {
 }
 
 // Matches /products/<slug>/<file>.<ext> (case-insensitive extension).
-const PRODUCT_IMAGE_PATTERN =
-  /^\/products\/([^/]+)\/([^/]+)\.(jpg|jpeg|png|webp|avif)$/i;
+const PRODUCT_IMAGE_PATTERN = new RegExp(
+  `^\\/products\\/([^/]+)\\/([^/]+)\\.(?:${IMAGE_EXT_SOURCE})$`,
+  'i'
+);
 
 /**
  * Maps a product image URL to its variant URL, e.g.
@@ -41,8 +48,10 @@ export function variantPathFor(src: string, width: number): string {
 
 // Matches a filesystem path ending in products/<slug>/<file>.<ext>, allowing
 // any leading directory prefix (e.g. `public/`).
-const PRODUCT_FILE_PATTERN =
-  /^(.*\/)?products\/([^/]+)\/([^/]+)\.(jpg|jpeg|png|webp|avif)$/i;
+const PRODUCT_FILE_PATTERN = new RegExp(
+  `^(.*\\/)?products\\/([^/]+)\\/([^/]+)\\.(?:${IMAGE_EXT_SOURCE})$`,
+  'i'
+);
 
 /**
  * Same mapping as variantPathFor but for filesystem paths, e.g.

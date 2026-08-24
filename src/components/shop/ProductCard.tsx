@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
 import ProductImage from '@/components/shop/ProductImage';
-import { firePetalBurst } from '@/lib/petal-burst';
+import OutOfStockStamp from '@/components/shop/OutOfStockStamp';
+import { addWithPetalBurst } from '@/lib/petal-burst';
 
 interface ProductCardProps {
   product: Product;
@@ -65,13 +66,7 @@ export default function ProductCard({
             Featured
           </span>
         )}
-        {!product.inStock && (
-          <div className="absolute inset-0 z-[2] flex items-center justify-center bg-background/80">
-            <span className="border border-rose-line bg-foreground px-4 py-2 font-sans text-sm font-semibold uppercase tracking-[0.12em] text-background">
-              Out of Stock
-            </span>
-          </div>
-        )}
+        {!product.inStock && <OutOfStockStamp />}
       </Link>
 
       {/* Gift-tag label */}
@@ -86,7 +81,7 @@ export default function ProductCard({
 
         <div className="mt-auto flex items-center justify-between pt-4">
           <span className="font-sans text-lg font-bold tabular-nums text-foreground">
-            ${formatPrice(product.price)}
+            {formatCAD(product.price)}
           </span>
           <Button
             variant="primary"
@@ -94,14 +89,7 @@ export default function ProductCard({
             disabled={!product.inStock}
             onClick={(e) => {
               addToCart(product);
-              const btn = e.currentTarget.getBoundingClientRect();
-              const cart = document.getElementById('cart-icon')?.getBoundingClientRect();
-              if (cart) {
-                firePetalBurst(
-                  { x: btn.left + btn.width / 2, y: btn.top + btn.height / 2 },
-                  { x: cart.left + cart.width / 2, y: cart.top + cart.height / 2 }
-                );
-              }
+              addWithPetalBurst(e.currentTarget);
             }}
           >
             Add to Cart

@@ -6,9 +6,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { slugify } from '@/lib/slugify';
-
-// Same image-extension rule as imagesForProduct in stripe-catalog.ts.
-const IMAGE_EXTENSION = /\.(jpe?g|png|webp|avif)$/i;
+import { IMAGE_EXT } from '@/lib/image-variants';
 
 /**
  * Map each product folder to its first sorted image file, e.g.
@@ -24,7 +22,7 @@ export function scanProductImages(
   for (const entry of readdirSync(baseDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const files = readdirSync(path.join(baseDir, entry.name))
-      .filter((f) => IMAGE_EXTENSION.test(f))
+      .filter((f) => IMAGE_EXT.test(f))
       .sort();
     const primary = files[0];
     if (primary) {

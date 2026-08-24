@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import { formatLabel } from '@/lib/product-utils';
 import { Product } from '@/types';
 import Button from '@/components/ui/Button';
 import ProductGallery from '@/components/shop/ProductGallery';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
-import { firePetalBurst } from '@/lib/petal-burst';
+import { addWithPetalBurst } from '@/lib/petal-burst';
 
 interface ProductDetailProps {
   product: Product;
@@ -31,14 +32,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     addToCart(product);
-    const btn = e.currentTarget.getBoundingClientRect();
-    const cart = document.getElementById('cart-icon')?.getBoundingClientRect();
-    if (cart) {
-      firePetalBurst(
-        { x: btn.left + btn.width / 2, y: btn.top + btn.height / 2 },
-        { x: cart.left + cart.width / 2, y: cart.top + cart.height / 2 }
-      );
-    }
+    addWithPetalBurst(e.currentTarget);
   };
 
   return (
@@ -89,10 +83,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
             {/* Handwritten category annotation with arrow */}
             <div className="flex items-center gap-2">
-              <svg aria-hidden="true" width="72" height="24" viewBox="0 0 72 24" fill="none" className="line-boil text-rose-line">
-                <path d="M4 20 C 24 16 46 8 68 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-                <path d="M68 5 L 59 4 M 68 5 L 64 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-              </svg>
+              <ArrowFlourish size="md" />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 {product.flowerType
                   ? formatLabel(product.flowerType)
@@ -107,7 +98,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             </h1>
 
             <p className="mt-4 font-sans text-2xl font-bold tabular-nums text-foreground">
-              ${formatPrice(product.price)}
+              {formatCAD(product.price)}
             </p>
 
             {/* Flower type + color stamps */}

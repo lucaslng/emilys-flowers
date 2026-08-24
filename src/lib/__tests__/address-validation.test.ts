@@ -11,6 +11,7 @@ import {
   STRIPE_METADATA_VALUE_MAX_LENGTH,
   isValidCAPostalCode,
   normalizeCAPostalCode,
+  shippingAddressMetadata,
   shippingAddressMetadataValue,
   truncateDeliveryAddress,
   validateDeliveryAddressFields,
@@ -351,5 +352,47 @@ describe('shippingAddressMetadataValue', () => {
     expect(shippingAddressMetadataValue(pathological)).toBe(
       shippingAddressMetadataValue(pathological)
     );
+  });
+});
+
+describe('shippingAddressMetadata', () => {
+  const validAddress = {
+    name: 'Ada Lovelace',
+    line1: '1 Analytical Way',
+    line2: 'Apt 4',
+    city: 'Toronto',
+    province: 'ON',
+    postalCode: 'M5V 2T6',
+  };
+
+  test('returns json for metadata and value as the exact parsed form', () => {
+    const { json, value } = shippingAddressMetadata(validAddress);
+    expect(json.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
+    expect(JSON.parse(json)).toEqual(value);
+    expect(value).toEqual(validAddress);
+  });
+
+  test('value mirrors the fallback (line2 dropped) when escape inflation overflows', () => {
+    const pathological = {
+      name: '"'.repeat(200),
+      line1: '"'.repeat(200),
+      line2: '"'.repeat(200),
+      city: '"'.repeat(200),
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    };
+    const { json, value } = shippingAddressMetadata(pathological);
+    expect(json.length).toBeLessThanOrEqual(STRIPE_METADATA_VALUE_MAX_LENGTH);
+    expect(JSON.parse(json)).toEqual(value);
+    expect('line2' in value).toBe(false);
+  });
+
+  test('value is clamped to the per-field caps, matching json', () => {
+    const { json, value } = shippingAddressMetadata({
+      ...validAddress,
+      name: 'N'.repeat(500),
+    });
+    expect(value.name).toBe('N'.repeat(ADDRESS_FIELD_MAX_LENGTHS.name));
+    expect((JSON.parse(json) as { name: string }).name).toBe(value.name);
   });
 });

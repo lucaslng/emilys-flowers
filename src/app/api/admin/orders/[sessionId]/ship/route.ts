@@ -7,11 +7,11 @@
 // session metadata (the admin list reads `shipped_at` / `shipping_estimate`).
 
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { sendShippedEmail } from '@/lib/email';
 import { verifySessionToken } from '@/lib/admin-auth';
 import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
 import { clampMetadataValue } from '@/lib/address-validation';
+import { getStripeClient } from '@/lib/stripe-client';
 import { isSameOriginRequest } from '@/lib/csrf';
 
 export async function POST(
@@ -68,17 +68,13 @@ export async function POST(
       );
     }
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
+    const stripe = getStripeClient();
+    if (!stripe) {
       return NextResponse.json(
         { error: 'STRIPE_SECRET_KEY is not configured on the server.' },
         { status: 500 }
       );
     }
-
-    const stripe = new Stripe(secretKey, {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import PageWash from '@/components/ui/PageWash';
 
 /**
  * Hero — "the gift box". Off-center composition: the headline block sits on
@@ -16,14 +18,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
       {/* Frosted wrapping-paper grid + soft satin light */}
       <div aria-hidden="true" className="wrapping-grid absolute inset-0" />
       <div aria-hidden="true" className="vignette absolute inset-0" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 42% 34% at 78% 30%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 42% 34% at 78% 30%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)" />
 
       {/* Diagonal ribbon band — the crisp geometric counterpoint.
           Kept to the top-right (45% width, high offset) so its rotated
@@ -85,23 +80,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
 
             {/* Handwritten annotation with arrow */}
             <div className="relative mt-2 flex justify-end">
-              <svg
-                aria-hidden="true"
-                width="90"
-                height="34"
-                viewBox="0 0 90 34"
-                fill="none"
-                className="line-boil text-rose-deep"
-              >
-                <path
-                  d="M4 26 C 30 22 52 14 84 8"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <path d="M84 8 L 74 6 M 84 8 L 80 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-              </svg>
+              <ArrowFlourish size="lg" className="line-boil text-rose-deep" />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 our bouquets ♡
               </span>

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import {
+  clearOidcCookies,
   createSessionToken,
   exchangeCodeForTokens,
   fetchUserInfo,
@@ -16,7 +17,9 @@ import {
   getOidcDiscovery,
   isAllowedByGroups,
   isOidcConfigured,
+  oidcNotConfiguredResponse,
   resolveRedirectUri,
+  sessionCookieOptions,
   verifyIdToken,
   OIDC_STATE_COOKIE,
   OIDC_VERIFIER_COOKIE,
@@ -37,10 +40,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = resolveRedirectUri(request.url);
 
   if (!isOidcConfigured()) {
-    return NextResponse.json(
-      { error: 'OIDC admin auth is not configured on the server.' },
-      { status: 500 }
-    );
+    return oidcNotConfiguredResponse();
   }
 
   const config = getOidcConfig(redirectUri);
@@ -55,8 +55,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(
       new URL(`/admin/orders?error=${error}`, request.url).toString()
     );
-    response.cookies.delete({ name: OIDC_STATE_COOKIE, path: '/' });
-    response.cookies.delete({ name: OIDC_VERIFIER_COOKIE, path: '/' });
+    clearOidcCookies(response);
     return response;
   };
 
@@ -97,14 +96,11 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(
     new URL('/admin/orders', request.url).toString()
   );
-  response.cookies.delete({ name: OIDC_STATE_COOKIE, path: '/' });
-  response.cookies.delete({ name: OIDC_VERIFIER_COOKIE, path: '/' });
-  response.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    path: '/',
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+  clearOidcCookies(response);
+  response.cookies.set(
+    SESSION_COOKIE,
+    token,
+    sessionCookieOptions(SESSION_MAX_AGE_SECONDS)
+  );
   return response;
 }

@@ -13,11 +13,13 @@
 
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { cache } from 'react';
 import type { Product } from '@/types';
 import { slugify } from '@/lib/slugify';
+import { IMAGE_EXT } from '@/lib/image-variants';
 import { listActiveProducts } from '@/lib/stripe-products';
+import { getStripeClient } from '@/lib/stripe-client';
 
 // Re-exported from the shared module so existing imports keep working.
 export { slugify };
@@ -90,7 +92,7 @@ export function imagesForProduct(
   const dir = path.join(baseDir, slug);
   if (!existsSync(dir)) return [PLACEHOLDER_IMAGES[category]];
   const files = readdirSync(dir)
-    .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+    .filter((f) => IMAGE_EXT.test(f))
     .sort();
   return files.length > 0
     ? files.map((f) => `/products/${slug}/${f}`)
@@ -98,8 +100,8 @@ export function imagesForProduct(
 }
 
 async function fetchCatalog(): Promise<Product[]> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     if (process.env.NODE_ENV === 'development') {
       console.warn(
         '[stripe-catalog] No STRIPE_SECRET_KEY; returning an empty catalog for dev.'
@@ -112,7 +114,6 @@ async function fetchCatalog(): Promise<Product[]> {
     );
   }
 
-  const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
   const listed = await listActiveProducts(stripe, 'stripe-catalog');
 
   const products: Product[] = [];

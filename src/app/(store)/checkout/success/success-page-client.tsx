@@ -13,11 +13,12 @@ import { useSearchParams } from 'next/navigation';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import { computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import BloomSpinner from '@/components/ui/BloomSpinner';
+import OrderReceipt from '@/components/order/OrderReceipt';
 
 /** The sanitized projection returned by GET /api/checkout/session. */
 interface RetrievedOrder {
@@ -191,68 +192,51 @@ function CheckoutSuccessContent() {
           data-reveal
           className="stitch relative mt-10 bg-background p-6 sm:p-8"
         >
-          <h2 className="font-sans text-lg font-bold uppercase tracking-[0.14em] text-foreground">
-            Order Summary
-          </h2>
-          <div className="gift-divider mt-4" />
-
-          <div className="mt-4 divide-y divide-dashed divide-rose-line/30">
-            {items.map((item) => {
-              return (
-                <div
-                  key={item.id}
-                  data-reveal
-                  className="flex items-center gap-4 py-4"
-                >
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-border bg-blush/30">
-                    <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-50" />
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-sans text-sm font-medium uppercase tracking-[0.06em] text-foreground">
-                      {item.name}
-                    </p>
-                    <p className="font-sans text-xs text-muted">
-                      Qty {item.quantity}
-                    </p>
-                  </div>
-                  <span className="font-sans text-sm font-medium tabular-nums text-foreground">
-                    {`$${formatPrice(item.price * item.quantity)}`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div
-            data-reveal
-            className="mt-4 space-y-2 border-t border-dashed border-rose-line/40 pt-4"
+          <OrderReceipt
+            totalsDataReveal
+            totalsClassName="mt-4 space-y-2 border-t border-dashed border-rose-line/40 pt-4"
+            subtotalLabel={
+              <>
+                Subtotal ({itemCount} item
+                {itemCount !== 1 ? 's' : ''})
+              </>
+            }
+            subtotal={subtotal}
+            shipping={shipping}
+            total={total}
           >
-            <div className="flex justify-between font-sans text-sm text-foreground">
-              <span>
-                Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})
-              </span>
-              <span className="tabular-nums">{`$${formatPrice(subtotal)}`}</span>
+            <div className="mt-4 divide-y divide-dashed divide-rose-line/30">
+              {items.map((item) => {
+                return (
+                  <div
+                    key={item.id}
+                    data-reveal
+                    className="flex items-center gap-4 py-4"
+                  >
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-border bg-blush/30">
+                      <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-50" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-sans text-sm font-medium uppercase tracking-[0.06em] text-foreground">
+                        {item.name}
+                      </p>
+                      <p className="font-sans text-xs text-muted">
+                        Qty {item.quantity}
+                      </p>
+                    </div>
+                    <span className="font-sans text-sm font-medium tabular-nums text-foreground">
+                      {formatCAD(item.price * item.quantity)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="flex justify-between font-sans text-sm text-foreground">
-              <span>Shipping</span>
-              <span className="tabular-nums">
-                {shipping === 0 ? (
-                  <span className="font-semibold text-rose-deep">Free</span>
-                ) : (
-                  `$${formatPrice(shipping)}`
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between border-t border-dashed border-rose-line/40 pt-2 font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground">
-              <span>Total</span>
-              <span className="tabular-nums">{`$${formatPrice(total)}`}</span>
-            </div>
-          </div>
+          </OrderReceipt>
         </div>
       )}
 

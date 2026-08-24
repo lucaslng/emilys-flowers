@@ -84,9 +84,12 @@ metadata but not used for the link).
 
 ## Rate selection
 
-`pickCheapestRate` picks the rate with the lowest `payment_amount`
-(string dollars). `parsePaymentAmountToCents` converts it to integer cents
-(`"9.68"` → `968`) for Stripe's `fixed_amount`. ChitChats returns **no
+`pickCheapestRate` picks the rate with the lowest `payment_amount` (string
+dollars) and returns `{ rate, cents }`, where `cents` is the **strict** parse
+of the chosen rate's `payment_amount` (`"9.68"` → `968`). Rates whose amount
+doesn't parse to a finite positive number are skipped; `null` when none
+survive. The checkout route charges `cents` directly — it never re-parses
+(a lenient NaN→0 fallback would charge $0 shipping). ChitChats returns **no
 currency field** — assume CAD (the account currency).
 
 ## Metadata stored on the Stripe session
