@@ -2,13 +2,9 @@
 
 This project manages worktree lanes through **OpenChamber**. Lanes are not
 created by hand with `git worktree add`; OpenChamber creates, integrates, and
-removes them. The repository itself keeps its **bare-repo layout**:
-
-- `.bare/` — shared object store, refs, config
-- `.git` — a *file* containing `gitdir: ./.bare`
-- `main/` — the primary checkout, registered as the OpenChamber project
-- Legacy sibling lanes (`feature/<slug>/`, `bugfix/<slug>/`) may still exist
-  until integrated and removed
+removes them. The repository is a **standard checkout** at its root
+(`~/Documents/emilys-flowers`, on `main`) — the former bare-repo +
+sibling-lane structure was retired when lane management moved to OpenChamber.
 
 This replaces both the old sibling-directory protocol and the global
 oh-my-opencode-slim `.slim/worktrees/` skill — follow neither of those.
@@ -17,12 +13,12 @@ oh-my-opencode-slim `.slim/worktrees/` skill — follow neither of those.
 
 - New lanes live under OpenChamber's managed data dir:
   `~/.local/share/opencode/worktree/<repo-hash>/<name>/`. This location is not
-  configurable.
+  configurable (`<repo-hash>` is the repo's root-commit hash, so it survives
+  re-clones).
 - Folder names are slugs of the branch name: `feature/foo` → `feature-foo`.
-- Register only `main/` as the OpenChamber project. Never register the parent
-  dir (`.../emilys-flowers`) — git cannot resolve a toplevel there.
-- Existing sibling worktrees are discovered automatically and fully manageable
-  (Integrate / remove) from the Worktrees UI.
+- The OpenChamber project is the repo root itself (`~/Documents/emilys-flowers`).
+- Linked worktrees of this repo are discovered automatically and fully
+  manageable (Integrate / remove) from the Worktrees UI.
 
 ## Branch prefixes (unchanged)
 
@@ -48,7 +44,7 @@ Always name the branch explicitly; never let OpenChamber auto-name it
 4. Bootstrap runs automatically from the per-project `setup-worktree` config
    (`~/.config/openchamber/projects/<projectId>.json`):
    `bun install`, then `cp $ROOT_PROJECT_PATH/.env .env`
-   (`$ROOT_PROJECT_PATH` = the `main/` checkout). With
+   (`$ROOT_PROJECT_PATH` = the registered project path, i.e. the repo root). With
    `"setup-worktree-wait": true`, session start blocks until setup finishes
    (~5 min cap). Without it, builds fail at the Stripe catalog step until
    `.env` exists.
@@ -57,14 +53,13 @@ Always name the branch explicitly; never let OpenChamber auto-name it
 
 OpenChamber never carries uncommitted changes into a new worktree. Move WIP by
 committing it to a temp branch first and basing the lane on that branch, or by
-copying files manually. Stashes still live in the shared `.bare/`, so any
-worktree can pop one — but the old stash-push/pop choreography between sibling
-lanes is obsolete for new lanes.
+copying files manually. Stashes are repo-level (`refs/stash`), so any worktree
+can pop one.
 
 ## Working in a lane
 
 - All edits, builds, and tests happen inside the lane directory; never modify
-  `main/` for lane work.
+  the main checkout for lane work.
 - Track file/folder ownership per lane when running parallel agents.
 - Commit progress within the worktree only when the user asked for commits or
   approved local checkpoint commits.
@@ -84,7 +79,7 @@ Before integrating:
    - Patch-equivalent commits already on the target are skipped.
    - Conflicts surface in the UI — resolve manually or hand them to the agent.
    - After success, other *clean* worktrees on the target get `reset --hard`
-     (so `main/` syncs automatically).
+     (so the main checkout syncs automatically).
    - The source branch survives untouched — deleting it is a separate step.
 
 When creating a PR with `gh pr create`, use `--body-file <(cat <<'EOF' … )`
