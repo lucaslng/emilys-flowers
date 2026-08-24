@@ -244,7 +244,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (productId: string, quantity: number) => {
       const item = state.items.find((i) => i.product.id === productId);
       if (item) {
-        announce(`Quantity of ${item.product.name} updated to ${quantity}`);
+        const applied = Math.min(quantity, MAX_LINE_ITEM_QUANTITY);
+        announce(`Quantity of ${item.product.name} updated to ${applied}`);
       }
       dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
     },
