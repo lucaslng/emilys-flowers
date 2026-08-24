@@ -4,7 +4,8 @@
  * request origin (dev fallback). Trailing slashes are trimmed.
  */
 export function resolveBaseOrigin(requestUrl: string): string {
-  return (process.env.BASE_URL ?? new URL(requestUrl).origin).replace(
+  // `||` (not `??`) so an empty-string BASE_URL falls back like an unset one.
+  return (process.env.BASE_URL || new URL(requestUrl).origin).replace(
     /\/+$/,
     ''
   );

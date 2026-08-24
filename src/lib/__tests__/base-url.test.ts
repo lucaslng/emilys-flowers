@@ -33,6 +33,13 @@ describe('resolveBaseOrigin', () => {
     );
   });
 
+  test('treats an empty-string BASE_URL like an unset one', () => {
+    env.BASE_URL = '';
+    expect(resolveBaseOrigin('http://localhost:3000/api/checkout')).toBe(
+      'http://localhost:3000'
+    );
+  });
+
   test('trims trailing slashes from BASE_URL', () => {
     env.BASE_URL = 'https://example.com/';
     expect(resolveBaseOrigin('http://localhost:3000/x')).toBe(
