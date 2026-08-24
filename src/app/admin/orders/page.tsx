@@ -226,12 +226,11 @@ export default async function AdminOrdersPage({
             <p className="font-sans text-sm text-muted">
               Recent paid orders — confirm shipment to notify the customer.
             </p>
-            <a
-              href="/api/admin/logout"
-              className="shrink-0 font-sans text-xs text-muted underline"
-            >
-              Sign out
-            </a>
+            <form method="post" action="/api/admin/logout" className="shrink-0">
+              <button type="submit" className="font-sans text-xs text-muted underline">
+                Sign out
+              </button>
+            </form>
           </div>
 
           {orders.length === 0 ? (
