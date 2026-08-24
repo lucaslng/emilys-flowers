@@ -229,11 +229,11 @@ export default function TermsOfServicePage() {
 
             <Section title="Governing Law">
               <p className={pClass}>
-                These Terms are governed by and construed in accordance with the laws of Canada and
-                the province in which Emily&rsquo;s Flowers operates, without regard to
-                conflict-of-laws principles. You agree that any dispute arising out of or relating
-                to these Terms or the Services will be resolved in the courts located there, and you
-                submit to the jurisdiction of those courts.
+                These Terms are governed by and construed in accordance with the laws of the
+                Province of Ontario and the federal laws of Canada applicable therein, without
+                regard to conflict-of-laws principles. You agree that any dispute arising out of or
+                relating to these Terms or the Services will be resolved in the courts located in
+                Ontario, Canada, and you submit to the jurisdiction of those courts.
               </p>
             </Section>
 
