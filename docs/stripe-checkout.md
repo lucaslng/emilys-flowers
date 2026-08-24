@@ -91,7 +91,8 @@ Key invariants:
 - **The ChitChats shipment payload is built from the same resolved items** —
   declared customs/insurance value and package descriptions never come from
   the client.
-- **Real success URLs carry only `session_id={CHECKOUT_SESSION_ID}`.** The
+- **Real success URLs carry only `order=<order number>` +
+  `session_id={CHECKOUT_SESSION_ID}`.** The
   success page retrieves its receipt from `GET /api/checkout/session`
   (`src/app/api/checkout/session/route.ts`), which format-checks the id
   against `^cs_(live|test)_` before calling Stripe and returns ONLY a
@@ -115,8 +116,12 @@ Key invariants:
   the binding doesn't exist (local dev, Node runtime, tests) and fails open
   if the limiter itself errors — availability beats quota protection.
 
-The `origin` is derived from `request.url` — the Worker knows its own host
-from the incoming request, so there is no `NEXT_PUBLIC_BASE_URL` /
+The `origin` for success/cancel URLs comes from `BASE_URL` when set, falling
+back to `request.url`'s origin only outside production (shared helper:
+`resolveBaseOrigin` in `src/lib/base-url.ts`, also used for the OIDC callback).
+In production `BASE_URL` is **required** — the route returns 503 rather than
+derive a spoofable origin from the client-supplied Host header (issue #218,
+mirroring the admin-auth stance). There is no `NEXT_PUBLIC_BASE_URL` /
 `NEXT_PUBLIC_VERCEL_URL` fallback chain (those were removed with the Vercel
 migration). This works on every deployment target: `localhost:3000` in dev,
 the `*.workers.dev` preview URL, and the production custom domain.
@@ -203,9 +208,9 @@ convention.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No code consumer (reserved for future client-side Stripe SDK) | `pk_live_...` or `pk_test_...` — must match the secret key's mode when wired in |
 | `STRIPE_WEBHOOK_SECRET` | Server — `src/app/api/webhooks/stripe/route.ts` | `whsec_...`; signs `checkout.session.completed` events. Optional in dev (verification skipped with a warning), required in prod. See [order-emails.md](./order-emails.md). |
 
-There is **no `NEXT_PUBLIC_BASE_URL`** — the route derives `origin` from
-`request.url`, so success/cancel URLs resolve automatically on every host
-(localhost, `*.workers.dev`, custom domain).
+There is **no `NEXT_PUBLIC_BASE_URL`** — success/cancel URL origins come from
+`BASE_URL` (required in production; request-origin fallback in dev — see
+[deployment.md](./deployment.md) for the secret wiring).
 
 ### Local env files (gitignored)
 

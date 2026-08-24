@@ -5,6 +5,7 @@
 
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
+import { resolveBaseOrigin } from '@/lib/base-url';
 
 export const SESSION_COOKIE = 'admin_session';
 export const SESSION_MAX_AGE_SECONDS = 28800; // 8h
@@ -136,11 +137,7 @@ export function getOidcConfig(redirectUri: string): OidcConfig {
 
 /** Callback URL: `BASE_URL` + /api/admin/callback, else request origin + the path. */
 export function resolveRedirectUri(requestUrl: string): string {
-  const base = (process.env.BASE_URL ?? new URL(requestUrl).origin).replace(
-    /\/+$/,
-    ''
-  );
-  return `${base}/api/admin/callback`;
+  return `${resolveBaseOrigin(requestUrl)}/api/admin/callback`;
 }
 
 // Module-level discovery cache: `{ at, data }`, refetched after 1h.

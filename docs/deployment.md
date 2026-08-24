@@ -304,7 +304,7 @@ not GitHub Secrets and never appear in `deploy.yml`:
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
 | `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
-| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback`. Required in production; optional in dev (falls back to the request origin in dev; never derived from the Host header in prod). The derived callback URL must match the one registered in the provider exactly. |
+| `BASE_URL` | `src/lib/base-url.ts` (OIDC callback via `src/lib/admin-auth.ts`; Stripe success/cancel URLs via `src/app/api/checkout/route.ts`) | The site's root URL (e.g. `https://emilysflowers.ca`). Required in production — both the OIDC callback and the checkout success/cancel URLs are derived from it, never from the Host header; optional in dev (falls back to the request origin). The derived callback URL must match the one registered in the provider exactly. |
 
 See [order-emails.md](./order-emails.md) for the flow these power, and its
 [`ADMIN_SESSION_SECRET` rotation runbook](./order-emails.md#admin_session_secret-rotation-runbook)
