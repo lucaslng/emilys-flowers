@@ -5,7 +5,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 <!-- END:nextjs-agent-rules -->
 
 <!-- BEGIN:worktree-skill -->
-This repo uses a **bare-repo + sibling-worktree** layout — not `.slim/worktrees/`. When starting worktree operations, load the project skill from `.agents/skills/worktrees/SKILL.md`; the global worktrees skill describes a different convention.
+This repo uses a **bare-repo layout** with **OpenChamber-managed worktree lanes** — not `.slim/worktrees/` and not hand-run `git worktree add`. When starting worktree operations, load the project skill from `.agents/skills/worktrees/SKILL.md`; the global worktrees skill describes a different convention.
 <!-- END:worktree-skill -->
 
 # Emily's Flowers
@@ -82,7 +82,7 @@ Tailwind v4, CSS-first: theme tokens via `@theme inline` in `src/app/globals.css
 
 ## Worktree workflow
 
-Bare-repo + sibling-worktree layout — **not** `.slim/worktrees/`. The repo root is a bare repo (`.bare/` + a `.git` file); worktrees are sibling dirs by branch prefix (`main/`, `feature/<slug>/`, `bugfix/<slug>/`, `docs/<slug>/`). Start a lane with `git worktree add -b <prefix>/<slug> <prefix>/<slug> main`; do all lane work inside the worktree, not `main/`. See `.agents/skills/worktrees/SKILL.md` for the full protocol.
+Bare-repo layout — **not** `.slim/worktrees/`: the repo root is a bare repo (`.bare/` + a `.git` file) and `main/` is the primary checkout, registered as the OpenChamber project (never register the parent dir). Worktree lanes are created and managed through **OpenChamber** — new lanes live under `~/.local/share/opencode/worktree/<repo-hash>/<name>/` with folder names slugged from the branch (`feature/foo` → `feature-foo`); legacy sibling lanes (`feature/<slug>/`, `bugfix/<slug>/`) may still exist until removed. Branches keep the required prefixes (`feature/`, `bugfix/`, `docs/`), based off `main`; name branches explicitly (never OpenChamber's auto `openchamber/<folder>`). New lanes bootstrap automatically via the project's `setup-worktree` config (`bun install` + copy `.env` from `main/`). Integration uses OpenChamber's **Integrate** (cherry-pick onto the chosen target — source branch survives, delete it explicitly afterward); do all lane work inside the worktree, not `main/`. See `.agents/skills/worktrees/SKILL.md` for the full protocol.
 
 ## Notes
 
