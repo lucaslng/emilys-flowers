@@ -262,6 +262,47 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(params.success_url).not.toContain('&shipping=');
   });
 
+  test('charges the cheapest valid rate\'s strict cents when an unparseable rate must be skipped', async () => {
+    checkoutMocks.shipment.rates = [
+      {
+        postage_type: 'expedited',
+        postage_description: 'Expedited Parcel',
+        payment_amount: '14.50',
+      },
+      {
+        postage_type: 'broken',
+        postage_description: 'Broken',
+        payment_amount: 'oops',
+      },
+      {
+        postage_type: 'standard',
+        postage_description: 'Standard',
+        payment_amount: '9.68',
+      },
+    ];
+
+    const response = await POST(
+      checkoutRequest({ items: validItems, address: validAddress })
+    );
+
+    expect(response.status).toBe(200);
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+    const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
+    // The Stripe amount is the strict parse of the CHOSEN rate's
+    // payment_amount — never a re-parse with a NaN→0 fallback.
+    expect(params.shipping_options).toEqual([
+      {
+        shipping_rate_data: {
+          type: 'fixed_amount',
+          fixed_amount: { amount: 968, currency: 'cad' },
+          display_name: 'Standard',
+        },
+      },
+    ]);
+    const metadata = params.metadata as Record<string, string>;
+    expect(metadata.chitchats_postage_type).toBe('standard');
+  });
+
   test('truncates over-long address fields in BOTH the ChitChats payload and the shipping_address metadata', async () => {
     // Server must clamp and mirror the same truncated address into both.
     const overLongAddress = {
@@ -412,6 +453,41 @@ describe('POST /api/checkout with ChitChats configured', () => {
       ],
     });
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+  });
+
+  test('returns every per-field error in form order from the single validation pass', async () => {
+    const response = await POST(
+      checkoutRequest({
+        items: validItems,
+        address: {
+          name: '',
+          line1: '1 Analytical Way',
+          city: '',
+          province: 'XX',
+          postalCode: '12345',
+        },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: 'A delivery address is required to calculate shipping.',
+      fieldErrors: [
+        { field: 'name', message: 'Enter your full name' },
+        { field: 'city', message: 'Enter your city' },
+        {
+          field: 'province',
+          message:
+            'Invalid province code "XX". Must be one of: AB, BC, MB, NB, NL, NS, NT, NU, ON, PE, QC, SK, YT.',
+        },
+        {
+          field: 'postalCode',
+          message: 'Enter a valid Canadian postal code (e.g. M5V 2T6)',
+        },
+      ],
+    });
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
 
   test('returns 502 when ChitChats shipment creation fails (fail closed)', async () => {

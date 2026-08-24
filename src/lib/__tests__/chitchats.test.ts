@@ -4,7 +4,6 @@
 import { test, expect, describe } from 'bun:test';
 import {
   pickCheapestRate,
-  parsePaymentAmountToCents,
   estimateShipmentWeight,
   buildShipmentPayload,
   validateDeliveryAddress,
@@ -24,20 +23,20 @@ describe('pickCheapestRate', () => {
     expect(pickCheapestRate([])).toBeNull();
   });
 
-  test('picks the rate with the lowest payment_amount', () => {
+  test('picks the rate with the lowest payment_amount, with strict cents', () => {
     const rates: ChitChatsRate[] = [
       { postage_type: 'expedited', postage_description: 'Expedited', payment_amount: '14.50' },
       { postage_type: 'standard', postage_description: 'Standard', payment_amount: '9.68' },
       { postage_type: 'priority', postage_description: 'Priority', payment_amount: '21.00' },
     ];
-    expect(pickCheapestRate(rates)).toEqual(rates[1]);
+    expect(pickCheapestRate(rates)).toEqual({ rate: rates[1], cents: 968 });
   });
 
   test('returns the only rate when there is one', () => {
     const rates: ChitChatsRate[] = [
       { postage_type: 'standard', postage_description: 'Standard', payment_amount: '9.68' },
     ];
-    expect(pickCheapestRate(rates)).toEqual(rates[0]);
+    expect(pickCheapestRate(rates)).toEqual({ rate: rates[0], cents: 968 });
   });
 
   test('skips rates with a malformed payment_amount', () => {
@@ -46,7 +45,7 @@ describe('pickCheapestRate', () => {
       { postage_type: 'standard', postage_description: 'Standard', payment_amount: '9.68' },
       { postage_type: 'expedited', postage_description: 'Expedited', payment_amount: '14.50' },
     ];
-    expect(pickCheapestRate(rates)).toEqual(rates[1]);
+    expect(pickCheapestRate(rates)).toEqual({ rate: rates[1], cents: 968 });
   });
 
   test('returns null when every payment_amount is malformed or non-positive', () => {
@@ -58,25 +57,13 @@ describe('pickCheapestRate', () => {
     ];
     expect(pickCheapestRate(rates)).toBeNull();
   });
-});
 
-describe('parsePaymentAmountToCents', () => {
-  test('"9.68" -> 968', () => {
-    expect(parsePaymentAmountToCents('9.68')).toBe(968);
-  });
-
-  test('"0.00" -> 0', () => {
-    expect(parsePaymentAmountToCents('0.00')).toBe(0);
-  });
-
-  test('malformed input -> 0', () => {
-    expect(parsePaymentAmountToCents('not-a-number')).toBe(0);
-    expect(parsePaymentAmountToCents('')).toBe(0);
-    expect(parsePaymentAmountToCents('$9.68')).toBe(0);
-  });
-
-  test('whole dollars -> cents', () => {
-    expect(parsePaymentAmountToCents('12')).toBe(1200);
+  test('strict cents: whole dollars and never a NaN→0 fallback', () => {
+    const rates: ChitChatsRate[] = [
+      { postage_type: 'broken', postage_description: 'Broken', payment_amount: '$9.68' },
+      { postage_type: 'standard', postage_description: 'Standard', payment_amount: '12' },
+    ];
+    expect(pickCheapestRate(rates)).toEqual({ rate: rates[1], cents: 1200 });
   });
 });
 
@@ -212,7 +199,7 @@ describe('validateDeliveryAddress', () => {
     });
     expect(result).toEqual({
       ok: true,
-      value: {
+      address: {
         name: 'Ada Lovelace',
         line1: '1 Analytical Way',
         line2: '',
@@ -234,7 +221,7 @@ describe('validateDeliveryAddress', () => {
     });
     expect(result).toEqual({
       ok: true,
-      value: {
+      address: {
         name: 'Ada Lovelace',
         line1: '1 Analytical Way',
         line2: 'Apt 4',
@@ -256,7 +243,7 @@ describe('validateDeliveryAddress', () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.line2).toBe('');
+      expect(result.address.line2).toBe('');
     }
   });
 
@@ -271,12 +258,12 @@ describe('validateDeliveryAddress', () => {
       });
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.postalCode).toBe('M5V 2T6');
+        expect(result.address.postalCode).toBe('M5V 2T6');
       }
     }
   });
 
-  test('rejects a malformed postal code', () => {
+  test('rejects a malformed postal code with a per-field error', () => {
     for (const postalCode of ['12345', 'ABCDEF', 'M5V 2T', 'D5V 2T6']) {
       const result = validateDeliveryAddress({
         name: 'Ada Lovelace',
@@ -287,37 +274,65 @@ describe('validateDeliveryAddress', () => {
       });
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error).toContain('postal code');
+        expect(result.fieldErrors).toEqual([
+          {
+            field: 'postalCode',
+            message: 'Enter a valid Canadian postal code (e.g. M5V 2T6)',
+          },
+        ]);
       }
     }
   });
 
-  test('rejects a missing address', () => {
-    expect(validateDeliveryAddress(undefined).ok).toBe(false);
-    expect(validateDeliveryAddress(null).ok).toBe(false);
+  test('rejects a missing address with all required-field errors', () => {
+    for (const address of [undefined, null]) {
+      const result = validateDeliveryAddress(address);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.fieldErrors.map((error) => error.field)).toEqual([
+          'name',
+          'line1',
+          'city',
+          'province',
+          'postalCode',
+        ]);
+      }
+    }
   });
 
-  test('rejects missing fields', () => {
-    expect(
-      validateDeliveryAddress({
-        name: 'Ada Lovelace',
-        line1: '1 Analytical Way',
-        city: 'Toronto',
-        province: 'ON',
-      }).ok
-    ).toBe(false);
-    expect(
-      validateDeliveryAddress({
-        name: '',
-        line1: '1 Analytical Way',
-        city: 'Toronto',
-        province: 'ON',
-        postalCode: 'M5V 2T6',
-      }).ok
-    ).toBe(false);
+  test('rejects missing fields with a per-field error each', () => {
+    const missingPostal = validateDeliveryAddress({
+      name: 'Ada Lovelace',
+      line1: '1 Analytical Way',
+      city: 'Toronto',
+      province: 'ON',
+    });
+    expect(missingPostal.ok).toBe(false);
+    if (!missingPostal.ok) {
+      expect(missingPostal.fieldErrors).toEqual([
+        {
+          field: 'postalCode',
+          message: 'Enter a valid Canadian postal code (e.g. M5V 2T6)',
+        },
+      ]);
+    }
+
+    const blankName = validateDeliveryAddress({
+      name: '',
+      line1: '1 Analytical Way',
+      city: 'Toronto',
+      province: 'ON',
+      postalCode: 'M5V 2T6',
+    });
+    expect(blankName.ok).toBe(false);
+    if (!blankName.ok) {
+      expect(blankName.fieldErrors).toEqual([
+        { field: 'name', message: 'Enter your full name' },
+      ]);
+    }
   });
 
-  test('rejects a bad province code', () => {
+  test('rejects a bad province code with a per-field error', () => {
     const result = validateDeliveryAddress({
       name: 'Ada Lovelace',
       line1: '1 Analytical Way',
@@ -327,7 +342,9 @@ describe('validateDeliveryAddress', () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toContain('XX');
+      expect(result.fieldErrors).toHaveLength(1);
+      expect(result.fieldErrors[0].field).toBe('province');
+      expect(result.fieldErrors[0].message).toContain('XX');
     }
   });
 

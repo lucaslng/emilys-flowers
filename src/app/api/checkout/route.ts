@@ -13,18 +13,11 @@ import {
   isChitchatsConfigured,
   createShipment,
   pickCheapestRate,
-  parsePaymentAmountToCents,
   buildShipmentPayload,
   validateDeliveryAddress,
   type ChitChatsShipment,
 } from '@/lib/chitchats';
-import {
-  validateDeliveryAddressFields,
-  truncateDeliveryAddress,
-  shippingAddressMetadataValue,
-  type AddressFieldError,
-  type ValidatedDeliveryAddress,
-} from '@/lib/address-validation';
+import { shippingAddressMetadata } from '@/lib/address-validation';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
@@ -157,34 +150,27 @@ export async function POST(request: Request) {
     if (isChitchatsConfigured()) {
       const addressValidation = validateDeliveryAddress(address);
       if (!addressValidation.ok) {
-        // Structured per-field errors (from the shared contract, on the raw
-        // request address) let the client form highlight exactly which
-        // fields the customer must fix. The `error` string is unchanged.
-        const fieldErrors: AddressFieldError[] =
-          validateDeliveryAddressFields(address);
+        // Structured per-field errors (from the shared contract, on the
+        // normalized address from the single validation pass) let the client
+        // form highlight exactly which fields the customer must fix. The
+        // `error` string is unchanged.
         return NextResponse.json(
           {
             error: 'A delivery address is required to calculate shipping.',
-            fieldErrors,
+            fieldErrors: addressValidation.fieldErrors,
           },
           { status: 400 }
         );
       }
 
-      // Serialize once: the ChitChats payload (parsed back out of this exact
-      // string) and the metadata share one value, so the label always
-      // matches what was stored — even when the 500-char fallback kicks in.
-      const shippingAddress = truncateDeliveryAddress(addressValidation.value);
-      const shippingAddressMetadata = shippingAddressMetadataValue(
-        shippingAddress
-      );
-      const storedAddress = JSON.parse(
-        shippingAddressMetadata
-      ) as ValidatedDeliveryAddress;
+      // Build the shipping object once: `value` feeds the ChitChats payload,
+      // `json` goes to Stripe metadata — the label always matches what was
+      // stored, even when the 500-char fallback kicks in.
+      const shipping = shippingAddressMetadata(addressValidation.address);
 
       const subtotalCents = computeLineItemTotal(resolvedItems);
       const payload = buildShipmentPayload({
-        address: storedAddress,
+        address: shipping.value,
         items: resolvedItems,
         orderNumber,
         subtotalCents,
@@ -201,8 +187,8 @@ export async function POST(request: Request) {
         );
       }
 
-      const rate = pickCheapestRate(shipment.rates);
-      if (!rate) {
+      const cheapest = pickCheapestRate(shipment.rates);
+      if (!cheapest) {
         console.error(
           `[Checkout] ChitChats returned no rates for shipment ${shipment.id}`
         );
@@ -212,14 +198,14 @@ export async function POST(request: Request) {
         );
       }
 
-      const shippingCents = parsePaymentAmountToCents(rate.payment_amount);
-
+      // Cents come from the strict parse inside pickCheapestRate — never
+      // re-parsed (a lenient NaN→0 fallback would charge $0 shipping).
       sessionParams.shipping_options = [
         {
           shipping_rate_data: {
             type: 'fixed_amount',
-            fixed_amount: { amount: shippingCents, currency: 'cad' },
-            display_name: rate.postage_description,
+            fixed_amount: { amount: cheapest.cents, currency: 'cad' },
+            display_name: cheapest.rate.postage_description,
           },
         },
       ];
@@ -228,8 +214,8 @@ export async function POST(request: Request) {
         order_number: orderNumber,
         chitchats_shipment_id: shipment.id,
         chitchats_tracking_url: shipment.tracking_url,
-        chitchats_postage_type: rate.postage_type,
-        shipping_address: shippingAddressMetadata,
+        chitchats_postage_type: cheapest.rate.postage_type,
+        shipping_address: shipping.json,
       };
     }
 

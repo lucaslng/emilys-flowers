@@ -260,3 +260,24 @@ export function shippingAddressMetadataValue(
     );
   }
 }
+
+export interface ShippingAddressMetadata {
+  /** JSON string for the `shipping_address` metadata value (≤500 chars). */
+  json: string;
+  /** The exact address encoded in `json`, ready for the shipment payload. */
+  value: ValidatedDeliveryAddress;
+}
+
+/**
+ * Build the `shipping_address` metadata once: `json` goes into Stripe
+ * metadata and `value` (parsed back from that same string) feeds the
+ * ChitChats payload, so the label always mirrors what was stored — including
+ * when the 500-char fallback drops `line2` or shortens a field. Callers must
+ * not re-serialize or re-parse either half.
+ */
+export function shippingAddressMetadata(
+  address: ValidatedDeliveryAddress
+): ShippingAddressMetadata {
+  const json = shippingAddressMetadataValue(address);
+  return { json, value: JSON.parse(json) as ValidatedDeliveryAddress };
+}

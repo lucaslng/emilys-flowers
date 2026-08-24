@@ -14,6 +14,7 @@ import type { LineItem } from '@/lib/order';
 import {
   normalizeCAPostalCode,
   validateDeliveryAddressFields,
+  type AddressFieldError,
 } from '@/lib/address-validation';
 
 // Shared contract re-exports: `CA_PROVINCES` / `CaProvince` used to live here;
@@ -198,17 +199,10 @@ export async function createShipment(
   return body.shipment;
 }
 
-/** Parse a ChitChats string-dollars amount into integer cents. NaN → 0. */
-export function parsePaymentAmountToCents(paymentAmount: string): number {
-  const parsed = Number(paymentAmount);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.round(parsed * 100);
-}
-
 /**
  * Parse a rate's `payment_amount` into integer cents, or `null` when it
  * doesn't parse to a finite positive number. Malformed rates must never be
- * selected — a NaN→0 fallback would make a broken rate win as "$0 shipping",
+ * charged — a NaN→0 fallback would make a broken rate win as "$0 shipping",
  * violating the always-charge-the-real-rate decision.
  */
 function paymentAmountToCentsOrNull(paymentAmount: string): number | null {
@@ -217,20 +211,25 @@ function paymentAmountToCentsOrNull(paymentAmount: string): number | null {
   return Math.round(parsed * 100);
 }
 
+export interface CheapestRate {
+  rate: ChitChatsRate;
+  /** The chosen rate's `payment_amount` as integer cents (strict parse). */
+  cents: number;
+}
+
 /**
  * Cheapest rate by `payment_amount`. Rates whose `payment_amount` doesn't
  * parse to a finite positive number are skipped; `null` when no valid rates
- * survive.
+ * survive. The returned `cents` is the strict parse of the chosen rate —
+ * callers must charge it directly instead of re-parsing.
  */
-export function pickCheapestRate(rates: ChitChatsRate[]): ChitChatsRate | null {
-  let cheapest: ChitChatsRate | null = null;
-  let cheapestCents = Infinity;
+export function pickCheapestRate(rates: ChitChatsRate[]): CheapestRate | null {
+  let cheapest: CheapestRate | null = null;
   for (const rate of rates) {
     const cents = paymentAmountToCentsOrNull(rate.payment_amount);
     if (cents === null) continue;
-    if (cents < cheapestCents) {
-      cheapest = rate;
-      cheapestCents = cents;
+    if (!cheapest || cents < cheapest.cents) {
+      cheapest = { rate, cents };
     }
   }
   return cheapest;
@@ -327,31 +326,28 @@ export function buildShipmentPayload({
 }
 
 export type DeliveryAddressValidation =
-  | { ok: true; value: DeliveryAddress }
-  | { ok: false; error: string };
+  | { ok: true; address: DeliveryAddress }
+  | { ok: false; fieldErrors: AddressFieldError[] };
 
 /**
- * Validate a checkout delivery address: name, line1, city, province and
- * postalCode required non-empty strings; `line2` (apartment/unit) optional.
+ * Validate a checkout delivery address in a SINGLE pass: name, line1, city,
+ * province and postalCode required non-empty strings; `line2`
+ * (apartment/unit) optional.
  *
  * Field rules are delegated to the shared `validateDeliveryAddressFields`
  * contract (identical to what the client form enforces). Strings are trimmed;
  * the province is normalized to uppercase and the postal code to the
- * canonical "A1A 1A1" form on success. Legacy single-string error messages
- * are preserved for backward compatibility — structured per-field errors are
- * available via `validateDeliveryAddressFields` directly.
+ * canonical "A1A 1A1" form. On success the normalized address is returned;
+ * on failure the per-field errors come back on the same normalized values,
+ * so callers never need a second validation pass over the raw input.
  */
 export function validateDeliveryAddress(
   address: unknown
 ): DeliveryAddressValidation {
-  if (typeof address !== 'object' || address === null) {
-    return {
-      ok: false,
-      error: 'A delivery address is required to calculate shipping.',
-    };
-  }
-
-  const record = address as Record<string, unknown>;
+  const record =
+    typeof address === 'object' && address !== null
+      ? (address as Record<string, unknown>)
+      : {};
   const name = typeof record.name === 'string' ? record.name.trim() : '';
   const line1 = typeof record.line1 === 'string' ? record.line1.trim() : '';
   const line2 = typeof record.line2 === 'string' ? record.line2.trim() : '';
@@ -375,31 +371,11 @@ export function validateDeliveryAddress(
     postalCode,
   });
   if (fieldErrors.length > 0) {
-    // Preserve the legacy single-string error messages: blank/missing fields
-    // get the generic "missing required fields" message; a non-empty invalid
-    // province or postal code gets its specific shared-contract message.
-    if (name && line1 && city && province && postalCode) {
-      const provinceError = fieldErrors.find(
-        (error) => error.field === 'province'
-      );
-      if (provinceError) {
-        return { ok: false, error: provinceError.message };
-      }
-      const postalError = fieldErrors.find(
-        (error) => error.field === 'postalCode'
-      );
-      if (postalError) {
-        return { ok: false, error: postalError.message };
-      }
-    }
-    return {
-      ok: false,
-      error: 'Delivery address is missing required fields (name, line1, city, province, postalCode).',
-    };
+    return { ok: false, fieldErrors };
   }
 
   return {
     ok: true,
-    value: { name, line1, line2, city, province, postalCode },
+    address: { name, line1, line2, city, province, postalCode },
   };
 }
