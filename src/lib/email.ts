@@ -115,7 +115,7 @@ function emailShell(innerHtml: string): string {
           </td>
         </tr>
         <tr>
-          <td style="padding-top:20px; font-family:${EMAIL_FONT_MONO}; font-size:13px; line-height:1.6; color:${EMAIL_TEXT};">
+          <td style="padding-top:20px; padding-bottom:24px; font-family:${EMAIL_FONT_MONO}; font-size:13px; line-height:1.6; color:${EMAIL_TEXT};">
             ${innerHtml}
           </td>
         </tr>
