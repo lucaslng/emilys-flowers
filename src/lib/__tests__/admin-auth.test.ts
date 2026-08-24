@@ -577,4 +577,23 @@ describe('discovery issuer cross-check', () => {
       stub.restore();
     }
   });
+
+  test('fails closed when the discovery document omits the issuer', async () => {
+    const stub = stubDiscoveryDoc({
+      authorization_endpoint: 'https://issuer-missing.example.com/authorize',
+      token_endpoint: 'https://issuer-missing.example.com/token',
+      jwks_uri: 'https://issuer-missing.example.com/jwks',
+    });
+    try {
+      await expect(
+        getOidcDiscovery('https://issuer-missing.example.com')
+      ).rejects.toThrow(/issuer/i);
+      await expect(
+        getOidcDiscovery('https://issuer-missing.example.com')
+      ).rejects.toThrow(/issuer/i);
+      expect(stub.calls()).toBe(2);
+    } finally {
+      stub.restore();
+    }
+  });
 });
