@@ -533,6 +533,82 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
 
+  // --- Redirect origin pinning (issue #218) ---
+
+  test('derives success/cancel URLs from BASE_URL when set', async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const savedBaseUrl = env.BASE_URL;
+    env.BASE_URL = 'https://emilysflowers.ca/';
+    try {
+      await POST(checkoutRequest({ items: validItems, address: validAddress }));
+
+      expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+      const params = checkoutMocks.sessionCreateCalls[0] as Record<
+        string,
+        unknown
+      >;
+      expect(params.success_url).toMatch(
+        /^https:\/\/emilysflowers\.ca\/checkout\/success\?order=EF-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}&session_id=\{CHECKOUT_SESSION_ID\}$/
+      );
+      expect(params.cancel_url).toBe('https://emilysflowers.ca/cart?canceled=true');
+    } finally {
+      if (savedBaseUrl === undefined) delete env.BASE_URL;
+      else env.BASE_URL = savedBaseUrl;
+    }
+  });
+
+  test('falls back to the request origin when BASE_URL is unset outside production', async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const savedBaseUrl = env.BASE_URL;
+    const savedNodeEnv = env.NODE_ENV;
+    delete env.BASE_URL;
+    env.NODE_ENV = 'development';
+    try {
+      await POST(checkoutRequest({ items: validItems, address: validAddress }));
+
+      expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
+      const params = checkoutMocks.sessionCreateCalls[0] as Record<
+        string,
+        unknown
+      >;
+      expect(params.success_url).toMatch(
+        /^http:\/\/localhost\/checkout\/success\?order=/
+      );
+      expect(params.cancel_url).toBe('http://localhost/cart?canceled=true');
+    } finally {
+      if (savedBaseUrl === undefined) delete env.BASE_URL;
+      else env.BASE_URL = savedBaseUrl;
+      if (savedNodeEnv === undefined) delete env.NODE_ENV;
+      else env.NODE_ENV = savedNodeEnv;
+    }
+  });
+
+  test('returns 503 without any external call when BASE_URL is missing in production', async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const savedBaseUrl = env.BASE_URL;
+    const savedNodeEnv = env.NODE_ENV;
+    delete env.BASE_URL;
+    env.NODE_ENV = 'production';
+    try {
+      const response = await POST(
+        checkoutRequest({ items: validItems, address: validAddress })
+      );
+
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        error: 'Checkout is not configured.',
+      });
+      // Fails closed before rate limiting, ChitChats, and Stripe.
+      expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
+      expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+    } finally {
+      if (savedBaseUrl === undefined) delete env.BASE_URL;
+      else env.BASE_URL = savedBaseUrl;
+      if (savedNodeEnv === undefined) delete env.NODE_ENV;
+      else env.NODE_ENV = savedNodeEnv;
+    }
+  });
+
   // --- Catalog-membership rejections (issue #170) ---
 
   test('returns 400 for an unknown productId', async () => {

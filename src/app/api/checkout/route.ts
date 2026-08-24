@@ -20,9 +20,9 @@ import {
 import { shippingAddressMetadata } from '@/lib/address-validation';
 import { getStripeClient } from '@/lib/stripe-client';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isBaseUrlConfigured, resolveBaseOrigin } from '@/lib/base-url';
 
 export async function POST(request: Request) {
-  const origin = new URL(request.url).origin;
   try {
     // Malformed JSON is a client fault, not a server one — surface it as a
     // clean 400 instead of letting it fall into the 500 catch below.
@@ -77,6 +77,18 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!isBaseUrlConfigured()) {
+      // Same fail-closed stance as admin auth (issue #218): redirect origins
+      // must never come from the client-supplied Host header in production.
+      console.error(
+        '[Checkout] BASE_URL is not set; refusing Host-derived success/cancel URLs in production.'
+      );
+      return NextResponse.json(
+        { error: 'Checkout is not configured.' },
+        { status: 503 }
+      );
+    }
+
     // Rate-limit before any billable external call (catalog fetch, ChitChats
     // shipment, Stripe session) — this unauthenticated surface creates real
     // shipments, so floods are an abuse vector (issue #209). Cheap
@@ -126,6 +138,9 @@ export async function POST(request: Request) {
 
     const orderNumber = generateOrderNumber();
 
+    // Pinned to BASE_URL in production (issue #218) — never the Host header.
+    const origin = resolveBaseOrigin(request.url);
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       billing_address_collection: 'required',
@@ -135,8 +150,8 @@ export async function POST(request: Request) {
         price: r.priceId,
         quantity: r.quantity,
       })),
-      // Session id only — no display-only params; the receipt (shipping
-      // included) is retrieved server-side (issue #177).
+      // Session id + order number only — no display-only params; the receipt
+      // (shipping included) is retrieved server-side (issue #177).
       success_url: `${origin}/checkout/success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };

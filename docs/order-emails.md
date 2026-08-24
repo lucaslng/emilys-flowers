@@ -49,7 +49,7 @@ Resend domain).
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
 | `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
-| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback` (the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
+| `BASE_URL` | `src/lib/base-url.ts` (OIDC callback via `src/lib/admin-auth.ts`; Stripe success/cancel URLs via the checkout route) | The site's root URL (e.g. `https://emilysflowers.ca`); redirect URLs are derived from it (`BASE_URL + /api/admin/callback` for OIDC — the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
 
 All of these are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY`,
 `STRIPE_WEBHOOK_SECRET`, and the OIDC vars are read at runtime on the Worker,
