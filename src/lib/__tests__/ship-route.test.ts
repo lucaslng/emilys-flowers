@@ -40,7 +40,8 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
   // `cookie === null` omits the header entirely (unauthenticated request).
   function shipRequest(
     sessionId = 'cs_test_123',
-    cookie: string | null = adminCookie
+    cookie: string | null = adminCookie,
+    headers: Record<string, string> = {}
   ): NextRequest {
     return new NextRequest(
       `http://localhost/api/admin/orders/${sessionId}/ship`,
@@ -49,6 +50,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
         headers: {
           'Content-Type': 'application/json',
           ...(cookie !== null ? { cookie } : {}),
+          ...headers,
         },
         body: JSON.stringify({ estimatedShippingTime: '2-4 business days' }),
       }
@@ -175,6 +177,73 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
     expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('rejects a cross-origin Origin header with 403 before touching Stripe or email', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+
+    const response = await POST(
+      shipRequest('cs_test_123', adminCookie, {
+        origin: 'https://evil.example',
+      }),
+      { params: Promise.resolve({ sessionId: 'cs_test_123' }) }
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: 'Cross-origin request rejected.',
+    });
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('rejects a cross-origin Referer fallback with 403', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+
+    const response = await POST(
+      shipRequest('cs_test_123', adminCookie, {
+        referer: 'https://evil.example/admin/orders',
+      }),
+      { params: Promise.resolve({ sessionId: 'cs_test_123' }) }
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: 'Cross-origin request rejected.',
+    });
+    expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
+  test('accepts a matching Origin header and proceeds normally', async () => {
+    orderEmailMocks.currentSession = {
+      id: 'cs_test_123',
+      object: 'checkout.session',
+      metadata: {},
+      customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
+    };
+
+    const response = await POST(
+      shipRequest('cs_test_123', adminCookie, { origin: 'http://localhost' }),
+      { params: Promise.resolve({ sessionId: 'cs_test_123' }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
   });
 
   test('clamps an oversized estimatedShippingTime to the 500-char metadata cap', async () => {

@@ -1,10 +1,10 @@
 // src/app/api/admin/orders/[sessionId]/ship/route.ts
 //
-// Confirms an order has shipped: format-checks the sessionId path param,
-// verifies the admin session cookie, looks up the Stripe checkout session for
-// the customer's email/name, sends the shipping-notification email, then
-// persists the confirmation on the session metadata (the admin list reads
-// `shipped_at` / `shipping_estimate`).
+// Confirms an order has shipped: rejects cross-origin (CSRF) requests,
+// format-checks the sessionId path param, verifies the admin session cookie,
+// looks up the Stripe checkout session for the customer's email/name, sends
+// the shipping-notification email, then persists the confirmation on the
+// session metadata (the admin list reads `shipped_at` / `shipping_estimate`).
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -12,12 +12,20 @@ import { sendShippedEmail } from '@/lib/email';
 import { verifySessionToken } from '@/lib/admin-auth';
 import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
 import { clampMetadataValue } from '@/lib/address-validation';
+import { isSameOriginRequest } from '@/lib/csrf';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json(
+        { error: 'Cross-origin request rejected.' },
+        { status: 403 }
+      );
+    }
+
     const { sessionId } = await params;
 
     // Format guard first — never forward a crafted id to Stripe. Mirrors the
