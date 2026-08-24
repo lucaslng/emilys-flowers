@@ -4,6 +4,7 @@
 // via OpenNext).
 
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
+import { NextResponse } from 'next/server';
 
 export const SESSION_COOKIE = 'admin_session';
 export const SESSION_MAX_AGE_SECONDS = 28800; // 8h
@@ -20,6 +21,19 @@ const REQUIRED_ENV_VARS = [
 ] as const;
 
 const DISCOVERY_TTL_MS = 60 * 60 * 1000; // 1h
+
+const OIDC_FETCH_TIMEOUT_MS = 10_000;
+
+/** fetch with a hard 10s abort so a hung IdP can't hold requests open. */
+async function fetchWithTimeout(
+  input: string,
+  init?: RequestInit
+): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    signal: AbortSignal.timeout(OIDC_FETCH_TIMEOUT_MS),
+  });
+}
 
 export interface OidcConfig {
   issuer: string;
@@ -142,7 +156,9 @@ export async function getOidcDiscovery(
     return cached.data;
   }
 
-  const response = await fetch(`${base}/.well-known/openid-configuration`);
+  const response = await fetchWithTimeout(
+    `${base}/.well-known/openid-configuration`
+  );
   if (!response.ok) {
     throw new Error(
       `OIDC discovery request failed with status ${response.status}`
@@ -212,7 +228,7 @@ export async function exchangeCodeForTokens(
     client_secret: config.clientSecret,
     code_verifier: codeVerifier,
   });
-  const response = await fetch(discovery.tokenEndpoint, {
+  const response = await fetchWithTimeout(discovery.tokenEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -234,13 +250,24 @@ export async function exchangeCodeForTokens(
   };
 }
 
+// Module-level JWKS cache: one remote key set per JWKS URI, reused across
+// verifications instead of rebuilding (and re-fetching) on every call.
+const jwksCache = new Map<
+  string,
+  ReturnType<typeof createRemoteJWKSet>
+>();
+
 /** Verifies the ID token signature/issuer/audience against the provider JWKS. */
 export async function verifyIdToken(
   config: OidcConfig,
   discovery: OidcDiscovery,
   idToken: string
 ): Promise<Record<string, unknown>> {
-  const jwks = createRemoteJWKSet(new URL(discovery.jwksUri));
+  let jwks = jwksCache.get(discovery.jwksUri);
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(discovery.jwksUri));
+    jwksCache.set(discovery.jwksUri, jwks);
+  }
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: discovery.issuer,
     audience: config.clientId,
@@ -258,7 +285,7 @@ export async function fetchUserInfo(
   accessToken?: string
 ): Promise<Record<string, unknown>> {
   if (!discovery.userinfoEndpoint || !accessToken) return {};
-  const response = await fetch(discovery.userinfoEndpoint, {
+  const response = await fetchWithTimeout(discovery.userinfoEndpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) return {};
@@ -342,4 +369,29 @@ export async function verifySessionToken(
   } catch {
     return null;
   }
+}
+
+/** The shared 500 JSON body used by the OIDC routes when env config is absent. */
+export function oidcNotConfiguredResponse(): NextResponse {
+  return NextResponse.json(
+    { error: 'OIDC admin auth is not configured on the server.' },
+    { status: 500 }
+  );
+}
+
+/** Cookie attributes shared by every admin/OIDC cookie this module issues. */
+export function sessionCookieOptions(maxAgeSeconds: number) {
+  return {
+    httpOnly: true,
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: maxAgeSeconds,
+  };
+}
+
+/** Clears the transient OIDC state + PKCE verifier cookies on any response. */
+export function clearOidcCookies(response: NextResponse): void {
+  response.cookies.delete({ name: OIDC_STATE_COOKIE, path: '/' });
+  response.cookies.delete({ name: OIDC_VERIFIER_COOKIE, path: '/' });
 }

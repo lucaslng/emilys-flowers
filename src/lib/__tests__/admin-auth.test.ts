@@ -1,16 +1,23 @@
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import { SignJWT } from 'jose';
+import { NextResponse } from 'next/server';
 import {
   buildAuthorizeUrl,
+  clearOidcCookies,
   createSessionToken,
   exchangeCodeForTokens,
   fetchUserInfo,
   generatePkcePair,
   getOidcConfig,
+  getOidcDiscovery,
   isAllowedByGroups,
   isOidcConfigured,
+  oidcNotConfiguredResponse,
   resolveRedirectUri,
+  sessionCookieOptions,
   verifySessionToken,
+  OIDC_STATE_COOKIE,
+  OIDC_VERIFIER_COOKIE,
   type OidcConfig,
 } from '@/lib/admin-auth';
 
@@ -391,6 +398,114 @@ describe('fetchUserInfo', () => {
       expect(await fetchUserInfo(discovery, 'access-token')).toEqual({});
     } finally {
       globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('sessionCookieOptions', () => {
+  test('carries the exact cookie attributes issued to browsers', () => {
+    expect(sessionCookieOptions(28800)).toEqual({
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      secure: false,
+      maxAge: 28800,
+    });
+  });
+
+  test('marks cookies secure when NODE_ENV is production', () => {
+    const env = process.env as Record<string, string | undefined>;
+    const originalNodeEnv = env.NODE_ENV;
+    try {
+      env.NODE_ENV = 'production';
+      expect(sessionCookieOptions(600).secure).toBe(true);
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete env.NODE_ENV;
+      } else {
+        env.NODE_ENV = originalNodeEnv;
+      }
+    }
+  });
+});
+
+describe('oidcNotConfiguredResponse', () => {
+  test('returns the shared 500 JSON body', async () => {
+    const response = oidcNotConfiguredResponse();
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: 'OIDC admin auth is not configured on the server.',
+    });
+  });
+});
+
+describe('clearOidcCookies', () => {
+  test('deletes both the state and verifier cookies on the response', () => {
+    const response = new NextResponse();
+    response.cookies.set(OIDC_STATE_COOKIE, 'state-123');
+    response.cookies.set(OIDC_VERIFIER_COOKIE, 'verifier-123');
+
+    clearOidcCookies(response);
+
+    // `cookies.delete` expires the cookie (empty value, epoch expiry) rather
+    // than removing the entry from the response's cookie map.
+    expect(response.cookies.get(OIDC_STATE_COOKIE)?.value).toBe('');
+    expect(response.cookies.get(OIDC_VERIFIER_COOKIE)?.value).toBe('');
+  });
+});
+
+describe('outbound IdP fetches', () => {
+  function stubFetchCapturingInit(): {
+    calls: Array<{ input: string; init: RequestInit | undefined }>;
+    restore: () => void;
+  } {
+    const originalFetch = globalThis.fetch;
+    const calls: Array<{ input: string; init: RequestInit | undefined }> = [];
+    globalThis.fetch = (async (
+      input: string,
+      init?: RequestInit
+    ) => {
+      calls.push({ input, init });
+      return { ok: true, json: async () => ({}) };
+    }) as unknown as typeof fetch;
+    return { calls, restore: () => (globalThis.fetch = originalFetch) };
+  }
+
+  test('discovery requests carry an abort signal (10s timeout)', async () => {
+    const { calls, restore } = stubFetchCapturingInit();
+    try {
+      await getOidcDiscovery('https://timeout-check.example.com');
+      expect(calls).toHaveLength(1);
+      expect(calls[0].input).toBe(
+        'https://timeout-check.example.com/.well-known/openid-configuration'
+      );
+      expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
+      expect((calls[0].init?.signal as AbortSignal).aborted).toBe(false);
+    } finally {
+      restore();
+    }
+  });
+
+  test('token-exchange requests carry an abort signal (10s timeout)', async () => {
+    const { calls, restore } = stubFetchCapturingInit();
+    try {
+      const config = getOidcConfig(CALLBACK_URL);
+      const discovery = {
+        authorizationEndpoint: 'https://accounts.example.com/authorize',
+        tokenEndpoint: 'https://accounts.example.com/token',
+        jwksUri: 'https://accounts.example.com/jwks',
+        issuer: 'https://accounts.example.com',
+      };
+      // The stub returns `{}` with no id_token → the exchange throws after
+      // the fetch, proving the request itself went through the timeout path.
+      await expect(
+        exchangeCodeForTokens(config, discovery, 'code-123', 'verifier-123')
+      ).rejects.toThrow('id_token missing from response');
+      expect(calls).toHaveLength(1);
+      expect(calls[0].input).toBe('https://accounts.example.com/token');
+      expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
+    } finally {
+      restore();
     }
   });
 });

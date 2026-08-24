@@ -12,7 +12,9 @@ import {
   getOidcConfig,
   getOidcDiscovery,
   isOidcConfigured,
+  oidcNotConfiguredResponse,
   resolveRedirectUri,
+  sessionCookieOptions,
   OIDC_STATE_COOKIE,
   OIDC_STATE_MAX_AGE_SECONDS,
   OIDC_VERIFIER_COOKIE,
@@ -23,10 +25,7 @@ export async function GET(request: Request) {
   const redirectUri = resolveRedirectUri(request.url);
 
   if (!isOidcConfigured()) {
-    return NextResponse.json(
-      { error: 'OIDC admin auth is not configured on the server.' },
-      { status: 500 }
-    );
+    return oidcNotConfiguredResponse();
   }
 
   // Bounds unauthenticated authorize-redirect minting. Discovery is cached
@@ -45,13 +44,7 @@ export async function GET(request: Request) {
   const authorizeUrl = buildAuthorizeUrl(config, discovery, state, challenge);
 
   const response = NextResponse.redirect(authorizeUrl);
-  const oidcCookieOptions = {
-    httpOnly: true,
-    path: '/',
-    sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: OIDC_STATE_MAX_AGE_SECONDS,
-  };
+  const oidcCookieOptions = sessionCookieOptions(OIDC_STATE_MAX_AGE_SECONDS);
   response.cookies.set(OIDC_STATE_COOKIE, state, oidcCookieOptions);
   response.cookies.set(OIDC_VERIFIER_COOKIE, verifier, oidcCookieOptions);
   return response;
