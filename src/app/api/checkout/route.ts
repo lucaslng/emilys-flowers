@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import {
   validateCheckoutItems,
   mergeCheckoutItems,
@@ -18,6 +18,7 @@ import {
   type ChitChatsShipment,
 } from '@/lib/chitchats';
 import { shippingAddressMetadata } from '@/lib/address-validation';
+import { getStripeClient } from '@/lib/stripe-client';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
@@ -64,8 +65,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
+    const stripe = getStripeClient();
+    if (!stripe) {
       // Fail closed when unconfigured — there is no simulated path.
       console.error(
         '[Checkout] STRIPE_SECRET_KEY is not set; cannot create a checkout session.'
@@ -124,7 +125,6 @@ export async function POST(request: Request) {
     }));
 
     const orderNumber = generateOrderNumber();
-    const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',

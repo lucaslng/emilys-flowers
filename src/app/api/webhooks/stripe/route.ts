@@ -6,6 +6,11 @@ import {
   type OrderConfirmationData,
 } from '@/lib/email';
 import { stampConfirmationMetadata } from '@/lib/webhook-stamp';
+import {
+  formatMetadataShippingAddress,
+  type SessionWithShippingDetails,
+} from '@/lib/shipping-address';
+import { getStripeClient } from '@/lib/stripe-client';
 
 /**
  * Stripe webhook endpoint.
@@ -17,12 +22,6 @@ import { stampConfirmationMetadata } from '@/lib/webhook-stamp';
  * `STRIPE_WEBHOOK_SECRET` is a hard error (500) — never accept unsigned
  * webhooks on a payment endpoint.
  */
-
-// `shipping_details` is returned by the Stripe API on Checkout Sessions but is
-// not yet present on the stripe-node v22 `Checkout.Session` type.
-type SessionWithShippingDetails = Stripe.Checkout.Session & {
-  shipping_details?: { name: string; address: Stripe.Address } | null;
-};
 
 function formatShippingAddress(session: Stripe.Checkout.Session): string | undefined {
   const shippingDetails = (session as SessionWithShippingDetails).shipping_details;
@@ -43,31 +42,7 @@ function formatShippingAddress(session: Stripe.Checkout.Session): string | undef
   // The address is collected on our own checkout page now, so Stripe's
   // `shipping_details` is null — fall back to the `shipping_address` JSON we
   // stored in session metadata at checkout time.
-  const stored = session.metadata?.shipping_address;
-  if (!stored) return undefined;
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (typeof parsed !== 'object' || parsed === null) return undefined;
-    const address = parsed as Record<string, unknown>;
-    const name = typeof address.name === 'string' ? address.name : '';
-    const line1 = typeof address.line1 === 'string' ? address.line1 : '';
-    const line2 = typeof address.line2 === 'string' ? address.line2 : '';
-    const city = typeof address.city === 'string' ? address.city : '';
-    const province = typeof address.province === 'string' ? address.province : '';
-    const postalCode = typeof address.postalCode === 'string' ? address.postalCode : '';
-    const lines = [
-      name,
-      line1,
-      line2,
-      [city, province].filter(Boolean).join(', '),
-      postalCode,
-      'CA',
-    ].filter((line): line is string => Boolean(line));
-
-    return lines.length > 0 ? lines.join('\n') : undefined;
-  } catch {
-    return undefined;
-  }
+  return formatMetadataShippingAddress(session.metadata, '\n', 'CA') ?? undefined;
 }
 
 /**
@@ -105,18 +80,14 @@ export async function POST(request: Request) {
     const payload = await request.text();
     const sig = request.headers.get('stripe-signature');
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
+    const stripe = getStripeClient();
+    if (!stripe) {
       console.error('[Webhook] STRIPE_SECRET_KEY is not set');
       return NextResponse.json(
         { error: 'Stripe secret key not configured' },
         { status: 500 }
       );
     }
-
-    const stripe = new Stripe(secretKey, {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
 
     let event: Stripe.Event;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

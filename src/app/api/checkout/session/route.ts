@@ -23,6 +23,7 @@ import Stripe from 'stripe';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { resolveReceiptImage } from '@/lib/receipt-images';
 import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
+import { getStripeClient } from '@/lib/stripe-client';
 
 export async function GET(request: Request) {
   try {
@@ -37,8 +38,8 @@ export async function GET(request: Request) {
       );
     }
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
+    const stripe = getStripeClient();
+    if (!stripe) {
       return NextResponse.json(
         { error: 'Stripe is not configured.' },
         { status: 503 }
@@ -52,10 +53,6 @@ export async function GET(request: Request) {
     if (rateLimited) {
       return rateLimited;
     }
-
-    const stripe = new Stripe(secretKey, {
-      httpClient: Stripe.createFetchHttpClient(),
-    });
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['line_items.data.price.product'],

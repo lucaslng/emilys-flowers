@@ -15,8 +15,8 @@
 // products.list call no matter how many checkouts it serves. A failed fetch
 // clears the memo so a transient Stripe error doesn't poison the isolate.
 
-import Stripe from 'stripe';
 import { listActiveProducts } from '@/lib/stripe-products';
+import { getStripeClient } from '@/lib/stripe-client';
 
 export interface CatalogIndexEntry {
   /** The active Stripe Price id to pass as `line_items[].price`. */
@@ -32,16 +32,12 @@ export type CatalogIndex = ReadonlyMap<string, CatalogIndexEntry>;
 let indexPromise: Promise<CatalogIndex> | null = null;
 
 async function fetchCatalogIndex(): Promise<CatalogIndex> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     throw new Error(
       'STRIPE_SECRET_KEY is required to resolve cart items against the Stripe catalog.'
     );
   }
-
-  const stripe = new Stripe(secretKey, {
-    httpClient: Stripe.createFetchHttpClient(),
-  });
 
   // Same listing shape as the build-time catalog (active products with their
   // default price expanded, auto-paginated) so checkout always charges what

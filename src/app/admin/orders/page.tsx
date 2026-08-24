@@ -6,9 +6,14 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { formatPrice } from '@/lib/format';
 import { isValidShipmentId, shipmentDashboardUrl } from '@/lib/chitchats';
+import {
+  formatMetadataShippingAddress,
+  type SessionWithShippingDetails,
+} from '@/lib/shipping-address';
+import { getStripeClient } from '@/lib/stripe-client';
 import { isOidcConfigured, verifySessionToken } from '@/lib/admin-auth';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -20,13 +25,6 @@ export const metadata: Metadata = {
 
 // Reads cookies and fetches Stripe at request time — never prerender.
 export const dynamic = 'force-dynamic';
-
-// `shipping_details` is returned by the Stripe API on Checkout Sessions but is
-// absent from stripe-node v22's Checkout.Session type — same workaround as the
-// webhook route (src/app/api/webhooks/stripe/route.ts).
-type SessionWithShippingDetails = Stripe.Checkout.Session & {
-  shipping_details?: { name: string; address: Stripe.Address } | null;
-};
 
 function formatDate(created: number): string {
   return new Date(created * 1000).toLocaleDateString('en-CA', {
@@ -48,35 +46,6 @@ function formatAddress(address: Stripe.Address | null | undefined): string {
   ]
     .filter((part): part is string => Boolean(part))
     .join(', ');
-}
-
-/**
- * Parse the `shipping_address` JSON stored in session metadata (the address
- * is collected on our own checkout page now, so Stripe's `shipping_details`
- * is null). Returns a comma-joined string matching `formatAddress`'s output
- * (recipient name + address lines), or null when absent/unparseable.
- */
-function formatMetadataShippingAddress(
-  metadata: Stripe.Metadata | null | undefined
-): string | null {
-  const stored = metadata?.shipping_address;
-  if (!stored) return null;
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const address = parsed as Record<string, unknown>;
-    const parts = [
-      address.name,
-      address.line1,
-      address.line2,
-      address.city,
-      address.province,
-      address.postalCode,
-    ].filter((part): part is string => typeof part === 'string' && part !== '');
-    return parts.length > 0 ? parts.join(', ') : null;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -187,8 +156,8 @@ export default async function AdminOrdersPage({
     );
   }
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
+  const stripe = getStripeClient();
+  if (!stripe) {
     return (
       <ConfigErrorCard
         title="Stripe not configured"
@@ -201,10 +170,6 @@ export default async function AdminOrdersPage({
       />
     );
   }
-
-  const stripe = new Stripe(secretKey, {
-    httpClient: Stripe.createFetchHttpClient(),
-  });
 
   const { data } = await stripe.checkout.sessions.list({
     limit: 25,
@@ -254,7 +219,7 @@ export default async function AdminOrdersPage({
                 const shippingAddressText = sessionWithShipping.shipping_details
                   ?.address
                   ? formatAddress(sessionWithShipping.shipping_details.address)
-                  : formatMetadataShippingAddress(order.metadata);
+                  : formatMetadataShippingAddress(order.metadata, ', ');
                 return (
                   <li key={order.id} className="gift-card p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">

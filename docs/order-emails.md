@@ -262,8 +262,8 @@ session TTLs, or compliance requirements.
 ## Notes / gotchas
 
 - **stripe-node v22 type gap:** `Checkout.Session` has no `shipping_details`
-  property in the v22 types. Both the webhook route and the admin page use a
-  local intersection cast:
+  property in the v22 types. The webhook route and the admin page both import
+  the shared intersection type from `src/lib/shipping-address.ts`:
   `type SessionWithShippingDetails = Stripe.Checkout.Session & { shipping_details?: { name: string; address: Stripe.Address } | null }`.
 - `customer_details` / `shipping_details` are **not** expandable in the Stripe
   API — they're always present on a retrieved session. Listing them in
