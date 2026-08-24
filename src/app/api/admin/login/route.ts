@@ -29,8 +29,9 @@ export async function GET(request: Request) {
     );
   }
 
-  // Every authorize redirect triggers an outbound IdP discovery fetch —
-  // unauthenticated floods burn IdP quota and Worker egress (issue #217).
+  // Bounds unauthenticated authorize-redirect minting. Discovery is cached
+  // 1h per isolate, but cold-start floods would otherwise fan out to the
+  // IdP (issue #217).
   const rateLimited = await checkRateLimit(request, 'admin-login');
   if (rateLimited) {
     return rateLimited;
