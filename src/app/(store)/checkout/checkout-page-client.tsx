@@ -2,11 +2,13 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import StarMotif from '@/components/ui/StarMotif';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import PageWash from '@/components/ui/PageWash';
 import OrderReceipt from '@/components/order/OrderReceipt';
 import EmptyCartCard from '@/components/cart/EmptyCartCard';
 import AddressFormPanel, {
@@ -236,14 +238,7 @@ export default function CheckoutPageClient() {
   return (
     <div className="relative isolate overflow-hidden py-12 sm:py-16">
       {/* Warm wash */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 40% at 80% 10%, rgba(243, 228, 211, 0.55), rgba(243, 228, 211, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 50% 40% at 80% 10%, rgba(243, 228, 211, 0.55), rgba(243, 228, 211, 0) 70%)" />
 
       <Container className="relative z-10">
         <div className="mx-auto max-w-2xl">
@@ -254,10 +249,7 @@ export default function CheckoutPageClient() {
             </h1>
             {/* Hand-drawn arrow annotation */}
             <div className="mt-2 flex items-center justify-center gap-2">
-              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
-                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-              </svg>
+              <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 almost wrapped ♡
               </span>
@@ -301,7 +293,7 @@ export default function CheckoutPageClient() {
                         </p>
                       </div>
                       <span className="font-sans text-sm font-medium tabular-nums text-foreground">
-                        ${formatPrice(item.product.price * item.quantity)}
+                        {formatCAD(item.product.price * item.quantity)}
                       </span>
                     </div>
                   ))}
@@ -357,10 +349,7 @@ export default function CheckoutPageClient() {
                 </p>
               )}
               {error && (
-                <div
-                  role="alert"
-                  className="mb-4 border border-[#E8C4B4] bg-[#FDF0EA] p-4 font-sans text-sm text-[#9C4A2F]"
-                >
+                <div role="alert" className="alert-warm mb-4">
                   {error}
                 </div>
               )}

@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test";
-import { formatPrice } from "@/lib/format";
+import { formatCAD, formatPrice, formatShippingLabel } from "@/lib/format";
 
 describe("formatPrice", () => {
   test("2499 cents -> '24.99'", () => {
@@ -28,5 +28,29 @@ describe("formatPrice", () => {
 
   test("123456 cents -> '1234.56'", () => {
     expect(formatPrice(123456)).toBe("1234.56");
+  });
+});
+
+describe("formatCAD", () => {
+  test("2499 cents -> '$24.99'", () => {
+    expect(formatCAD(2499)).toBe("$24.99");
+  });
+
+  test("0 cents -> '$0.00'", () => {
+    expect(formatCAD(0)).toBe("$0.00");
+  });
+
+  test("5 cents -> '$0.05'", () => {
+    expect(formatCAD(5)).toBe("$0.05");
+  });
+});
+
+describe("formatShippingLabel", () => {
+  test("0 cents -> 'Free'", () => {
+    expect(formatShippingLabel(0)).toBe("Free");
+  });
+
+  test("599 cents -> '$5.99'", () => {
+    expect(formatShippingLabel(599)).toBe("$5.99");
   });
 });

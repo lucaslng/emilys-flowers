@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode, Ref } from 'react';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 
 /**
  * OrderReceipt — the shared "store receipt" rows (heading, stitched seam,
@@ -47,7 +47,7 @@ function TotalRow({
     <div className={className}>
       <span>Total</span>
       <span ref={totalValueRef} className="tabular-nums">
-        ${formatPrice(total)}
+        {formatCAD(total)}
       </span>
     </div>
   );
@@ -81,7 +81,7 @@ export default function OrderReceipt({
       >
         <div className="flex justify-between font-sans text-sm text-foreground">
           <span>{subtotalLabel}</span>
-          <span className="tabular-nums">${formatPrice(subtotal)}</span>
+          <span className="tabular-nums">{formatCAD(subtotal)}</span>
         </div>
         <div className="flex justify-between font-sans text-sm text-foreground">
           <span>Shipping</span>
@@ -94,7 +94,7 @@ export default function OrderReceipt({
               {shipping === 0 ? (
                 <span className="font-semibold text-rose-deep">Free</span>
               ) : (
-                `$${formatPrice(shipping)}`
+                formatCAD(shipping)
               )}
             </span>
           )}

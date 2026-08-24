@@ -91,6 +91,15 @@ html {
   background-size: 14px 14px;
 }
 
+/* ─── Warm alert banner ────────────────────────────────────────── */
+/* Error/warning banner used by checkout and the admin order review:
+   hairline peach border on a blush ground with deep terracotta text. */
+@layer components {
+  .alert-warm {
+    @apply border border-[#E8C4B4] bg-[#FDF0EA] p-4 font-sans text-sm text-[#9C4A2F];
+  }
+}
+
 /* ─── Reduced Motion Guard ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

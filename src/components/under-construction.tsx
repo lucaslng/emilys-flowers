@@ -15,6 +15,7 @@
  * global reduced-motion guard.
  */
 import BouquetSticker from "@/components/ui/BouquetSticker";
+import PageWash from "@/components/ui/PageWash";
 
 export default function UnderConstruction() {
   return (
@@ -24,22 +25,8 @@ export default function UnderConstruction() {
     >
       {/* Frosted wrapping grid + soft satin light */}
       <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-70" />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 45% at 50% 42%, rgba(249, 228, 228, 0.55), rgba(249, 228, 228, 0) 70%)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 40% 30% at 82% 88%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 60% 45% at 50% 42%, rgba(249, 228, 228, 0.55), rgba(249, 228, 228, 0) 70%)" />
+      <PageWash background="radial-gradient(ellipse 40% 30% at 82% 88%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)" />
 
       {/* Gallery rails — hairline frame at the very top and bottom edges */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-border" />

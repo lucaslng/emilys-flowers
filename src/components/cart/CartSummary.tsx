@@ -1,13 +1,12 @@
 'use client';
 
-import { useRef } from 'react';
 import Link from 'next/link';
+import { useRef } from 'react';
 import { useCart } from '@/lib/cart-context';
-import { gsap, useGSAP } from '@/lib/gsap';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
 import OrderReceipt from '@/components/order/OrderReceipt';
-import { prefersReducedMotion } from '@/lib/reduced-motion';
+import { useScaleBump } from '@/lib/use-scale-bump';
 
 /**
  * CartSummary — "the receipt". A stitched receipt card with a dashed seam
@@ -21,32 +20,10 @@ export default function CartSummary() {
 
   const rootRef = useRef<HTMLDivElement>(null);
   const totalRef = useRef<HTMLSpanElement>(null);
-  // Skips the bump on the initial mount (only react to real changes).
-  const isFirstRun = useRef(true);
 
   // Cost-number micro-interaction: a subtle scale bump on the Total
-  // whenever it changes. No-op under reduced motion and on first render.
-  useGSAP(
-    () => {
-      if (isFirstRun.current) {
-        isFirstRun.current = false;
-        return;
-      }
-      if (prefersReducedMotion() || !totalRef.current) return;
-      gsap.fromTo(
-        totalRef.current,
-        { scale: 1 },
-        {
-          scale: 1.12,
-          duration: 0.12,
-          ease: 'power2.out',
-          yoyo: true,
-          repeat: 1,
-        }
-      );
-    },
-    { dependencies: [subtotal], scope: rootRef }
-  );
+  // whenever it changes.
+  useScaleBump(subtotal, [totalRef], rootRef);
 
   return (
     <Reveal delay={0.1}>

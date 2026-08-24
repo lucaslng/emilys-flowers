@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
-import { gsap } from '@/lib/gsap';
+import { collapseAndRemove, gsap } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import Container from '@/components/ui/Container';
 import Reveal from '@/components/ui/Reveal';
 import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import PageWash from '@/components/ui/PageWash';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
 import EmptyCartCard from '@/components/cart/EmptyCartCard';
@@ -21,17 +23,17 @@ import { prefersReducedMotion } from '@/lib/reduced-motion';
 export default function CartPageClient() {
   const { items, clearCart, getItemCount } = useCart();
   const itemsContainerRef = useRef<HTMLDivElement>(null);
-  // Holds the in-flight clear timeline so we can kill it on unmount and
+  // Holds the in-flight clear tween so we can kill it on unmount and
   // avoid a stale `onComplete` firing `clearCart` after the user navigates
   // away (which would otherwise wipe a cart the user has since re-populated).
-  const clearTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const clearTweenRef = useRef<gsap.core.Tween | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
-  // Kill the clear timeline if the page unmounts mid-animation.
+  // Kill the clear tween if the page unmounts mid-animation.
   useEffect(() => {
     return () => {
-      clearTimelineRef.current?.kill();
-      clearTimelineRef.current = null;
+      clearTweenRef.current?.kill();
+      clearTweenRef.current = null;
     };
   }, []);
 
@@ -63,32 +65,20 @@ export default function CartPageClient() {
     // padding, then dispatch clearCart() in onComplete so React state and
     // the visual exit stay in sync. Total duration is capped at ~0.5s
     // regardless of item count so a large cart still clears snappy.
-    const baseDuration = 0.35;
     const maxTotalDuration = 0.5;
     const stagger = Math.min(
       0.05,
-      (maxTotalDuration - baseDuration) / Math.max(nodes.length - 1, 1)
+      (maxTotalDuration - 0.35) / Math.max(nodes.length - 1, 1)
     );
-    const tl = gsap.timeline({
-      onComplete: () => {
-        clearTimelineRef.current = null;
+    clearTweenRef.current = collapseAndRemove(
+      nodes,
+      () => {
+        clearTweenRef.current = null;
         clearCart();
         setIsClearing(false);
       },
-    });
-    clearTimelineRef.current = tl;
-    tl.to(nodes, {
-      opacity: 0,
-      x: 40,
-      height: 0,
-      marginTop: 0,
-      marginBottom: 0,
-      paddingTop: 0,
-      paddingBottom: 0,
-      duration: baseDuration,
-      ease: 'power2.in',
-      stagger,
-    });
+      { stagger }
+    );
   };
 
   const totalQuantity = getItemCount();
@@ -96,14 +86,7 @@ export default function CartPageClient() {
   return (
     <div className="relative isolate overflow-hidden py-12 sm:py-16">
       {/* Warm wash */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 40% at 20% 10%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 50% 40% at 20% 10%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
         <Reveal>
@@ -116,10 +99,7 @@ export default function CartPageClient() {
             </div>
             {/* Hand-drawn arrow annotation */}
             <div className="mt-3 flex items-center gap-2">
-              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
-                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-              </svg>
+              <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 {totalQuantity > 0
                   ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped ♡`

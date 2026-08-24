@@ -4,6 +4,7 @@ import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';
 import StarMotif from '@/components/ui/StarMotif';
+import PageWash from '@/components/ui/PageWash';
 
 /**
  * FeaturedBouquets — "the bouquet wall". NOT a symmetric triptych: three
@@ -22,14 +23,7 @@ export default async function FeaturedBouquets() {
   return (
     <section className="relative isolate overflow-hidden bg-background py-16 sm:py-24">
       {/* Faint warm wash behind the wall */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 55% 45% at 50% 20%, rgba(249, 228, 228, 0.4), rgba(254, 250, 245, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 55% 45% at 50% 20%, rgba(249, 228, 228, 0.4), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
         <Reveal>

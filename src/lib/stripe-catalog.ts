@@ -17,6 +17,7 @@ import type Stripe from 'stripe';
 import { cache } from 'react';
 import type { Product } from '@/types';
 import { slugify } from '@/lib/slugify';
+import { IMAGE_EXT } from '@/lib/image-variants';
 import { listActiveProducts } from '@/lib/stripe-products';
 import { getStripeClient } from '@/lib/stripe-client';
 
@@ -91,7 +92,7 @@ export function imagesForProduct(
   const dir = path.join(baseDir, slug);
   if (!existsSync(dir)) return [PLACEHOLDER_IMAGES[category]];
   const files = readdirSync(dir)
-    .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+    .filter((f) => IMAGE_EXT.test(f))
     .sort();
   return files.length > 0
     ? files.map((f) => `/products/${slug}/${f}`)

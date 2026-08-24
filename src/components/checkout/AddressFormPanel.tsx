@@ -14,18 +14,11 @@ import {
   type AddressFieldError,
   type AddressFieldName,
   type CaProvince,
+  type ValidatedDeliveryAddress,
 } from '@/lib/address-validation';
 
 /** Delivery address the checkout route uses to calculate shipping. */
-export interface DeliveryAddress {
-  name: string;
-  line1: string;
-  /** Apt, suite, unit — optional. */
-  line2?: string;
-  city: string;
-  province: string;
-  postalCode: string;
-}
+export type DeliveryAddress = ValidatedDeliveryAddress;
 
 export type AddressField = keyof DeliveryAddress;
 

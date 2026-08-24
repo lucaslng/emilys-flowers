@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import PageWash from '@/components/ui/PageWash';
 
 export const metadata: Metadata = {
   title: 'FAQ',
@@ -15,14 +17,7 @@ export default function FaqPage() {
   return (
     <div className="relative isolate overflow-hidden py-16 sm:py-24">
       {/* Warm wash */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 40% at 50% 15%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 50% 40% at 50% 15%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl">
@@ -30,10 +25,7 @@ export default function FaqPage() {
             <StarMotif size={48} className="absolute -left-8 -top-6 text-rose opacity-70" />
             {/* Hand-drawn arrow annotation */}
             <div className="flex items-center gap-2">
-              <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className="line-boil text-rose-line">
-                <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-                <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-              </svg>
+              <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 good to know ♡
               </span>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
+import PageWash from '@/components/ui/PageWash';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -44,14 +45,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="relative isolate overflow-hidden py-16 sm:py-24">
       {/* Warm wash */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 40% at 50% 15%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 50% 40% at 50% 15%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
         <div className="mx-auto max-w-3xl">

@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import type Stripe from 'stripe';
-import { formatPrice } from '@/lib/format';
+import { formatCAD, formatShippingLabel } from '@/lib/format';
 import { isValidShipmentId, shipmentDashboardUrl } from '@/lib/chitchats';
 import {
   formatMetadataShippingAddress,
@@ -85,10 +85,7 @@ function ConfigErrorCard({
           <h1 className="font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
             Admin — Orders
           </h1>
-          <div
-            role="alert"
-            className="mt-6 border border-[#E8C4B4] bg-[#FDF0EA] p-4 font-sans text-sm text-[#9C4A2F]"
-          >
+          <div role="alert" className="alert-warm mt-6">
             <p className="font-semibold">{title}</p>
             <p className="mt-1">{description}</p>
           </div>
@@ -136,10 +133,7 @@ export default async function AdminOrdersPage({
               Sign in to review orders and send shipping notifications.
             </p>
             {(error === 'forbidden' || error === 'signin') && (
-              <div
-                role="alert"
-                className="mt-6 border border-[#E8C4B4] bg-[#FDF0EA] p-4 font-sans text-sm text-[#9C4A2F]"
-              >
+              <div role="alert" className="alert-warm mt-6">
                 {error === 'forbidden'
                   ? "Your account isn't in an allowed admin group."
                   : 'Sign-in failed. Please try again.'}
@@ -212,10 +206,7 @@ export default async function AdminOrdersPage({
                 const shipmentId = order.metadata?.chitchats_shipment_id;
                 const chitchatsPostageType = order.metadata?.chitchats_postage_type;
                 const shippingAmountCents = order.total_details?.amount_shipping ?? 0;
-                const shippingAmountLabel =
-                  shippingAmountCents === 0
-                    ? 'Free'
-                    : `$${formatPrice(shippingAmountCents)}`;
+                const shippingAmountLabel = formatShippingLabel(shippingAmountCents);
                 const shippingAddressText = sessionWithShipping.shipping_details
                   ?.address
                   ? formatAddress(sessionWithShipping.shipping_details.address)
@@ -296,7 +287,7 @@ export default async function AdminOrdersPage({
                             </span>
                           </span>
                           <span className="font-sans text-sm tabular-nums text-foreground">
-                            ${formatPrice(item.amount_total ?? 0)}
+                            {formatCAD(item.amount_total ?? 0)}
                           </span>
                         </li>
                       ))}
@@ -307,7 +298,7 @@ export default async function AdminOrdersPage({
                         Total
                       </span>
                       <span className="font-sans text-sm font-bold tabular-nums text-foreground">
-                        ${formatPrice(order.amount_total ?? 0)}
+                        {formatCAD(order.amount_total ?? 0)}
                       </span>
                     </div>
 

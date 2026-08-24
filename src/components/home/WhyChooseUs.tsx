@@ -1,6 +1,7 @@
 import Container from '@/components/ui/Container';
 import Reveal from '@/components/ui/Reveal';
 import StarMotif from '@/components/ui/StarMotif';
+import PageWash from '@/components/ui/PageWash';
 
 type ReasonIconName = 'scissors' | 'heart' | 'bloom';
 
@@ -114,14 +115,7 @@ export default function WhyChooseUs() {
       className="relative isolate overflow-hidden bg-surface py-16 sm:py-24"
     >
       {/* Warm champagne wash, lower-right */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 40% at 85% 90%, rgba(243, 228, 211, 0.6), rgba(243, 228, 211, 0) 70%)',
-        }}
-      />
+      <PageWash background="radial-gradient(ellipse 50% 40% at 85% 90%, rgba(243, 228, 211, 0.6), rgba(243, 228, 211, 0) 70%)" />
 
       <Container className="relative z-10">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:gap-14">

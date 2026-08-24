@@ -7,6 +7,8 @@ import Container from '@/components/ui/Container';
 import ProductGrid from '@/components/shop/ProductGrid';
 import FilterBar from '@/components/shop/FilterBar';
 import StarMotif from '@/components/ui/StarMotif';
+import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import PageWash from '@/components/ui/PageWash';
 
 const sortOptions = [
   { label: 'Price: Low to High', value: 'price-asc' },
@@ -111,12 +113,6 @@ export default function CatalogPageClient({
     products,
   ]);
 
-  const arrowSvg = (
-    <svg aria-hidden="true" width="64" height="20" viewBox="0 0 64 20" fill="none" className={`line-boil text-rose-line${isRightAligned ? ' -scale-x-100' : ''}`}>
-      <path d="M2 16 C 20 12 38 6 60 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-      <path d="M60 3 L 51 2 M 60 3 L 56 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-    </svg>
-  );
   const annotationSpan = (
     <span className="font-hand text-2xl leading-none text-rose-deep">
       {annotation}
@@ -126,13 +122,7 @@ export default function CatalogPageClient({
   return (
     <div className="relative isolate overflow-hidden pb-16 pt-12 sm:pb-24 sm:pt-16">
       {/* Soft corner wash */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: washGradient,
-        }}
-      />
+      <PageWash background={washGradient} />
 
       <Container className="relative z-10">
         {/* Header plate */}
@@ -169,11 +159,11 @@ export default function CatalogPageClient({
             {isRightAligned ? (
               <>
                 {annotationSpan}
-                {arrowSvg}
+                <ArrowFlourish flip={isRightAligned} />
               </>
             ) : (
               <>
-                {arrowSvg}
+                <ArrowFlourish />
                 {annotationSpan}
               </>
             )}

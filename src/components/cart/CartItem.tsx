@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import { CartItem as CartItemType } from '@/types';
 import ProductImage from '@/components/shop/ProductImage';
-import { gsap, useGSAP } from '@/lib/gsap';
+import { collapseAndRemove, gsap } from '@/lib/gsap';
+import { useScaleBump } from '@/lib/use-scale-bump';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 interface CartItemProps {
@@ -27,40 +28,11 @@ export default function CartItem({ item }: CartItemProps) {
   // Holds the in-flight exit tween so we can kill it on unmount and avoid
   // a stale `onComplete` firing `removeFromCart` after navigation.
   const removeTweenRef = useRef<gsap.core.Tween | null>(null);
-  // Skips the quantity-bump on the initial mount (only react to real changes).
-  const isFirstRun = useRef(true);
   const [isRemoving, setIsRemoving] = useState(false);
 
   // Quantity-change micro-interaction: a subtle scale bump on the
   // quantity number and the line total whenever `quantity` changes.
-  // Skips the first run so the bump only plays on real changes, and is
-  // a no-op under reduced motion.
-  useGSAP(
-    () => {
-      if (isFirstRun.current) {
-        isFirstRun.current = false;
-        return;
-      }
-      if (prefersReducedMotion()) return;
-      const targets = [qtyRef.current, totalRef.current].filter(
-        (n): n is HTMLElement => n !== null
-      );
-      if (targets.length === 0) return;
-      gsap.fromTo(
-        targets,
-        { scale: 1 },
-        {
-          scale: 1.12,
-          duration: 0.12,
-          ease: 'power2.out',
-          yoyo: true,
-          repeat: 1,
-          stagger: 0.04,
-        }
-      );
-    },
-    { dependencies: [quantity], scope: rootRef }
-  );
+  useScaleBump(quantity, [qtyRef, totalRef], rootRef);
 
   // Kill any in-flight exit tween if the component unmounts mid-animation
   // (e.g. user navigates away) so a stale onComplete can't mutate cart
@@ -91,23 +63,9 @@ export default function CartItem({ item }: CartItemProps) {
       return;
     }
     setIsRemoving(true);
-    // Animate the row out (fade + slide + collapse height/margins/padding),
-    // then dispatch the removal in onComplete so React state and the visual
-    // exit stay in sync. Keep it short (≤400ms) so Playwright doesn't flake.
-    removeTweenRef.current = gsap.to(node, {
-      opacity: 0,
-      x: 40,
-      height: 0,
-      marginTop: 0,
-      marginBottom: 0,
-      paddingTop: 0,
-      paddingBottom: 0,
-      duration: 0.35,
-      ease: 'power2.in',
-      onComplete: () => {
-        removeTweenRef.current = null;
-        removeFromCart(product.id);
-      },
+    removeTweenRef.current = collapseAndRemove(node, () => {
+      removeTweenRef.current = null;
+      removeFromCart(product.id);
     });
   };
 
@@ -135,7 +93,7 @@ export default function CartItem({ item }: CartItemProps) {
               {product.name}
             </h2>
             <p className="mt-0.5 font-sans text-sm text-muted">
-              ${formatPrice(product.price)} each
+              {formatCAD(product.price)} each
             </p>
           </div>
           <button
@@ -220,7 +178,7 @@ export default function CartItem({ item }: CartItemProps) {
             ref={totalRef}
             className="font-sans text-lg font-bold tabular-nums text-foreground"
           >
-            ${formatPrice(product.price * quantity)}
+            {formatCAD(product.price * quantity)}
           </span>
         </div>
       </div>

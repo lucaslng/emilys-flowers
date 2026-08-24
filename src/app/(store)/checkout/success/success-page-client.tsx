@@ -13,7 +13,7 @@ import { useSearchParams } from 'next/navigation';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import { computeLineItemTotal, computeLineItemCount, computeShipping, type LineItem } from '@/lib/order';
-import { formatPrice } from '@/lib/format';
+import { formatCAD } from '@/lib/format';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -230,7 +230,7 @@ function CheckoutSuccessContent() {
                       </p>
                     </div>
                     <span className="font-sans text-sm font-medium tabular-nums text-foreground">
-                      {`$${formatPrice(item.price * item.quantity)}`}
+                      {formatCAD(item.price * item.quantity)}
                     </span>
                   </div>
                 );

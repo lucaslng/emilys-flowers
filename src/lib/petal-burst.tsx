@@ -22,6 +22,19 @@ export function firePetalBurst(
   handle?.burst(from, to);
 }
 
+/** Fire a petal burst from the center of `fromEl` toward the navbar cart
+ *  icon (`#cart-icon`). No-op when the icon isn't mounted or under reduced
+ *  motion (via `firePetalBurst`). */
+export function addWithPetalBurst(fromEl: Element): void {
+  const from = fromEl.getBoundingClientRect();
+  const cart = document.getElementById('cart-icon')?.getBoundingClientRect();
+  if (!cart) return;
+  firePetalBurst(
+    { x: from.left + from.width / 2, y: from.top + from.height / 2 },
+    { x: cart.left + cart.width / 2, y: cart.top + cart.height / 2 }
+  );
+}
+
 /** Mount once near the root of the client tree (e.g. in the root layout). */
 export function PetalBurstProvider() {
   const ref = useRef<PetalBurstHandle>(null);
