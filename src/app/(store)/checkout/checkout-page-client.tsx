@@ -609,6 +609,7 @@ export default function CheckoutPageClient() {
                 type="submit"
                 variant="primary"
                 fullWidth
+                className="mt-6"
                 disabled={loading}
                 aria-busy={loading}
               >
