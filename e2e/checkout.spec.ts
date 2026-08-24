@@ -74,6 +74,7 @@ test.describe("Checkout flow", () => {
     await page.goto("/checkout");
 
     await fillDeliveryAddress(page);
+    await page.getByRole("checkbox", { name: /I agree/i }).check();
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     await expect(page).toHaveURL(/\/checkout\/success/, { timeout: 15_000 });
@@ -100,7 +101,10 @@ test.describe("Checkout flow", () => {
     await page.getByLabel("Province").selectOption("ON");
     // Malformed postal code — correct format is A1A 1A1.
     await page.getByLabel("Postal code").fill("ABC");
+    // Blur first: revealing the postal error shifts layout and swallows the click.
+    await page.getByLabel("Postal code").blur();
 
+    await page.getByRole("checkbox", { name: /I agree/i }).check();
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
     // Client-side validation blocks submission before any fetch, so the
@@ -109,6 +113,43 @@ test.describe("Checkout flow", () => {
     await expect(
       page.getByText("Enter a valid Canadian postal code")
     ).toBeVisible();
+  });
+
+  test("submission is blocked while terms are not accepted", async ({ page }) => {
+    let checkoutCalled = false;
+    await page.route(/\/api\/checkout$/, (route) => {
+      checkoutCalled = true;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ url: successUrl }),
+      });
+    });
+    await page.route(/\/api\/checkout\/session/, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(receiptFixture),
+      })
+    );
+
+    await page.goto("/bouquets");
+    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await page.goto("/checkout");
+
+    await fillDeliveryAddress(page);
+    await page.getByRole("button", { name: "Pay with Stripe" }).click();
+
+    const agreementError = page.getByText(
+      "Please agree to the Terms of Service and Privacy Policy before paying."
+    );
+    await expect(agreementError).toBeVisible();
+
+    // Prove the block holds: no navigation and no fetch after a settle window.
+    await page.waitForTimeout(1_000);
+    await expect(page).toHaveURL(/\/checkout$/);
+    await expect(agreementError).toBeVisible();
+    expect(checkoutCalled).toBe(false);
   });
 
   test("success page renders the retrieved receipt", async ({ page }) => {
