@@ -1,4 +1,4 @@
-// Admin sign-out: clears the `admin_session` cookie. POST-only + same-origin
+// Admin sign-out: clears the `__Host-admin_session` cookie. POST-only + same-origin
 // so a link, prefetch, or cross-site form cannot force a sign-out.
 
 import { NextRequest, NextResponse } from 'next/server';

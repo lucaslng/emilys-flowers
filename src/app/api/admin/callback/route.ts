@@ -1,6 +1,6 @@
 // OIDC redirect target: verifies `state` against the cookie, exchanges the
 // code for tokens (PKCE), validates the ID token, checks group membership,
-// and issues the `admin_session` JWT cookie. Failures redirect to
+// and issues the `__Host-admin_session` JWT cookie. Failures redirect to
 // `/admin/orders?error=...` with the OIDC cookies cleared.
 
 import { NextRequest, NextResponse } from 'next/server';

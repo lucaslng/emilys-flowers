@@ -12,7 +12,11 @@ import {
   type SessionWithShippingDetails,
 } from '@/lib/shipping-address';
 import { getStripeClient } from '@/lib/stripe-client';
-import { isOidcConfigured, verifySessionToken } from '@/lib/admin-auth';
+import {
+  isOidcConfigured,
+  SESSION_COOKIE,
+  verifySessionToken,
+} from '@/lib/admin-auth';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import ShipForm from './ship-form';
@@ -112,7 +116,7 @@ export default async function AdminOrdersPage({
   }
 
   const session = await verifySessionToken(
-    (await cookies()).get('admin_session')?.value
+    (await cookies()).get(SESSION_COOKIE)?.value
   );
 
   if (!session) {

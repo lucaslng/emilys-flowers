@@ -408,24 +408,9 @@ describe('sessionCookieOptions', () => {
       httpOnly: true,
       path: '/',
       sameSite: 'lax',
-      secure: false,
+      secure: true,
       maxAge: 28800,
     });
-  });
-
-  test('marks cookies secure when NODE_ENV is production', () => {
-    const env = process.env as Record<string, string | undefined>;
-    const originalNodeEnv = env.NODE_ENV;
-    try {
-      env.NODE_ENV = 'production';
-      expect(sessionCookieOptions(600).secure).toBe(true);
-    } finally {
-      if (originalNodeEnv === undefined) {
-        delete env.NODE_ENV;
-      } else {
-        env.NODE_ENV = originalNodeEnv;
-      }
-    }
   });
 });
 
