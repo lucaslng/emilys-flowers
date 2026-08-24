@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { isUnderConstruction } from '@/lib/under-construction';
+import { isUnderConstruction } from '@/lib/flagship-flag';
 
 export default function robots(): MetadataRoute.Robots {
   // During construction the whole site is a placeholder — block crawling so

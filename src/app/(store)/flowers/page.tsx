@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProductsByCategory } from '@/lib/stripe-catalog';
-import { isFlowersEnabled } from '@/lib/flowers-flag';
+import { isFlowersEnabled } from '@/lib/flagship-flag';
 import JsonLd from '@/components/JsonLd';
 import { itemListSchema, breadcrumbSchema } from '@/lib/json-ld';
 import { SITE_URL } from '@/lib/site';

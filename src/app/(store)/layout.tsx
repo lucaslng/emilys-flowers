@@ -3,7 +3,7 @@
 // own layout at src/app/admin/layout.tsx).
 
 import type { ReactNode } from "react";
-import { isUnderConstruction } from "@/lib/under-construction";
+import { isUnderConstruction } from "@/lib/flagship-flag";
 import UnderConstruction from "@/components/under-construction";
 import StoreShell from "@/components/layout/StoreShell";
 

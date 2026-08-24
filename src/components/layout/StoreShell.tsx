@@ -5,7 +5,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import JsonLd from "@/components/JsonLd";
 import { organizationSchema, webSiteSchema } from "@/lib/json-ld";
-import { isFlowersEnabled } from "@/lib/flowers-flag";
+import { isFlowersEnabled } from "@/lib/flagship-flag";
 
 export default function StoreShell({ children }: { children: ReactNode }) {
   const showFlowers = isFlowersEnabled();

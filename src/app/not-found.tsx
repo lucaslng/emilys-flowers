@@ -1,5 +1,4 @@
-import { isUnderConstruction } from "@/lib/under-construction";
-import { isFlowersEnabled } from "@/lib/flowers-flag";
+import { isFlowersEnabled, isUnderConstruction } from "@/lib/flagship-flag";
 import UnderConstruction from "@/components/under-construction";
 import StoreShell from "@/components/layout/StoreShell";
 import NotFoundClient from "./not-found-client";

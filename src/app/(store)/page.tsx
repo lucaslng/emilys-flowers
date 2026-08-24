@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Hero from "@/components/home/Hero";
 import FeaturedBouquets from "@/components/home/FeaturedBouquets";
 import WhyChooseUs from "@/components/home/WhyChooseUs";
-import { isFlowersEnabled } from "@/lib/flowers-flag";
+import { isFlowersEnabled } from "@/lib/flagship-flag";
 
 export const metadata: Metadata = {
   alternates: {

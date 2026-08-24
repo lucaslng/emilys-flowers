@@ -61,7 +61,7 @@ it — see below), independent of whether Flagship credentials are present.
 
 The check happens **at build time, exactly once per build**, exactly like
 `enable-flowers-page`: `next.config.ts` (an async config function) calls
-`evaluateUnderConstruction()` from `src/lib/under-construction.ts` in the main
+`evaluateUnderConstruction()` from `src/lib/flagship-flag.ts` in the main
 build process and stores the result in `process.env.UNDER_CONSTRUCTION`, which
 every static-gen worker inherits. The app reads it synchronously via
 `isUnderConstruction()` (`process.env.UNDER_CONSTRUCTION === "true"` — fails
@@ -132,7 +132,8 @@ E2E), everything renders as normal. Unlike `under-construction`, this flag is
 
 The check happens **at build time, exactly once per build**: `next.config.ts`
 (an async config function) calls `evaluateFlowersEnabled()` from
-`src/lib/flowers-flag.ts` in the main build process — before static-generation
+`src/lib/flagship-flag.ts` (the shared Flagship flag module, alongside
+`under-construction`) in the main build process — before static-generation
 workers spawn — and stores the result in `process.env.FLOWERS_ENABLED`, which
 every worker thread inherits. The app then reads it synchronously via
 `isFlowersEnabled()` (`process.env.FLOWERS_ENABLED !== "false"`, fails open to

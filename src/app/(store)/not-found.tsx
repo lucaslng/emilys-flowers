@@ -1,4 +1,4 @@
-import { isFlowersEnabled } from "@/lib/flowers-flag";
+import { isFlowersEnabled } from "@/lib/flagship-flag";
 import NotFoundClient from "../not-found-client";
 
 export default function StoreNotFound() {

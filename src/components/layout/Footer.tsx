@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
-import { isFlowersEnabled } from '@/lib/flowers-flag';
+import { isFlowersEnabled, isFlowersHref } from '@/lib/flagship-flag';
 
 type FooterLink = { label: string; href: string; external?: boolean };
 
@@ -44,7 +44,7 @@ export default function Footer() {
   const visibleFooterLinks = footerLinks.map((group) => ({
     ...group,
     links: group.links.filter(
-      (link) => showFlowers || link.href !== '/flowers'
+      (link) => showFlowers || !isFlowersHref(link.href)
     ),
   }));
   return (
