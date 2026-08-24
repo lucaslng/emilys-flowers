@@ -152,7 +152,8 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
   `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
   `POST /api/admin/logout` clears the cookie (form POST from the admin UI,
-  so a plain link or prefetch cannot trigger the sign-out). Both
+  so a plain link or prefetch cannot trigger the sign-out; cross-origin
+  POSTs are rejected like the ship route). Both
   `GET /api/admin/login` and `GET /api/admin/callback` are rate-limited
   10 requests / 60 s per client IP via the Workers `RATE_LIMITER` binding
   (surface-prefixed keys; the callback is limited only after its state check
