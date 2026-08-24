@@ -5,7 +5,7 @@ import StarMotif from '@/components/ui/StarMotif';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'The short, plain-language terms for using emilysflowers.ca and ordering from Emily\u2019s Flowers.',
+    'Terms of Service for using emilysflowers.ca and ordering from Emily\u2019s Flowers.',
   alternates: {
     canonical: '/terms',
   },
@@ -73,13 +73,10 @@ export default function TermsOfServicePage() {
           <div className="mt-10 space-y-8">
             <Section>
               <p className={pClass}>
-                Hi, and welcome! This page covers the basics of using emilysflowers.ca and ordering
-                from us. We&rsquo;ve kept it short and in plain language &mdash; by browsing the
-                site or placing an order, you&rsquo;re agreeing to it.
+                Thank you for visiting Emily's Flowers! We kindly ask all our customers to review our terms before placing an order.
               </p>
               <p className={pClass}>
-                Questions about anything here? Email us at {mailLink} &mdash; we&rsquo;re happy to
-                help. For how we handle your personal information, see our{' '}
+                For how we handle your personal information, see our{' '}
                 <a
                   href="/privacy"
                   className="underline decoration-rose-line underline-offset-4 hover:text-foreground"
@@ -88,17 +85,12 @@ export default function TermsOfServicePage() {
                 </a>
                 .
               </p>
-              <h3 className={h3Class}>Changes to These Terms</h3>
-              <p className={pClass}>
-                If we ever need to change something on this page, we&rsquo;ll post the update here
-                and refresh the date at the top.
-              </p>
             </Section>
 
             <Section title="Our Flowers">
               <p className={pClass}>
                 Every item is made by hand, one petal at a time. That means no two pieces are
-                exactly alike &mdash; tiny variations in color, size, and shape are part of the
+                exactly alike. Tiny variations in color, size, and shape are part of the
                 charm, not defects. We photograph everything with care, but colors can look a
                 little different depending on your screen.
               </p>
@@ -106,25 +98,22 @@ export default function TermsOfServicePage() {
 
             <Section title="Ordering and Payment">
               <p className={pClass}>
-                Prices are in Canadian dollars. Checkout is handled securely by Stripe &mdash; we
-                never see your card details. Once your order goes through, you&rsquo;ll get a
+                Prices are in Canadian dollars. Checkout is handled securely by Stripe. Once your order goes through, you&rsquo;ll get a
                 confirmation email as your receipt.
               </p>
               <p className={pClass}>
-                If something is out of stock or an order looks off (like a pricing mistake), we may
+                If something is out of stock or an order looks off (like a pricing mistake), we may choose to 
                 cancel it and refund you in full.
               </p>
             </Section>
 
             <Section title="Shipping">
               <p className={pClass}>
-                Orders ship via ChitChats. Shipping costs show up at checkout before you pay, and
-                any delivery timelines we share are estimates, not guarantees &mdash; once a parcel
-                is with the carrier, the odd delay happens.
+                Orders ship via ChitChats. Shipping costs show up at checkout before you pay.
+                Any delivery timelines we share are estimates, not guarantees.
               </p>
               <p className={pClass}>
-                Please double-check your shipping address before ordering. We ship wherever you
-                point us, typos included.
+                Please double-check your shipping address before ordering. We are not liable for incorrect shipping addresses.
               </p>
             </Section>
 
@@ -139,28 +128,14 @@ export default function TermsOfServicePage() {
                 under Canadian consumer protection law.
               </p>
             </Section>
-
-            <Section title="The Fine Print">
-              <p className={pClass}>
-                The words, photos, and flower designs on this site belong to Emily&rsquo;s Flowers
-                &mdash; please don&rsquo;t reuse them without asking first.
-              </p>
-              <p className={pClass}>
-                The site is provided as-is, and to the extent the law allows, our responsibility for
-                anything related to an order is limited to what you paid for it. These terms are
-                governed by the laws of Ontario, Canada.
-              </p>
-            </Section>
-
             <Section>
               <div className="flex justify-center" aria-hidden="true">
                 <span className="text-lg text-rose-line">&#10047;</span>
               </div>
               <p className={`${pClass} text-center`}>
-                Thank you so much for supporting handmade work. Every order genuinely makes our day
-                &mdash; happy shopping!
+                Thank you so much for supporting Emily's Flowers. Every order genuinely makes my day!
               </p>
-              <p className={`${pClass} text-center`}>&mdash; Emily</p>
+              <p className={`${pClass} text-center`}>- Emily</p>
             </Section>
           </div>
         </div>
