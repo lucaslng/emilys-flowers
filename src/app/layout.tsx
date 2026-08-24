@@ -25,15 +25,6 @@ export const metadata: Metadata = {
   },
   description:
     "Exquisite handcrafted ribbon flowers and bouquets made with love. Shop our collection of forever-blooming ribbon roses, peonies, dahlias, and more.",
-  keywords: [
-    "ribbon flowers",
-    "handcrafted bouquets",
-    "fabric flowers",
-    "ribbon roses",
-    "forever flowers",
-    "gift for her",
-    "home decor",
-  ],
   metadataBase: new URL(SITE_URL),
   alternates: {
     canonical: '/',
