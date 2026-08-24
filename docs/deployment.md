@@ -299,7 +299,7 @@ not GitHub Secrets and never appear in `deploy.yml`:
 |---|---|---|
 | `RESEND_API_KEY` | `src/lib/email.ts` | Send-only Resend API key (`re_...`). Missing → email functions throw. |
 | `STRIPE_WEBHOOK_SECRET` | `POST /api/webhooks/stripe` | `whsec_...` from the Stripe dashboard (prod) or `stripe listen` (dev). Missing → dev-mode skips signature verification. |
-| `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Missing → admin page shows a config error. |
+| `OIDC_ISSUER` | `src/lib/admin-auth.ts` | Provider issuer URL (e.g. `https://accounts.example.com`); discovery doc fetched at `{issuer}/.well-known/openid-configuration`. Must exactly match the issuer reported in the provider's discovery document; a missing or mismatched issuer fails closed. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |

@@ -158,6 +158,19 @@ export async function getOidcDiscovery(
       ? rawAlgs.map((alg) => String(alg))
       : undefined,
   };
+  const configuredIssuer = process.env.OIDC_ISSUER;
+  if (configuredIssuer) {
+    if (typeof doc.issuer !== 'string' || doc.issuer === '') {
+      throw new Error(
+        `OIDC discovery document reports no issuer; OIDC_ISSUER is "${configuredIssuer}"`
+      );
+    }
+    if (data.issuer !== configuredIssuer) {
+      throw new Error(
+        `OIDC discovery issuer mismatch: document reports "${data.issuer}" but OIDC_ISSUER is "${configuredIssuer}"`
+      );
+    }
+  }
   discoveryCache.set(base, { at: Date.now(), data });
   return data;
 }
