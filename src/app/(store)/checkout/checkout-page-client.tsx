@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import Container from '@/components/ui/Container';
@@ -9,14 +9,17 @@ import Link from 'next/link';
 import StarMotif from '@/components/ui/StarMotif';
 import OrderReceipt from '@/components/order/OrderReceipt';
 import EmptyCartCard from '@/components/cart/EmptyCartCard';
+import AddressFormPanel, {
+  FIELD_ELEMENT_IDS,
+  type AddressField,
+  type AddressFormPanelHandle,
+  type DeliveryAddress,
+} from '@/components/checkout/AddressFormPanel';
 import {
-  ADDRESS_FIELD_MAX_LENGTHS,
-  CA_PROVINCES,
   normalizeCAPostalCode,
   validateDeliveryAddressFields,
   type AddressFieldError,
   type AddressFieldName,
-  type CaProvince,
 } from '@/lib/address-validation';
 
 /**
@@ -30,55 +33,6 @@ import {
  * postal-code format — before anything leaves the browser.
  */
 
-/** Delivery address the checkout route uses to calculate shipping. */
-interface DeliveryAddress {
-  name: string;
-  line1: string;
-  /** Apt, suite, unit — optional. */
-  line2?: string;
-  city: string;
-  province: string;
-  postalCode: string;
-}
-
-type RequiredAddressField = Exclude<AddressFieldName, 'line2'>;
-type AddressField = keyof DeliveryAddress;
-
-/** Friendly names for the two-letter province codes the API expects. */
-const PROVINCE_LABELS: Record<CaProvince, string> = {
-  AB: 'Alberta',
-  BC: 'British Columbia',
-  MB: 'Manitoba',
-  NB: 'New Brunswick',
-  NL: 'Newfoundland and Labrador',
-  NS: 'Nova Scotia',
-  NT: 'Northwest Territories',
-  NU: 'Nunavut',
-  ON: 'Ontario',
-  PE: 'Prince Edward Island',
-  QC: 'Quebec',
-  SK: 'Saskatchewan',
-  YT: 'Yukon',
-};
-
-const ALL_TOUCHED: Record<RequiredAddressField, boolean> = {
-  name: true,
-  line1: true,
-  city: true,
-  province: true,
-  postalCode: true,
-};
-
-/** DOM element id per validated field — used to move focus to first error. */
-const FIELD_ELEMENT_IDS: Record<AddressFieldName, string> = {
-  name: 'address-name',
-  line1: 'address-line1',
-  line2: 'address-line2',
-  city: 'address-city',
-  province: 'address-province',
-  postalCode: 'address-postal-code',
-};
-
 const EMPTY_ADDRESS: DeliveryAddress = {
   name: '',
   line1: '',
@@ -87,72 +41,6 @@ const EMPTY_ADDRESS: DeliveryAddress = {
   province: '',
   postalCode: '',
 };
-
-const UNTOUCHED: Record<RequiredAddressField, boolean> = {
-  name: false,
-  line1: false,
-  city: false,
-  province: false,
-  postalCode: false,
-};
-
-/** A single address text field with light inline validation. */
-function TextField({
-  id,
-  label,
-  value,
-  autoComplete,
-  error,
-  onChange,
-  onBlur,
-  required = true,
-  maxLength,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  autoComplete?: string;
-  /** Specific message shown inline when present (undefined = valid). */
-  error?: string;
-  onChange: (value: string) => void;
-  onBlur?: () => void;
-  required?: boolean;
-  maxLength?: number;
-}) {
-  const invalid = Boolean(error);
-  const errorId = `${id}-error`;
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-1 block font-sans text-xs font-medium uppercase tracking-[0.1em] text-foreground"
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type="text"
-        autoComplete={autoComplete}
-        required={required}
-        value={value}
-        maxLength={maxLength}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-        aria-invalid={invalid}
-        aria-describedby={invalid ? errorId : undefined}
-        className={`w-full rounded-none border bg-background px-3 py-2 font-sans text-sm text-foreground placeholder:text-muted/70 transition-colors focus:border-rose-line ${
-          invalid ? 'border-[#9C4A2F]' : 'border-border'
-        }`}
-      />
-      {invalid && (
-        <p id={errorId} className="mt-1 font-sans text-xs text-[#9C4A2F]">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
 
 /**
  * Defensively extract structured field errors from a non-OK checkout
@@ -193,10 +81,10 @@ function parseErrorMessage(data: unknown, fallback: string): string {
 
 export default function CheckoutPageClient() {
   const { items, getTotal, getItemCount } = useCart();
+  const addressPanelRef = useRef<AddressFormPanelHandle>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [address, setAddress] = useState<DeliveryAddress>(EMPTY_ADDRESS);
-  const [touched, setTouched] = useState<Record<RequiredAddressField, boolean>>(UNTOUCHED);
   /** Messages returned by the server, keyed by field. Wins over local ones until edited. */
   const [serverFieldErrors, setServerFieldErrors] = useState<
     Partial<Record<AddressFieldName, string>>
@@ -215,26 +103,6 @@ export default function CheckoutPageClient() {
     [address]
   );
 
-  /** The same rules keyed by field for quick inline lookup. */
-  const validationErrors = useMemo(() => {
-    const byField: Partial<Record<AddressFieldName, string>> = {};
-    for (const { field, message } of invalidFields) {
-      byField[field] = message;
-    }
-    return byField;
-  }, [invalidFields]);
-
-  /**
-   * The message to show for a field, if any: server feedback wins until the
-   * customer edits that field; otherwise show the shared rule once touched.
-   */
-  const fieldError = (field: AddressFieldName): string | undefined => {
-    const serverMessage = serverFieldErrors[field];
-    if (serverMessage) return serverMessage;
-    if (field === 'line2') return undefined;
-    return touched[field] ? validationErrors[field] : undefined;
-  };
-
   const updateField = (field: AddressField, value: string) => {
     setAddress((prev) => ({ ...prev, [field]: value }));
     // Editing a field dismisses any server complaint about it.
@@ -246,19 +114,6 @@ export default function CheckoutPageClient() {
     });
   };
 
-  const markTouched = (field: RequiredAddressField) => {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-  };
-
-  /** Reveal every invalid field and move focus to the first one. */
-  const revealAllErrors = (errors: AddressFieldError[]) => {
-    setTouched(ALL_TOUCHED);
-    const firstInvalid = errors[0]?.field;
-    if (firstInvalid) {
-      document.getElementById(FIELD_ELEMENT_IDS[firstInvalid])?.focus();
-    }
-  };
-
   const handleCheckout = async () => {
     if (loading) return;
 
@@ -268,7 +123,7 @@ export default function CheckoutPageClient() {
       setError('');
       setServerFieldErrors({});
       if (!agreed) setAgreementAttempted(true);
-      revealAllErrors(invalidFields);
+      addressPanelRef.current?.revealAllErrors(invalidFields);
       return;
     }
 
@@ -322,7 +177,7 @@ export default function CheckoutPageClient() {
               byField[field] = message;
             }
           }
-          setTouched(ALL_TOUCHED);
+          addressPanelRef.current?.revealAllErrors();
           setServerFieldErrors(byField);
           setError(
             bannerExtras.length > 0
@@ -411,103 +266,12 @@ export default function CheckoutPageClient() {
 
           <form noValidate onSubmit={(event) => { event.preventDefault(); handleCheckout(); }}>
             {/* Delivery address — where the blooms go */}
-            <div className="stitch relative bg-background p-6 sm:p-8">
-              <h2 className="font-sans text-lg font-bold uppercase tracking-[0.14em] text-foreground">
-                Delivery address
-              </h2>
-              <div className="gift-divider mt-4" />
-
-              <div className="mt-4 space-y-4">
-                <TextField
-                  id="address-name"
-                  label="Full name"
-                  value={address.name}
-                  autoComplete="name"
-                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.name}
-                  error={fieldError('name')}
-                  onChange={(value) => updateField('name', value)}
-                  onBlur={() => markTouched('name')}
-                />
-                <TextField
-                  id="address-line1"
-                  label="Street address"
-                  value={address.line1}
-                  autoComplete="address-line1"
-                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.line1}
-                  error={fieldError('line1')}
-                  onChange={(value) => updateField('line1', value)}
-                  onBlur={() => markTouched('line1')}
-                />
-                <TextField
-                  id="address-line2"
-                  label="Apt, suite, unit (optional)"
-                  value={address.line2 ?? ''}
-                  autoComplete="address-line2"
-                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.line2}
-                  error={fieldError('line2')}
-                  required={false}
-                  onChange={(value) => updateField('line2', value)}
-                />
-                <TextField
-                  id="address-city"
-                  label="City"
-                  value={address.city}
-                  autoComplete="address-level2"
-                  maxLength={ADDRESS_FIELD_MAX_LENGTHS.city}
-                  error={fieldError('city')}
-                  onChange={(value) => updateField('city', value)}
-                  onBlur={() => markTouched('city')}
-                />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="address-province"
-                      className="mb-1 block font-sans text-xs font-medium uppercase tracking-[0.1em] text-foreground"
-                    >
-                      Province
-                    </label>
-                    <select
-                      id="address-province"
-                      name="province"
-                      autoComplete="address-level1"
-                      required
-                      value={address.province}
-                      onChange={(event) => updateField('province', event.target.value)}
-                      onBlur={() => markTouched('province')}
-                      aria-invalid={Boolean(fieldError('province'))}
-                      aria-describedby={
-                        fieldError('province') ? 'address-province-error' : undefined
-                      }
-                      className={`w-full rounded-none border bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors focus:border-rose-line ${
-                        fieldError('province') ? 'border-[#9C4A2F]' : 'border-border'
-                      }`}
-                    >
-                      <option value="">Select province</option>
-                      {CA_PROVINCES.map((code) => (
-                        <option key={code} value={code}>
-                          {PROVINCE_LABELS[code]} ({code})
-                        </option>
-                      ))}
-                    </select>
-                    {fieldError('province') && (
-                      <p id="address-province-error" className="mt-1 font-sans text-xs text-[#9C4A2F]">
-                        {fieldError('province')}
-                      </p>
-                    )}
-                  </div>
-                  <TextField
-                    id="address-postal-code"
-                    label="Postal code"
-                    value={address.postalCode}
-                    autoComplete="postal-code"
-                    maxLength={ADDRESS_FIELD_MAX_LENGTHS.postalCode}
-                    error={fieldError('postalCode')}
-                    onChange={(value) => updateField('postalCode', value)}
-                    onBlur={() => markTouched('postalCode')}
-                  />
-                </div>
-              </div>
-            </div>
+            <AddressFormPanel
+              ref={addressPanelRef}
+              address={address}
+              onFieldChange={updateField}
+              serverFieldErrors={serverFieldErrors}
+            />
 
             {/* Order Summary — the receipt */}
             <div className="stitch relative mt-6 bg-background p-6 sm:p-8">
