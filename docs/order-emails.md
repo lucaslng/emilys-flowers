@@ -34,8 +34,8 @@ Resend domain).
 | `src/app/admin/orders/ship-form.tsx` | Client island: estimate input → `POST /api/admin/orders/[sessionId]/ship` |
 | `src/lib/admin-auth.ts` | OIDC client + session JWT helpers: discovery, PKCE, token exchange, ID-token verification, group check |
 | `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE); rate-limited 10/min/IP (`admin-login:` key) |
-| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `admin_session` JWT cookie; rate-limited 10/min/IP (`admin-callback:` key, consulted only after the state check passes) |
-| `src/app/api/admin/logout/route.ts` | Clears the `admin_session` cookie (POST-only, form-submitted from the admin UI) |
+| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `__Host-admin_session` JWT cookie; rate-limited 10/min/IP (`admin-callback:` key, consulted only after the state check passes) |
+| `src/app/api/admin/logout/route.ts` | Clears the `__Host-admin_session` cookie (POST-only, form-submitted from the admin UI) |
 | `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Format-checks `sessionId` (`cs_(live|test)`, shared helper in `src/lib/stripe-session-id.ts`; malformed → 400), then sends the shipped email + persists metadata |
 
 ## Environment variables
@@ -149,8 +149,9 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   `GET /api/admin/callback`, which exchanges the code for tokens, verifies the
   ID token against the provider's JWKS, and checks the user's `groups` claim
   against the `ADMIN_OIDC_GROUPS` allowlist. On success it sets the
-  `admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
-  `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
+  `__Host-admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
+  `sameSite: lax`, always `secure` (the `__Host-` prefix requires it) — and
+  redirects to `/admin/orders`.
   `POST /api/admin/logout` clears the cookie (form POST from the admin UI,
   so a plain link or prefetch cannot trigger the sign-out; cross-origin
   POSTs are rejected like the ship route). Both
@@ -158,7 +159,7 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   10 requests / 60 s per client IP via the Workers `RATE_LIMITER` binding
   (surface-prefixed keys; the callback is limited only after its state check
   passes, so garbage callbacks stay quota-free). The page and the ship route
-  verify the `admin_session` JWT and re-check it against
+  verify the `__Host-admin_session` JWT and re-check it against
   `ADMIN_OIDC_GROUPS` on every request, so removing a group from the
   allowlist revokes existing sessions immediately. Removing a user from the
   IdP admin group still waits out the 8h session TTL — the `groups` claim is
@@ -208,8 +209,8 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
 
 ### `ADMIN_SESSION_SECRET` rotation runbook
 
-`ADMIN_SESSION_SECRET` is the HS256 key that signs the `admin_session` JWT
-cookie (`src/lib/admin-auth.ts`). There is **no server-side session
+`ADMIN_SESSION_SECRET` is the HS256 key that signs the `__Host-admin_session`
+JWT cookie (`src/lib/admin-auth.ts`). There is **no server-side session
 revocation**: logout only clears the cookie client-side
 (`src/app/api/admin/logout/route.ts`), and the JWT carries no
 `jti`/denylist/version claim. An exported cookie keeps working until its 8h
@@ -243,7 +244,7 @@ provably scoped to one environment.
    ```
 
 3. Verify: open `/admin/orders` in a browser that still holds a pre-rotation
-   `admin_session` cookie — it must bounce to the OIDC login instead of
+   `__Host-admin_session` cookie — it must bounce to the OIDC login instead of
    rendering orders — then sign in again and confirm the order list renders.
 4. Roll back only if you rotated to a broken value (e.g. < 32 chars → the
    admin page shows a config error and verification fails closed): re-put the

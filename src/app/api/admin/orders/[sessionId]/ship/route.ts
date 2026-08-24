@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendShippedEmail } from '@/lib/email';
-import { verifySessionToken } from '@/lib/admin-auth';
+import { SESSION_COOKIE, verifySessionToken } from '@/lib/admin-auth';
 import { isValidCheckoutSessionId } from '@/lib/stripe-session-id';
 import { clampMetadataValue } from '@/lib/address-validation';
 import { getStripeClient } from '@/lib/stripe-client';
@@ -32,7 +32,7 @@ export async function POST(
     }
 
     const adminSession = await verifySessionToken(
-      request.cookies.get('admin_session')?.value
+      request.cookies.get(SESSION_COOKIE)?.value
     );
     if (!adminSession) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });

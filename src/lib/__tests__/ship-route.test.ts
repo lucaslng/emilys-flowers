@@ -1,6 +1,7 @@
 import { test, expect, describe, beforeEach } from 'bun:test';
 import { NextRequest } from 'next/server';
 import { SignJWT } from 'jose';
+import { SESSION_COOKIE } from '@/lib/admin-auth';
 import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 
 // @/lib/admin-auth is deliberately NOT mocked: the real verifySessionToken is exercised with a real HS256 JWT,
@@ -20,7 +21,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request, so the groups claim must match the allowlist.
     process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetOrderEmailMocks();
-    adminCookie = `admin_session=${await new SignJWT({
+    adminCookie = `${SESSION_COOKIE}=${await new SignJWT({
       sub: 'admin-1',
       groups: ['admins'],
     })
@@ -145,7 +146,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
   });
 
   test('returns 401 when the session groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
-    const revokedCookie = `admin_session=${await new SignJWT({
+    const revokedCookie = `${SESSION_COOKIE}=${await new SignJWT({
       sub: 'admin-1',
       groups: ['some-other-group'],
     })

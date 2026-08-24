@@ -4,7 +4,7 @@ import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
 import { resolveBaseOrigin } from '@/lib/base-url';
 
-export const SESSION_COOKIE = 'admin_session';
+export const SESSION_COOKIE = '__Host-admin_session';
 export const SESSION_MAX_AGE_SECONDS = 28800; // 8h
 export const OIDC_STATE_COOKIE = 'oidc_state';
 export const OIDC_VERIFIER_COOKIE = 'oidc_verifier';
@@ -348,7 +348,8 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
     httpOnly: true,
     path: '/',
     sameSite: 'lax' as const,
-    secure: process.env.NODE_ENV === 'production',
+    // The __Host- prefix requires Secure on every response, dev included.
+    secure: true,
     maxAge: maxAgeSeconds,
   };
 }
