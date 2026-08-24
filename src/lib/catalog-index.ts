@@ -16,6 +16,7 @@
 // clears the memo so a transient Stripe error doesn't poison the isolate.
 
 import Stripe from 'stripe';
+import { listActiveProducts } from '@/lib/stripe-products';
 
 export interface CatalogIndexEntry {
   /** The active Stripe Price id to pass as `line_items[].price`. */
@@ -43,32 +44,16 @@ async function fetchCatalogIndex(): Promise<CatalogIndex> {
   });
 
   // Same listing shape as the build-time catalog (active products with their
-  // default price expanded) so checkout always charges what the storefront
-  // displayed.
-  const { data } = await stripe.products.list({
-    limit: 100,
-    expand: ['data.default_price'],
-    active: true,
-  });
+  // default price expanded, auto-paginated) so checkout always charges what
+  // the storefront displayed.
+  const listed = await listActiveProducts(stripe, 'catalog-index');
 
   const index = new Map<string, CatalogIndexEntry>();
-  for (const p of data) {
-    const dp = p.default_price;
-    if (
-      typeof dp !== 'object' ||
-      dp === null ||
-      !dp.id ||
-      dp.unit_amount == null
-    ) {
-      console.warn(
-        `[catalog-index] Skipping "${p.name}" (${p.id}): no usable default price.`
-      );
-      continue;
-    }
+  for (const p of listed) {
     index.set(p.id, {
-      priceId: dp.id,
+      priceId: p.default_price.id,
       name: p.name,
-      unitAmount: dp.unit_amount,
+      unitAmount: p.default_price.unit_amount,
     });
   }
   return index;

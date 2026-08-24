@@ -1,8 +1,10 @@
 // next.config.ts
 
 import type { NextConfig } from "next";
-import { evaluateFlowersEnabled } from "./src/lib/flowers-flag";
-import { evaluateUnderConstruction } from "./src/lib/under-construction";
+import {
+  evaluateFlowersEnabled,
+  evaluateUnderConstruction,
+} from "./src/lib/flagship-flag";
 import { scanProductImages } from "./src/lib/product-image-manifest";
 
 // Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it

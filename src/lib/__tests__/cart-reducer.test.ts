@@ -66,6 +66,17 @@ describe("cartReducer", () => {
     expect(state.items[1].product.id).toBe("test-peony");
   });
 
+  // The server rejects any line above MAX_LINE_ITEM_QUANTITY at pay time, so
+  // the client must never let a quantity grow past the same cap.
+  test("ADD_TO_CART clamps the quantity at MAX_LINE_ITEM_QUANTITY", () => {
+    const state = { items: [{ product: sampleProduct, quantity: 99 }] };
+    const next = cartReducer(state, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    expect(next.items[0].quantity).toBe(99);
+  });
+
   test("REMOVE_FROM_CART removes the specified item", () => {
     const stateWithItem = cartReducer(initialState, {
       type: "ADD_TO_CART",
@@ -192,6 +203,18 @@ describe("cartReducer", () => {
     expect(state.items[0].quantity).toBe(4);
     expect(state.items[1].product.id).toBe("test-peony");
     expect(state.items[1].quantity).toBe(1);
+  });
+
+  test("UPDATE_QUANTITY clamps values above MAX_LINE_ITEM_QUANTITY", () => {
+    const stateWithItem = cartReducer(initialState, {
+      type: "ADD_TO_CART",
+      payload: sampleProduct,
+    });
+    const state = cartReducer(stateWithItem, {
+      type: "UPDATE_QUANTITY",
+      payload: { id: "test-rose", quantity: 500 },
+    });
+    expect(state.items[0].quantity).toBe(99);
   });
 
   test("CLEAR_CART empties the items array", () => {

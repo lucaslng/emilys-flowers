@@ -12,7 +12,12 @@ import {
   useState,
 } from 'react';
 import { CartItem, Product } from '@/types';
-import { computeLineItemTotal, computeLineItemCount, type LineItem } from '@/lib/order';
+import {
+  computeLineItemTotal,
+  computeLineItemCount,
+  MAX_LINE_ITEM_QUANTITY,
+  type LineItem,
+} from '@/lib/order';
 
 interface CartState {
   items: CartItem[];
@@ -35,7 +40,10 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
         const updated = [...state.items];
         updated[existingIndex] = {
           ...updated[existingIndex],
-          quantity: updated[existingIndex].quantity + 1,
+          quantity: Math.min(
+            updated[existingIndex].quantity + 1,
+            MAX_LINE_ITEM_QUANTITY
+          ),
         };
         return { ...state, items: updated };
       }
@@ -70,7 +78,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
         ...state,
         items: state.items.map((item) =>
           item.product.id === id
-            ? { ...item, quantity }
+            ? { ...item, quantity: Math.min(quantity, MAX_LINE_ITEM_QUANTITY) }
             : item
         ),
       };
@@ -108,11 +116,17 @@ export function toLineItems(items: CartItem[]): LineItem[] {
  * (localStorage is user-editable and can be corrupted). Anything that lacks
  * the full `Product` shape or a positive-integer quantity is dropped so a bad
  * store degrades to an empty (or trimmed) cart instead of poisoning totals
- * with `NaN` or crashing on missing product fields.
+ * with `NaN` or crashing on missing product fields. Quantities above the
+ * server's per-line cap are clamped so an oversized stored cart survives to
+ * checkout instead of dying there with "Invalid line item".
  */
 export function sanitizeStoredCart(parsed: unknown): CartItem[] {
   if (!Array.isArray(parsed)) return [];
-  return parsed.filter(isCartItem);
+  return parsed.filter(isCartItem).map((item) =>
+    item.quantity > MAX_LINE_ITEM_QUANTITY
+      ? { ...item, quantity: MAX_LINE_ITEM_QUANTITY }
+      : item
+  );
 }
 
 function isCartItem(v: unknown): v is CartItem {
@@ -230,7 +244,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (productId: string, quantity: number) => {
       const item = state.items.find((i) => i.product.id === productId);
       if (item) {
-        announce(`Quantity of ${item.product.name} updated to ${quantity}`);
+        const applied = Math.min(quantity, MAX_LINE_ITEM_QUANTITY);
+        announce(`Quantity of ${item.product.name} updated to ${applied}`);
       }
       dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
     },

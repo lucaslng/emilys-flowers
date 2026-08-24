@@ -279,7 +279,7 @@ test.describe("WCAG 2.2 AA automated scans", () => {
       })
     );
     await page.goto(
-      `/checkout/success?success=true&order=EF-TEST&session_id=cs_test_123`
+      `/checkout/success?order=EF-TEST&session_id=cs_test_123`
     );
 
     // The success page mounts its content client-side inside <Suspense>.

@@ -21,7 +21,7 @@ const receiptFixture = {
 };
 
 const successUrl =
-  "/checkout/success?success=true&order=EF-TEST&session_id=cs_test_123";
+  "/checkout/success?order=EF-TEST&session_id=cs_test_123";
 
 async function mockCheckoutApis(
   page: Page,

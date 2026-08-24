@@ -30,11 +30,18 @@ import { checkRateLimit } from '@/lib/rate-limit';
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   try {
-    const body = await request.json();
-    const { items, address } = body as {
-      items?: unknown;
-      address?: unknown;
-    };
+    // Malformed JSON is a client fault, not a server one — surface it as a
+    // clean 400 instead of letting it fall into the 500 catch below.
+    let body: { items?: unknown; address?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body.' },
+        { status: 400 }
+      );
+    }
+    const { items, address } = body;
 
     // The client may only send {productId, quantity} pairs. Names, prices and
     // any other financial identifier are resolved server-side below — a
@@ -137,7 +144,7 @@ export async function POST(request: Request) {
       })),
       // Session id only — no display-only params; the receipt (shipping
       // included) is retrieved server-side (issue #177).
-      success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/checkout/success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };
 

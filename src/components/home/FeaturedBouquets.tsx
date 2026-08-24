@@ -1,5 +1,5 @@
 import { getFeaturedProducts } from '@/lib/stripe-catalog';
-import { isFlowersEnabled } from '@/lib/flowers-flag';
+import { isFlowerCategory, isFlowersEnabled } from '@/lib/flagship-flag';
 import Container from '@/components/ui/Container';
 import ProductCard from '@/components/shop/ProductCard';
 import Reveal from '@/components/ui/Reveal';
@@ -16,7 +16,7 @@ import StarMotif from '@/components/ui/StarMotif';
 export default async function FeaturedBouquets() {
   const showFlowers = isFlowersEnabled();
   const featured = (await getFeaturedProducts()).filter(
-    (p) => showFlowers || p.category !== 'flower'
+    (p) => showFlowers || !isFlowerCategory(p.category)
   );
 
   return (

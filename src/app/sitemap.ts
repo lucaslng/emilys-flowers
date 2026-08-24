@@ -2,7 +2,7 @@
 
 import { MetadataRoute } from 'next';
 import { getAllProducts } from '@/lib/stripe-catalog';
-import { isFlowersEnabled } from '@/lib/flowers-flag';
+import { isFlowerCategory, isFlowersEnabled } from '@/lib/flagship-flag';
 import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -36,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const productRoutes: MetadataRoute.Sitemap = products
-    .filter((p) => showFlowers || p.category !== 'flower')
+    .filter((p) => showFlowers || !isFlowerCategory(p.category))
     .map((p) => ({
       url: `${SITE_URL}/products/${p.slug}`,
       lastModified,
