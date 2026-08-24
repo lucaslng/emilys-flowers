@@ -9,6 +9,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import { addFirstProductToCart, mockReceiptSession, successUrl } from "./helpers";
 
 const WCAG_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -229,8 +230,7 @@ test.describe("WCAG 2.2 AA automated scans", () => {
   test("cart page with items has no WCAG 2.2 AA violations", async ({ page }) => {
     // Seed the cart through the real UI so the line-item controls (remove,
     // quantity buttons) and the order summary are all part of the scan.
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await expect(page.locator("#cart-icon span")).toContainText("1");
 
     await page.goto("/cart");
@@ -244,8 +244,7 @@ test.describe("WCAG 2.2 AA automated scans", () => {
   test("checkout page with a populated cart has no WCAG 2.2 AA violations", async ({ page }) => {
     // Same seeding as the cart scan so the full checkout (order summary +
     // "Pay with Stripe") is covered, not just the empty-cart state.
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await expect(page.locator("#cart-icon span")).toContainText("1");
 
     await page.goto("/checkout");
@@ -258,29 +257,8 @@ test.describe("WCAG 2.2 AA automated scans", () => {
 
   test("checkout success page (real success state) has no WCAG 2.2 AA violations", async ({ page }) => {
     // Intercept receipt retrieval; scan the real session_id-only success URL.
-    await page.route(/\/api\/checkout\/session/, (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          items: [
-            {
-              name: "Aurora Bloom",
-              image: "/products/green-evangeline/01-main.jpg",
-              quantity: 2,
-              unitAmount: 7999,
-            },
-          ],
-          subtotal: 15998,
-          shipping: 0,
-          total: 15998,
-          orderNumber: "EF-TEST",
-        }),
-      })
-    );
-    await page.goto(
-      `/checkout/success?order=EF-TEST&session_id=cs_test_123`
-    );
+    await mockReceiptSession(page);
+    await page.goto(successUrl);
 
     // The success page mounts its content client-side inside <Suspense>.
     await expect(page.getByRole("heading", { name: "Thank you for your order" })).toBeVisible();
@@ -373,6 +351,9 @@ test.describe("Keyboard-only flow (WCAG 2.1.1)", () => {
 
     // ── Filter (keyboard): raise the "Minimum price" slider by one step.
     await page.goto("/bouquets");
+    // Streaming can lag the load event under parallel-worker load; wait for
+    // the filter to exist before walking the tab order.
+    await expect(page.getByLabel("Minimum price")).toBeAttached();
     const minPriceInfo = await tabUntil(
       page,
       (info) => info.tag === "INPUT" && info.label === "Minimum price"

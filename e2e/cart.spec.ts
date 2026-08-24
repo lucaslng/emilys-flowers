@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { addFirstProductToCart, seedCart } from "./helpers";
 
 test.describe("Cart functionality", () => {
   test("empty cart shows empty state", async ({ page }) => {
@@ -10,14 +11,12 @@ test.describe("Cart functionality", () => {
   });
 
   test("add item to cart from bouquets page", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await expect(page.locator("#cart-icon span")).toContainText("1");
   });
 
   test("cart displays added item with quantity controls", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/cart");
 
     const removeButton = page.getByRole("button", { name: /Remove.*from cart/ }).first();
@@ -29,8 +28,7 @@ test.describe("Cart functionality", () => {
   });
 
   test("increase quantity works", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/cart");
 
     await page.getByRole("button", { name: "Increase quantity" }).click();
@@ -38,8 +36,7 @@ test.describe("Cart functionality", () => {
   });
 
   test("decrease quantity works", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/cart");
 
     // Increase to 2 first so decrease works
@@ -51,8 +48,7 @@ test.describe("Cart functionality", () => {
   });
 
   test("remove item from cart", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/cart");
 
     const removeButton = page.getByRole("button", { name: /Remove.*from cart/ }).first();
@@ -64,8 +60,7 @@ test.describe("Cart functionality", () => {
   });
 
   test("cart persists across page reload", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await expect(page.locator("#cart-icon span")).toContainText("1");
 
     await page.reload();
@@ -77,12 +72,7 @@ test.describe("Cart functionality", () => {
     // Narrow edge case where seeding localStorage directly is clearer: a
     // structurally invalid stored cart (missing product fields) previously
     // hydrated as-is and produced $NaN totals. The sanitizer must drop it.
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        "emilys-flowers-cart",
-        JSON.stringify([{ product: { id: "x", name: "Broken" }, quantity: 1 }])
-      );
-    });
+    await seedCart(page, [{ product: { id: "x", name: "Broken" }, quantity: 1 }]);
     await page.goto("/cart");
     await expect(
       page.getByRole("heading", { name: "Your cart is empty" })

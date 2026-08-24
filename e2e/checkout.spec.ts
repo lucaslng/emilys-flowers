@@ -1,47 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
-
-// No real Stripe calls: both checkout network hops are intercepted below with
-// page.route(). Route behavior itself is covered by unit tests in
-// src/lib/__tests__/checkout-route.test.ts.
-
-/** Sanitized projection shape returned by GET /api/checkout/session. */
-const receiptFixture = {
-  items: [
-    {
-      name: "Aurora Bloom",
-      image: "/products/green-evangeline/01-main.jpg",
-      quantity: 2,
-      unitAmount: 7999,
-    },
-  ],
-  subtotal: 15998,
-  shipping: 0,
-  total: 15998,
-  orderNumber: "EF-TEST",
-};
-
-const successUrl =
-  "/checkout/success?order=EF-TEST&session_id=cs_test_123";
-
-async function mockCheckoutApis(
-  page: Page,
-  session?: { status?: number; body?: object }
-) {
-  await page.route(/\/api\/checkout$/, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ url: successUrl }),
-    })
-  );
-  await page.route(/\/api\/checkout\/session/, (route) =>
-    route.fulfill({
-      status: session?.status ?? 200,
-      contentType: "application/json",
-      body: JSON.stringify(session?.body ?? receiptFixture),
-    })
-  );
-}
+import {
+  addFirstProductToCart,
+  defaultReceipt,
+  mockCheckoutApis,
+  successUrl,
+} from "./helpers";
 
 // Complete, valid address — client-side validation blocks Pay otherwise.
 async function fillDeliveryAddress(page: Page) {
@@ -59,8 +22,7 @@ test.describe("Checkout flow", () => {
   });
 
   test("checkout page shows Pay with Stripe button when cart has items", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/checkout");
 
     await expect(page.getByRole("button", { name: "Pay with Stripe" })).toBeVisible();
@@ -69,8 +31,7 @@ test.describe("Checkout flow", () => {
 
   test("clicking Pay with Stripe redirects to success page and clears cart", async ({ page }) => {
     await mockCheckoutApis(page);
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/checkout");
 
     await fillDeliveryAddress(page);
@@ -91,8 +52,7 @@ test.describe("Checkout flow", () => {
   });
 
   test("invalid postal code shows field errors and stays on checkout", async ({ page }) => {
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/checkout");
 
     await page.getByLabel("Full name").fill("Ava Bloom");
@@ -129,12 +89,11 @@ test.describe("Checkout flow", () => {
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(receiptFixture),
+        body: JSON.stringify(defaultReceipt),
       })
     );
 
-    await page.goto("/bouquets");
-    await page.getByRole("button", { name: "Add to Cart" }).first().click();
+    await addFirstProductToCart(page);
     await page.goto("/checkout");
 
     await fillDeliveryAddress(page);
