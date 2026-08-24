@@ -3,10 +3,10 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
-import { formatPrice } from '@/lib/format';
 import { gsap, useGSAP } from '@/lib/gsap';
 import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
+import OrderReceipt from '@/components/order/OrderReceipt';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 /**
@@ -51,32 +51,16 @@ export default function CartSummary() {
   return (
     <Reveal delay={0.1}>
       <div ref={rootRef} className="stitch relative bg-surface p-6">
-        <h2 className="font-sans text-lg font-bold uppercase tracking-[0.14em] text-foreground">
-          Order Summary
-        </h2>
-        {/* Dashed seam under the heading */}
-        <div className="gift-divider -mx-6 mt-4" />
-
-        <div className="mt-6 space-y-3">
-          <div className="flex justify-between font-sans text-sm text-foreground">
-            <span>
-              Items ({itemCount})
-            </span>
-            <span className="tabular-nums">${formatPrice(subtotal)}</span>
-          </div>
-          <div className="flex justify-between font-sans text-sm text-foreground">
-            <span>Shipping</span>
-            <span className="text-right text-sm text-muted">
-              Calculated at checkout
-            </span>
-          </div>
-          <div className="gift-divider pt-3">
-            <div className="flex justify-between font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground">
-              <span>Total</span>
-              <span ref={totalRef} className="tabular-nums">${formatPrice(subtotal)}</span>
-            </div>
-          </div>
-        </div>
+        <OrderReceipt
+          dividerClassName="-mx-6 mt-4"
+          totalsClassName="mt-6 space-y-3"
+          subtotalLabel={`Items (${itemCount})`}
+          subtotal={subtotal}
+          total={subtotal}
+          totalRowWrapperClassName="gift-divider pt-3"
+          totalRowClassName="flex justify-between font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground"
+          totalValueRef={totalRef}
+        />
 
         <Link href="/checkout" className="mt-6 block">
           <Button variant="primary" fullWidth>

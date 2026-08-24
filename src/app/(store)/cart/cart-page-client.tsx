@@ -1,17 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import { gsap } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import Container from '@/components/ui/Container';
-import Button from '@/components/ui/Button';
 import Reveal from '@/components/ui/Reveal';
 import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
 import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
+import EmptyCartCard from '@/components/cart/EmptyCartCard';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
 /**
@@ -133,25 +132,31 @@ export default function CartPageClient() {
         {items.length === 0 ? (
           /* Empty State — an open gift box */
           <Reveal>
-            <div className="stitch relative flex min-h-[440px] flex-col items-center justify-center bg-surface px-6 py-16 text-center">
-              <div
-                aria-hidden="true"
-                className="wrapping-grid absolute inset-0 opacity-40"
-              />
-              <div className="relative">
-                <BouquetSticker size={150} className="mx-auto" />
-              </div>
-              <h2 className="relative mt-8 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
-                Your cart is empty
-              </h2>
-              <p className="relative mt-3 max-w-sm font-sans text-sm leading-relaxed text-muted">
-                Looks like you haven&apos;t added any flowers yet. The gift
-                box is waiting.
-              </p>
-              <Link href="/bouquets" className="relative mt-8">
-                <Button variant="primary">Shop Bouquets</Button>
-              </Link>
-            </div>
+            <EmptyCartCard
+              className="min-h-[440px] py-16"
+              motif={
+                <>
+                  <div
+                    aria-hidden="true"
+                    className="wrapping-grid absolute inset-0 opacity-40"
+                  />
+                  <div className="relative">
+                    <BouquetSticker size={150} className="mx-auto" />
+                  </div>
+                </>
+              }
+              titleClassName="relative mt-8 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground"
+              message={
+                <>
+                  Looks like you haven&apos;t added any flowers yet. The gift
+                  box is waiting.
+                </>
+              }
+              messageClassName="relative mt-3 max-w-sm font-sans text-sm leading-relaxed text-muted"
+              ctaHref="/bouquets"
+              ctaLabel="Shop Bouquets"
+              ctaClassName="relative mt-8"
+            />
           </Reveal>
         ) : (
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-8">

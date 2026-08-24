@@ -7,6 +7,8 @@ import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import StarMotif from '@/components/ui/StarMotif';
+import OrderReceipt from '@/components/order/OrderReceipt';
+import EmptyCartCard from '@/components/cart/EmptyCartCard';
 import {
   ADDRESS_FIELD_MAX_LENGTHS,
   CA_PROVINCES,
@@ -360,18 +362,17 @@ export default function CheckoutPageClient() {
     return (
       <div className="py-12 sm:py-16">
         <Container>
-          <div className="stitch relative flex min-h-[400px] flex-col items-center justify-center bg-surface px-6 text-center">
-            <StarMotif size={48} className="text-rose opacity-80" />
-            <h1 className="mt-6 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground">
-              Your cart is empty
-            </h1>
-            <p className="mt-2 font-sans text-sm text-muted">
-              Nothing to wrap yet — add some blooms and come back.
-            </p>
-            <Link href="/bouquets" className="mt-6">
-              <Button variant="primary">Shop Bouquets</Button>
-            </Link>
-          </div>
+          <EmptyCartCard
+            className="min-h-[400px]"
+            headingLevel="h1"
+            motif={<StarMotif size={48} className="text-rose opacity-80" />}
+            titleClassName="mt-6 font-sans text-2xl font-bold uppercase tracking-[0.1em] text-foreground"
+            message="Nothing to wrap yet — add some blooms and come back."
+            messageClassName="mt-2 font-sans text-sm text-muted"
+            ctaHref="/bouquets"
+            ctaLabel="Shop Bouquets"
+            ctaClassName="mt-6"
+          />
         </Container>
       </div>
     );
@@ -510,51 +511,38 @@ export default function CheckoutPageClient() {
 
             {/* Order Summary — the receipt */}
             <div className="stitch relative mt-6 bg-background p-6 sm:p-8">
-              <h2 className="font-sans text-lg font-bold uppercase tracking-[0.14em] text-foreground">
-                Order Summary
-              </h2>
-              <div className="gift-divider mt-4" />
-
-              <div className="mt-4 divide-y divide-dashed divide-rose-line/30">
-                {items.map((item) => (
-                  <div
-                    key={item.product.id}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex-1">
-                      <p className="font-sans text-sm font-medium uppercase tracking-[0.06em] text-foreground">
-                        {item.product.name}
-                      </p>
-                      <p className="font-sans text-xs text-muted">
-                        Qty: {item.quantity}
-                      </p>
-                    </div>
-                    <span className="font-sans text-sm font-medium tabular-nums text-foreground">
-                      ${formatPrice(item.product.price * item.quantity)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2 border-t border-dashed border-rose-line/40 pt-4">
-                <div className="flex justify-between font-sans text-sm text-foreground">
-                  <span>
+              <OrderReceipt
+                totalsClassName="mt-4 space-y-2 border-t border-dashed border-rose-line/40 pt-4"
+                subtotalLabel={
+                  <>
                     Subtotal ({getItemCount()} item
                     {getItemCount() !== 1 ? 's' : ''})
-                  </span>
-                  <span className="tabular-nums">${formatPrice(subtotal)}</span>
+                  </>
+                }
+                subtotal={subtotal}
+                total={subtotal}
+              >
+                <div className="mt-4 divide-y divide-dashed divide-rose-line/30">
+                  {items.map((item) => (
+                    <div
+                      key={item.product.id}
+                      className="flex items-center justify-between py-3"
+                    >
+                      <div className="flex-1">
+                        <p className="font-sans text-sm font-medium uppercase tracking-[0.06em] text-foreground">
+                          {item.product.name}
+                        </p>
+                        <p className="font-sans text-xs text-muted">
+                          Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <span className="font-sans text-sm font-medium tabular-nums text-foreground">
+                        ${formatPrice(item.product.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between font-sans text-sm text-foreground">
-                  <span>Shipping</span>
-                  <span className="text-right text-sm text-muted">
-                    Calculated at checkout
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-dashed border-rose-line/40 pt-2 font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground">
-                  <span>Total</span>
-                  <span className="tabular-nums">${formatPrice(subtotal)}</span>
-                </div>
-              </div>
+              </OrderReceipt>
             </div>
 
             {/* Payment Button — the stamp */}
