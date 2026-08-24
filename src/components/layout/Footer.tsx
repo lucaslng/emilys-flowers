@@ -30,15 +30,6 @@ const footerLinks: FooterGroup[] = [
   },
 ];
 
-/**
- * Footer — "the maker's card", taped to the bottom of the page. A full-width
- * washi-tape strip straddles the top seam (the tape that attaches the card to
- * the page), and a frosted wrapping-paper grid makes the card read as a
- * different paper from the page — a clear boundary at any viewport. The brand
- * block sits on a tilted washi-taped card at the left, the two link groups are
- * overlapping note cards at the right, and the bottom bar carries a
- * handwritten sign-off.
- */
 export default function Footer() {
   const showFlowers = isFlowersEnabled();
   const visibleFooterLinks = footerLinks.map((group) => ({
@@ -49,20 +40,17 @@ export default function Footer() {
   }));
   return (
     <footer className="relative isolate border-t border-border bg-surface">
-      {/* Washi tape attaching the card to the page — straddles the top seam */}
       <div
         aria-hidden="true"
         className="washi absolute inset-x-0 -top-2 z-20 h-4 -rotate-1"
       />
 
       <div className="relative isolate overflow-hidden">
-        {/* Frosted wrapping-paper texture — the card reads as a different paper */}
         <div
           aria-hidden="true"
           className="wrapping-grid pointer-events-none absolute inset-0 opacity-60"
         />
 
-        {/* Ambient falling petals — behind all footer content */}
         <span className="petal text-rose-line text-lg"  style={{ left: '6%',  animationDuration: '11s', animationDelay: '0s' }}   aria-hidden="true">❀</span>
         <span className="petal text-rose-line text-xl"  style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
         <span className="petal text-rose-line text-sm"  style={{ left: '38%', animationDuration: '9s',  animationDelay: '4s' }}   aria-hidden="true">❀</span>
@@ -74,10 +62,8 @@ export default function Footer() {
         <div className="relative z-10">
           <Container className="py-10 sm:py-16">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-8">
-            {/* Brand — tilted card with a washi-tape corner and star motif */}
             <div className="relative">
               <div className="relative -rotate-1 border border-border bg-background p-5 sm:p-8">
-                {/* Washi tape across the top-left corner */}
                 <span aria-hidden="true" className="washi absolute -top-3 left-6 h-6 w-24 -rotate-3" />
                 <Link
                   href="/"
@@ -95,7 +81,6 @@ export default function Footer() {
                     <span className="font-hand text-2xl leading-none text-rose-deep">
                       made with
                     </span>
-                    {/* Hand-drawn heart outline — boils like ink settling */}
                     <svg
                       aria-hidden="true"
                       width="18"
@@ -113,7 +98,6 @@ export default function Footer() {
                     </svg>
                   </span>
                 </div>
-                {/* Origami star — the geometric counterpoint */}
                 <StarMotif
                   size={56}
                   className="animate-star absolute -right-3 -top-3 text-rose opacity-70"
@@ -121,7 +105,6 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Link groups — two overlapping note cards */}
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-end sm:gap-6">
               {visibleFooterLinks.map((group, i) => (
                 <div
@@ -158,7 +141,6 @@ export default function Footer() {
           </div>
         </Container>
 
-        {/* Bottom Bar — handwritten sign-off */}
         <div className="border-t border-border">
           <Container className="flex items-center justify-center gap-3 py-4 sm:py-6">
             <span aria-hidden="true" className="text-xs text-rose-line">❀</span>

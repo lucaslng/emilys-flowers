@@ -51,7 +51,6 @@ const mailLink = (
 export default function TermsOfServicePage() {
   return (
     <div className="relative isolate overflow-hidden py-16 sm:py-24">
-      {/* Warm wash */}
       <PageWash background="radial-gradient(ellipse 50% 40% at 50% 15%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">

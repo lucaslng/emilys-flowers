@@ -37,19 +37,15 @@ export default function ProductDetail({ product }: ProductDetailProps) {
 
   return (
     <div className="relative isolate overflow-hidden py-12 sm:py-16">
-      {/* Warm vignette */}
       <div aria-hidden="true" className="vignette absolute inset-0" />
 
       <Container className="relative z-10">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:items-center lg:gap-16">
-          {/* Image — tilted wrapping-paper panel with a corner fold */}
           <div className="relative mx-auto w-full max-w-xl">
             <div className="relative rotate-1 border border-border bg-background/90 p-6 backdrop-blur-[1px] sm:p-8">
-              {/* Washi tape + wrapping grid */}
               <span aria-hidden="true" className="washi absolute -top-3 left-8 h-6 w-24 -rotate-3" />
               <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
 
-              {/* Gift-wrap corner fold */}
               <div
                 aria-hidden="true"
                 className="absolute right-0 top-0 h-16 w-16"
@@ -71,7 +67,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             />
           </div>
 
-          {/* Specimen label */}
           <div className="relative">
             <Link
               href={backHref}
@@ -81,7 +76,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {backLabel}
             </Link>
 
-            {/* Handwritten category annotation with arrow */}
             <div className="flex items-center gap-2">
               <ArrowFlourish size="md" />
               <span className="font-hand text-3xl leading-none text-rose-deep">
@@ -101,7 +95,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               {formatCAD(product.price)}
             </p>
 
-            {/* Flower type + color stamps */}
             {(product.flowerType || product.color) && (
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {product.flowerType && (

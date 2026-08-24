@@ -30,13 +30,7 @@ const reasons: {
   },
 ];
 
-/**
- * ReasonIcon — hand-drawn line-art icons for the maker's notes (scissors,
- * heart, bloom). Stroke-only SVG line art, `currentColor` so the parent's
- * text color drives the tone. The icon boils like ink settling while the
- * crisp bordered stamp around it stays still (satin content, geometric
- * frame). Purely decorative (aria-hidden).
- */
+/** Hand-drawn stroke-only line-art icons; `currentColor` drives the tone. */
 function ReasonIcon({ name }: { name: ReasonIconName }) {
   const common = {
     stroke: 'currentColor',
@@ -114,12 +108,10 @@ export default function WhyChooseUs() {
       id="why-emilys-flowers"
       className="relative isolate overflow-hidden bg-surface py-16 sm:py-24"
     >
-      {/* Warm champagne wash, lower-right */}
       <PageWash background="radial-gradient(ellipse 50% 40% at 85% 90%, rgba(243, 228, 211, 0.6), rgba(243, 228, 211, 0) 70%)" />
 
       <Container className="relative z-10">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:gap-14">
-          {/* Heading — tilted card, taped to the notebook */}
           <Reveal className="lg:pt-10">
             <div className="relative -rotate-1 border border-border bg-background p-6 sm:p-8">
               <span aria-hidden="true" className="washi absolute -top-3 right-8 h-6 w-24 rotate-2" />
@@ -136,9 +128,7 @@ export default function WhyChooseUs() {
             </div>
           </Reveal>
 
-          {/* Notebook page — stitched border + ruled lines */}
           <div className="stitch relative bg-background px-6 py-8 sm:px-10 sm:py-10">
-            {/* Ruled lines — faint warm hairlines */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0"
@@ -153,7 +143,6 @@ export default function WhyChooseUs() {
                   key={reason.title}
                   className="group grid grid-cols-[auto_1fr] items-start gap-x-5 py-7 first:pt-0 last:pb-0 sm:gap-x-7"
                 >
-                  {/* Hand-drawn icon + number */}
                   <div className="flex flex-col items-center gap-1 pt-1">
                     <span
                       aria-hidden="true"
@@ -176,7 +165,6 @@ export default function WhyChooseUs() {
                       {reason.description}
                     </p>
                   </div>
-                  {/* Dashed seam between notes */}
                   {i < reasons.length - 1 && (
                     <div
                       aria-hidden="true"

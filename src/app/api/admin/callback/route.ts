@@ -1,9 +1,6 @@
-// src/app/api/admin/callback/route.ts
-//
-// OIDC redirect target. Verifies the `state` returned by the provider against
-// the `oidc_state` cookie, exchanges the authorization code for tokens (with
-// the PKCE verifier), validates the ID token, checks group membership, and
-// issues the `admin_session` JWT cookie. Failures redirect to
+// OIDC redirect target: verifies `state` against the cookie, exchanges the
+// code for tokens (PKCE), validates the ID token, checks group membership,
+// and issues the `admin_session` JWT cookie. Failures redirect to
 // `/admin/orders?error=...` with the OIDC cookies cleared.
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -63,9 +60,7 @@ export async function GET(request: NextRequest) {
     return failRedirect('signin');
   }
 
-  // Only state-valid requests reach the IdP (discovery, token exchange,
-  // JWKS, userinfo); limit just before that egress so garbage callbacks are
-  // rejected quota-free (issue #217).
+  // Limit just before IdP egress so garbage callbacks are rejected quota-free.
   const rateLimited = await checkRateLimit(request, 'admin-callback');
   if (rateLimited) {
     return rateLimited;

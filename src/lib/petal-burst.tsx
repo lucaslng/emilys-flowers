@@ -1,20 +1,13 @@
 'use client';
 
-/**
- * PetalBurst singleton — lets any client component fire a petal burst without
- * prop-drilling the layer ref. `PetalBurstProvider` is mounted once (in the root
- * layout); it registers its handle here. Callers import `firePetalBurst`.
- *
- * Coordinates are viewport-relative (the layer is position: fixed).
- */
+// PetalBurst singleton: PetalBurstProvider registers its handle once near the root; callers firePetalBurst with viewport coordinates (fixed-position layer).
 
 import { useEffect, useRef } from 'react';
 import { PetalBurstLayer, type PetalBurstHandle } from '@/components/ui/PetalBurst';
 
 let handle: PetalBurstHandle | null = null;
 
-/** Fire a petal burst from `from` to `to` (viewport coordinates). No-op if no
- *  layer is mounted or if the user prefers reduced motion. */
+/** Burst from `from` to `to` (viewport coordinates); no-op without a mounted layer or under prefers-reduced-motion. */
 export function firePetalBurst(
   from: { x: number; y: number },
   to: { x: number; y: number }
@@ -22,9 +15,7 @@ export function firePetalBurst(
   handle?.burst(from, to);
 }
 
-/** Fire a petal burst from the center of `fromEl` toward the navbar cart
- *  icon (`#cart-icon`). No-op when the icon isn't mounted or under reduced
- *  motion (via `firePetalBurst`). */
+/** Burst from the center of `fromEl` toward #cart-icon; no-op when the icon isn't mounted (reduced motion handled by firePetalBurst). */
 export function addWithPetalBurst(fromEl: Element): void {
   const from = fromEl.getBoundingClientRect();
   const cart = document.getElementById('cart-icon')?.getBoundingClientRect();
@@ -35,7 +26,6 @@ export function addWithPetalBurst(fromEl: Element): void {
   );
 }
 
-/** Mount once near the root of the client tree (e.g. in the root layout). */
 export function PetalBurstProvider() {
   const ref = useRef<PetalBurstHandle>(null);
 

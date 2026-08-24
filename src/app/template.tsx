@@ -1,9 +1,7 @@
 'use client';
 
-// Next.js 16 App Router `template.tsx`: receives only `children` and remounts
-// on segment-level navigation (useEffect re-runs per route). We use this stable
-// remount boundary to apply a subtle page-enter animation via a CSS class.
-// The reduced-motion guard in globals.css disables the animation when needed.
+// template.tsx remounts on segment navigation — used as a stable boundary for
+// the per-route page-enter animation (reduced-motion-guarded in globals.css).
 
 import type { ReactNode } from 'react';
 

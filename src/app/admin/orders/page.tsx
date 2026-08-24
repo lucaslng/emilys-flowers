@@ -1,7 +1,5 @@
-// OIDC-gated admin page: reviews recent paid Stripe checkout sessions and
-// lets the shop owner confirm shipment (which emails the customer). Reads the
-// `admin_session` JWT cookie; unauthenticated visitors get an OIDC sign-in
-// control, and missing OIDC env vars render a config error.
+// OIDC-gated order review: lists recent paid Stripe checkout sessions and
+// lets the owner confirm shipment (which emails the customer).
 
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
@@ -49,11 +47,9 @@ function formatAddress(address: Stripe.Address | null | undefined): string {
 }
 
 /**
- * Deep link to the Stripe Dashboard payment detail page for a session.
- * Returns `null` when the session has no PaymentIntent (possible for async
- * payment methods), in which case there's nothing to link to. Uses the
- * session's own `livemode` so the link always points at the account the
- * payment actually lives on (test vs live).
+ * Deep link to the Stripe Dashboard payment; `null` when the session has no
+ * PaymentIntent (possible for async payment methods). Uses the session's own
+ * `livemode` so the link points at the right account.
  */
 function stripeDashboardUrl(order: Stripe.Checkout.Session): string | null {
   const paymentIntent = order.payment_intent;

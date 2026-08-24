@@ -1,22 +1,13 @@
-// src/lib/image-variants.ts
-//
-// Single source of truth for the build-time image variant naming contract.
-// Product photos live at public/products/<slug>/<file>.(jpg|jpeg|png|webp|avif);
-// the parallel optimize-images lane generates WebP variants into
-// public/products/<slug>/variants/<file>-<width>.webp, and the custom
-// next/image loader (src/lib/image-loader.ts) resolves requests to them.
+// Build-time image variant naming contract: photos at public/products/<slug>/<file>.<ext>,
+// WebP variants at public/products/<slug>/variants/<file>-<width>.webp, resolved by the custom next/image loader.
 
 export const VARIANT_WIDTHS: number[] = [320, 480, 640, 960, 1280, 1600];
 
-// Canonical product-image extension rule (jpg/jpeg/png/webp/avif,
-// case-insensitive) shared by the manifest scanner and the Stripe catalog.
+// Canonical extension rule shared by the manifest scanner and the Stripe catalog.
 export const IMAGE_EXT_SOURCE = 'jpe?g|png|webp|avif';
 export const IMAGE_EXT = new RegExp(`\\.(?:${IMAGE_EXT_SOURCE})$`, 'i');
 
-/**
- * Returns the closest value in VARIANT_WIDTHS to `width`. On ties the larger
- * width wins (e.g. 400 -> 480, 800 -> 960).
- */
+/** Closest VARIANT_WIDTHS entry; ties resolve to the larger width. */
 export function nearestVariantWidth(width: number): number {
   let nearest = VARIANT_WIDTHS[0];
   for (const candidate of VARIANT_WIDTHS) {
@@ -34,11 +25,7 @@ const PRODUCT_IMAGE_PATTERN = new RegExp(
   'i'
 );
 
-/**
- * Maps a product image URL to its variant URL, e.g.
- * `/products/creamy-white/01-main.jpg` -> `/products/creamy-white/variants/01-main-480.webp`.
- * Non-product URLs are returned unchanged.
- */
+/** URL twin of variantFileFor: /products/<slug>/<file>.jpg -> /products/<slug>/variants/<file>-<w>.webp; non-product URLs unchanged. */
 export function variantPathFor(src: string, width: number): string {
   const match = PRODUCT_IMAGE_PATTERN.exec(src);
   if (!match) return src;
@@ -46,18 +33,13 @@ export function variantPathFor(src: string, width: number): string {
   return `/products/${slug}/variants/${basename}-${nearestVariantWidth(width)}.webp`;
 }
 
-// Matches a filesystem path ending in products/<slug>/<file>.<ext>, allowing
-// any leading directory prefix (e.g. `public/`).
+// Matches a filesystem path ending in products/<slug>/<file>.<ext>, allowing any leading directory prefix.
 const PRODUCT_FILE_PATTERN = new RegExp(
   `^(.*\\/)?products\\/([^/]+)\\/([^/]+)\\.(?:${IMAGE_EXT_SOURCE})$`,
   'i'
 );
 
-/**
- * Same mapping as variantPathFor but for filesystem paths, e.g.
- * `public/products/creamy-white/01-main.jpg` -> `public/products/creamy-white/variants/01-main-480.webp`.
- * Paths that don't match the product-file pattern are returned unchanged.
- */
+/** Filesystem twin of variantPathFor; unmatched paths unchanged. */
 export function variantFileFor(sourceFile: string, width: number): string {
   const match = PRODUCT_FILE_PATTERN.exec(sourceFile);
   if (!match) return sourceFile;

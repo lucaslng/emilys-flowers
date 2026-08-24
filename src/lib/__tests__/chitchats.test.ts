@@ -1,6 +1,3 @@
-// Unit tests for the pure ChitChats helpers in `src/lib/chitchats.ts`
-// (isomorphic functions, no network calls).
-
 import { test, expect, describe } from 'bun:test';
 import {
   pickCheapestRate,

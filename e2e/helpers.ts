@@ -55,8 +55,7 @@ export async function mockReceiptSession(
 
 /**
  * Intercept both checkout network hops (POST /api/checkout and GET
- * /api/checkout/session). Route behavior itself is covered by unit tests in
- * src/lib/__tests__/checkout-route.test.ts.
+ * /api/checkout/session) so tests never hit the real Stripe API.
  */
 export async function mockCheckoutApis(
   page: Page,
@@ -72,7 +71,6 @@ export async function mockCheckoutApis(
   await mockReceiptSession(page, session);
 }
 
-/** Seed the persisted cart directly via localStorage before any page loads. */
 export async function seedCart(page: Page, items: unknown[]) {
   await page.addInitScript(
     ({ key, items }) => localStorage.setItem(key, JSON.stringify(items)),
@@ -92,14 +90,12 @@ export function describeCatalogPageSuite(suiteName: string, path: string) {
     test("loads and displays product cards with Add to Cart buttons", async ({ page }) => {
       await page.goto(path);
       const addToCartButtons = page.getByRole("button", { name: "Add to Cart" });
-      // Catalog is fetched from Stripe at build time, so assert at least one
-      // product rendered rather than a hardcoded count.
+      // Catalog is fetched from Stripe at build time, so assert at least one product rather than a hardcoded count.
       await expect(addToCartButtons.first()).toBeVisible();
     });
 
     test("each card shows a price in $X.XX format", async ({ page }) => {
       await page.goto(path);
-      // Prices are rendered as spans with class containing tabular-nums
       const priceElements = page.locator('[class*="tabular-nums"]');
       const count = await priceElements.count();
       expect(count).toBeGreaterThanOrEqual(1);

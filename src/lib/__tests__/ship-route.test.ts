@@ -3,14 +3,8 @@ import { NextRequest } from 'next/server';
 import { SignJWT } from 'jose';
 import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 
-// NOTE: the `stripe` and `resend` mocks live in `./order-emails-mocks`,
-// registered exactly once per process (bun's `mock.module` registry is
-// process-global and shared across test files).
-// `@/lib/admin-auth` is deliberately NOT mocked: the real `verifySessionToken`
-// is exercised with a real HS256 JWT signed against the test secret, matching
-// how admin-auth.test.ts uses the module. Mocking it from this file previously
-// replaced the module process-wide and broke admin-auth.test.ts's static
-// import of `buildAuthorizeUrl`.
+// @/lib/admin-auth is deliberately NOT mocked: the real verifySessionToken is exercised with a real HS256 JWT,
+// and mocking it here would replace the module process-wide, breaking admin-auth.test.ts's static import.
 
 const { POST } = await import('@/app/api/admin/orders/[sessionId]/ship/route');
 
@@ -23,8 +17,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.RESEND_API_KEY = 're_test_mock';
     process.env.ADMIN_SESSION_SECRET = ADMIN_SESSION_SECRET;
-    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request, so the
-    // cookie's groups claim must match the allowlist.
+    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request, so the groups claim must match the allowlist.
     process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetOrderEmailMocks();
     adminCookie = `admin_session=${await new SignJWT({
@@ -124,8 +117,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     expect(orderEmailMocks.stripeUpdateCalls[0].sessionId).toBe('cs_test_123');
     expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(
       expect.objectContaining({
-        // Pre-existing keys (the webhook's confirmation stamps) must survive
-        // the update — `sessions.update` replaces the whole metadata map.
+        // Pre-existing keys must survive the stamp — sessions.update replaces the whole metadata map.
         confirmation_email_sent_at: '2026-01-01T00:00:00Z',
         shipped_at: expect.any(String),
         shipping_estimate: '2-4 business days',
@@ -295,12 +287,10 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     const body = await response.json();
     expect(body.emailSent).toBe(true);
     expect(typeof body.error).toBe('string');
-    // The message must spell out the retry semantics: the email already went
-    // out, resubmitting within 24h is deduped, after 24h it risks a duplicate.
+    // The message must spell out the retry semantics for the owner.
     expect(body.error).toMatch(/already/i);
     expect(body.error).toMatch(/24 hours/i);
     expect(body.error).toMatch(/duplicate/i);
-    // The email itself was still delivered exactly once.
     expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
   });
 });

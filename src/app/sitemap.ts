@@ -1,5 +1,3 @@
-// sitemap.ts
-
 import { MetadataRoute } from 'next';
 import { getAllProducts } from '@/lib/stripe-catalog';
 import { isFlowerCategory, isFlowersEnabled } from '@/lib/flagship-flag';

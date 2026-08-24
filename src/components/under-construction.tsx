@@ -1,19 +1,5 @@
-/**
- * UnderConstruction — the full-page "coming soon" screen.
- *
- * Rendered by the root layout while the storefront is in construction mode,
- * with no Navbar, Footer, cart, or providers around it — so this component
- * owns the entire viewport. The brand's bouquet sticker floats gently on a
- * frosted wrapping-paper ground, with a stamped Martian Mono heading, a
- * handwritten accent, and a plain mailto contact path. No form, no signup,
- * no backend.
- *
- * Static markup + CSS only (no GSAP, no client boundary): the entrance is a
- * staggered `fade-up` declared under `(prefers-reduced-motion: no-preference)`
- * in globals.css (see `.uc-enter`), and the sticker's float rides the
- * `.sticker-float` utility baked into `BouquetSticker`, collapsed by the
- * global reduced-motion guard.
- */
+// Owns the entire viewport (no Navbar/Footer/cart around it). Static markup + CSS only;
+// the entrance is the reduced-motion-guarded `.uc-enter` fade-up in globals.css.
 import BouquetSticker from "@/components/ui/BouquetSticker";
 import PageWash from "@/components/ui/PageWash";
 
@@ -23,23 +9,18 @@ export default function UnderConstruction() {
       aria-labelledby="under-construction-title"
       className="relative isolate flex min-h-dvh flex-col overflow-hidden bg-background"
     >
-      {/* Frosted wrapping grid + soft satin light */}
       <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-70" />
       <PageWash background="radial-gradient(ellipse 60% 45% at 50% 42%, rgba(249, 228, 228, 0.55), rgba(249, 228, 228, 0) 70%)" />
       <PageWash background="radial-gradient(ellipse 40% 30% at 82% 88%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)" />
 
-      {/* Gallery rails — hairline frame at the very top and bottom edges */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-border" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border" />
 
-      {/* Floating hearts */}
       <span aria-hidden="true" className="heart-float text-sm text-rose-deep" style={{ left: '16%', top: '22%', animationDuration: '8s' }}>♡</span>
       <span aria-hidden="true" className="heart-float text-xs text-rose-line" style={{ left: '82%', top: '26%', animationDuration: '10s', animationDelay: '2s' }}>♡</span>
 
-      {/* Wall label */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className="mx-auto w-full max-w-xl text-center">
-          {/* Bouquet sticker — the brand's hero visual, gently floating */}
           <div className="uc-enter flex justify-center">
             <BouquetSticker size={150} />
           </div>
@@ -68,7 +49,6 @@ export default function UnderConstruction() {
             shop will open very soon.
           </p>
 
-          {/* Divider + contact path */}
           <div
             className="uc-enter mt-10 flex flex-col items-center gap-4"
             style={{ animationDelay: '0.32s' }}
@@ -91,7 +71,6 @@ export default function UnderConstruction() {
         </div>
       </div>
 
-      {/* Brand caption, resting just above the bottom rail */}
       <div className="relative z-10 pb-8 pt-6 text-center">
         <p className="font-hand text-2xl leading-none text-rose-deep">
           Emily&rsquo;s Flowers: handcrafted ribbon flowers &amp; bouquets

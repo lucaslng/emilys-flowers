@@ -1,11 +1,4 @@
-// Tests for the shared auto-paginating Stripe product listing
-// (`listActiveProducts` in @/lib/stripe-products).
-//
-// bun runs each test file in its own process, so the `stripe` mock registered
-// here is per-file and doesn't collide with the process-global mocks in
-// `./order-emails-mocks.ts`. The mock follows the same shape as the one in
-// `./checkout-route.test.ts`: a MockStripe class whose `products.list` is
-// driven by the exported `stripeMocks` object.
+// bun runs each test file in its own process, so this per-file `stripe` mock doesn't collide with ./order-emails-mocks.ts.
 
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
 import type Stripe from 'stripe';

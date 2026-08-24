@@ -1,11 +1,8 @@
 'use client';
 
-// Shown after a completed Stripe Checkout. The success URL carries no product
-// data — the receipt is fetched from GET /api/checkout/session; until it
-// resolves (or fails), only the generic confirmation shows. The cart clears
-// on mount (the order is already placed) and a petal burst celebrates.
-// `useSearchParams()` is wrapped in <Suspense> per Next.js 16's static-render
-// requirement (the fallback is a branded BloomSpinner placeholder).
+// Success receipt: the URL carries only the session id — the receipt is
+// fetched from GET /api/checkout/session. `useSearchParams()` is wrapped in
+// <Suspense> per Next.js 16's static-render requirement.
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -55,9 +52,7 @@ function CheckoutSuccessContent() {
       .then((data) => {
         if (!cancelled && data) setRetrieved(data);
       })
-      .catch(() => {
-        // Leave the generic confirmation in place.
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -76,16 +71,13 @@ function CheckoutSuccessContent() {
 
   const order = orderParam || retrieved?.orderNumber || '';
 
-  // The order is already placed — clear the cart once on mount.
+  // The order is already placed.
   useEffect(() => {
     clearCart();
   }, [clearCart]);
 
-  // Orchestrated mount reveal: one staggered timeline across every
-  // [data-reveal] section (heading → subtitle → pill → summary →
-  // line items → totals → CTAs → reassurance), plus a three-wave petal
-  // burst released downward from the thank-you heading. Reduced motion
-  // skips the timeline + the burst (firePetalBurst also no-ops on its own).
+  // Staggered reveal across every [data-reveal] section, plus a three-wave
+  // petal burst from the heading; reduced motion skips both.
   useGSAP(
     () => {
       const scope = root.current;
@@ -110,9 +102,7 @@ function CheckoutSuccessContent() {
           }
         );
 
-        // Petal celebration: releases three staggered waves of petals that
-        // drift down over the receipt. Viewport coords (the petal layer is
-        // position: fixed).
+        // Viewport coords — the petal layer is position: fixed.
         const anchor = burstAnchorRef.current;
         if (anchor) {
           const r = anchor.getBoundingClientRect();
@@ -139,8 +129,7 @@ function CheckoutSuccessContent() {
     { scope: root, dependencies: [] }
   );
 
-  // Amounts come from the retrieved receipt; the compute* fallbacks only
-  // cover defensively-missing fields (issue #177).
+  // The compute* fallbacks only cover defensively-missing receipt fields.
   const subtotal = retrieved?.subtotal ?? computeLineItemTotal(items);
   const shipping = retrieved?.shipping ?? computeShipping(subtotal);
   const total = retrieved?.total ?? subtotal + shipping;
@@ -148,7 +137,6 @@ function CheckoutSuccessContent() {
 
   return (
     <div ref={root} className="mx-auto max-w-2xl">
-      {/* ── Hero — the thank-you card ─────────────────────────────── */}
       <div className="relative text-center">
         <div ref={burstAnchorRef} data-reveal className="mt-6">
           <h1 className="font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
@@ -186,7 +174,6 @@ function CheckoutSuccessContent() {
         )}
       </div>
 
-      {/* ── Order Summary (only when line items are present) ─────── */}
       {hasItems && (
         <div
           data-reveal
@@ -240,7 +227,6 @@ function CheckoutSuccessContent() {
         </div>
       )}
 
-      {/* ── CTAs ─────────────────────────────────────────────────── */}
       <div
         data-reveal
         className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
@@ -257,7 +243,6 @@ function CheckoutSuccessContent() {
         </Link>
       </div>
 
-      {/* ── Reassurance ──────────────────────────────────────────── */}
       <p
         data-reveal
         className="mt-8 text-center font-sans text-sm text-muted"

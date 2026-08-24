@@ -1,5 +1,4 @@
-// Uses a temp fixture dir via the injectable baseDir — never touches
-// the real public/products folder.
+// Uses a temp fixture dir via the injectable baseDir — never touches the real public/products folder.
 
 import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";

@@ -12,14 +12,7 @@ if (typeof window !== 'undefined') {
 
 export { gsap, ScrollTrigger, useGSAP };
 
-/**
- * Exit-collapse tween shared by cart removals: fade + slide right + collapse
- * height/margins/padding, then invoke `onRemove` in onComplete so React state
- * and the visual exit stay in sync. Keep it short (≤400ms) so Playwright
- * doesn't flake. Extra vars (e.g. `stagger`) merge over
- * the defaults. Callers keep the returned tween so it can be killed on
- * unmount and a stale `onRemove` can't fire after navigation.
- */
+/** Exit tween for cart removals: fade + slide + collapse; onRemove fires in onComplete so React state tracks the visual exit. Keep ≤400ms (Playwright flake); callers keep the returned tween to kill it on unmount. */
 export function collapseAndRemove(
   element: gsap.TweenTarget,
   onRemove: () => void,

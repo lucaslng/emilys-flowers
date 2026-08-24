@@ -15,21 +15,14 @@ import CartSummary from '@/components/cart/CartSummary';
 import EmptyCartCard from '@/components/cart/EmptyCartCard';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
-/**
- * CartPageClient — "the gift box, open". Items hang from a dashed string
- * like gift tags on a line. The empty state is an open gift box with a
- * handwritten nudge.
- */
 export default function CartPageClient() {
   const { items, clearCart, getItemCount } = useCart();
   const itemsContainerRef = useRef<HTMLDivElement>(null);
-  // Holds the in-flight clear tween so we can kill it on unmount and
-  // avoid a stale `onComplete` firing `clearCart` after the user navigates
-  // away (which would otherwise wipe a cart the user has since re-populated).
+  // Kill the in-flight clear tween on unmount so a stale `onComplete` can't
+  // wipe a cart the user has since re-populated after navigating away.
   const clearTweenRef = useRef<gsap.core.Tween | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
-  // Kill the clear tween if the page unmounts mid-animation.
   useEffect(() => {
     return () => {
       clearTweenRef.current?.kill();
@@ -49,10 +42,6 @@ export default function CartPageClient() {
     }
     setIsClearing(true);
 
-    // On-brand petal scatter: release petals up-and-out from the cart area
-    // as it empties. firePetalBurst is itself a no-op under reduced motion,
-    // but we already short-circuited above, so this only runs in the
-    // full-motion path.
     const rect = itemsContainerRef.current?.getBoundingClientRect();
     if (rect) {
       const cx = rect.left + rect.width / 2;
@@ -61,10 +50,9 @@ export default function CartPageClient() {
       firePetalBurst({ x: cx, y: cy }, { x: cx + 200, y: cy - 220 });
     }
 
-    // Stagger the items out: fade + slide right + collapse height/margins/
-    // padding, then dispatch clearCart() in onComplete so React state and
-    // the visual exit stay in sync. Total duration is capped at ~0.5s
-    // regardless of item count so a large cart still clears snappy.
+    // Stagger the items out, then clearCart() in onComplete so React state
+    // and the visual exit stay in sync. Capped at ~0.5s so a large cart
+    // still clears snappy.
     const maxTotalDuration = 0.5;
     const stagger = Math.min(
       0.05,
@@ -85,7 +73,6 @@ export default function CartPageClient() {
 
   return (
     <div className="relative isolate overflow-hidden py-12 sm:py-16">
-      {/* Warm wash */}
       <PageWash background="radial-gradient(ellipse 50% 40% at 20% 10%, rgba(249, 228, 228, 0.45), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
@@ -97,7 +84,6 @@ export default function CartPageClient() {
                 Shopping Cart
               </h1>
             </div>
-            {/* Hand-drawn arrow annotation */}
             <div className="mt-3 flex items-center gap-2">
               <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
@@ -110,7 +96,6 @@ export default function CartPageClient() {
         </Reveal>
 
         {items.length === 0 ? (
-          /* Empty State — an open gift box */
           <Reveal>
             <EmptyCartCard
               className="min-h-[440px] py-16"
@@ -140,9 +125,7 @@ export default function CartPageClient() {
           </Reveal>
         ) : (
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-8">
-            {/* Cart Items — hanging from a dashed string */}
             <div className="lg:col-span-2">
-              {/* The string */}
               <div aria-hidden="true" className="mb-8 border-t border-dashed border-rose-line/50" />
               <div className="mb-5 flex items-center justify-between">
                 <p className="font-sans text-sm text-muted">
@@ -165,7 +148,6 @@ export default function CartPageClient() {
               </div>
             </div>
 
-            {/* Summary — the receipt */}
             <div>
               <div className="sticky top-24">
                 <CartSummary />

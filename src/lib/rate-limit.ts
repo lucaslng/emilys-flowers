@@ -1,26 +1,13 @@
-// src/lib/rate-limit.ts
+// Per-surface, per-IP rate limiting backed by the Workers ratelimit binding
+// (RATE_LIMITER in wrangler.jsonc — 10 requests per 60s per key).
 //
-// Per-surface, per-IP rate limiting for billable API surfaces, backed by the
-// Cloudflare Workers ratelimit binding (`RATE_LIMITER` in wrangler.jsonc —
-// 10 requests per 60 s per key). Keys are surface-prefixed so each surface
-// gets its own bucket.
+// Object bindings can't ride process.env (OpenNext's populateProcessEnv copies only strings), hence getCloudflareContext().
 //
-// Deliberate deviation from the repo's `process.env` convention: object
-// bindings cannot ride through `process.env` (OpenNext's populateProcessEnv
-// copies only strings), so the binding is read via `getCloudflareContext()`.
+// The binding is typed structurally instead of via the generated cloudflare-env.d.ts: regenerating that file adds required
+// NodeJS.ProcessEnv fields, which breaks every `delete process.env.X` in the unit tests under tsc --noEmit.
 //
-// The binding is typed structurally instead of via the generated
-// `cloudflare-env.d.ts`: regenerating that file augments `NodeJS.ProcessEnv`
-// with required string fields, which breaks every `delete process.env.X` in
-// the existing unit tests under `tsc --noEmit` (and its runtime-types section
-// conflicts with lib.dom). Nothing else in the repo references `CloudflareEnv`,
-// so the structural shape below keeps typecheck green while matching the
-// Workers `RateLimit` binding contract.
-//
-// Every failure mode fails OPEN — outside the Workers/OpenNext runtime
-// (`bun test`, Node-runtime `bun start`, Playwright serve) the context call
-// throws and there is no binding at all, so the guard is a graceful no-op.
-// Availability beats quota protection.
+// Every failure mode fails OPEN — outside the Workers runtime (bun test, Playwright serve) there is no binding at all;
+// availability beats quota protection.
 
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
@@ -33,18 +20,12 @@ interface RateLimiterBinding {
   limit(input: { key: string }): Promise<{ success: boolean }>;
 }
 
-/**
- * Returns `null` when the request is allowed (or when limiting is
- * unavailable), or a ready-to-return 429 response when the caller exceeded
- * the limit for their IP on the given surface. `surface` prefixes the
- * limiter key (`${surface}:${ip}`) so call sites get isolated buckets.
- */
+/** null = allowed (or limiting unavailable); Response = ready-to-return 429. `surface` prefixes the key so call sites get isolated buckets. */
 export async function checkRateLimit(
   request: Request,
   surface: string
 ): Promise<Response | null> {
-  // CF-Connecting-IP is always set by Cloudflare in production; the fallback
-  // keeps local Miniflare-emulated testing functional.
+  // CF-Connecting-IP is always set by Cloudflare in production; the fallback keeps local Miniflare testing functional.
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   const key = `${surface}:${ip}`;
 

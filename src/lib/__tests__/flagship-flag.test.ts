@@ -148,8 +148,7 @@ describe("isUnderConstruction", () => {
     expect(isUnderConstruction()).toBe(false);
   });
 
-  // Exact-match contract: the gate is armed only by the literal string
-  // "true". Whitespace or casing must not silently disarm or arm it.
+  // Exact-match contract: armed only by the literal "true" — whitespace or casing must not arm or disarm it.
   test("false when UNDER_CONSTRUCTION has a leading space", () => {
     process.env.UNDER_CONSTRUCTION = " true";
     expect(isUnderConstruction()).toBe(false);

@@ -13,14 +13,9 @@ import {
 import { getStripeClient } from '@/lib/stripe-client';
 
 /**
- * Stripe webhook endpoint.
- *
- * Handles `checkout.session.completed` by sending an order confirmation email.
- * Signature verification is skipped (with a warning) when
- * `STRIPE_WEBHOOK_SECRET` is not set and the app is not running in production,
- * so local dev works without it. In production a missing
- * `STRIPE_WEBHOOK_SECRET` is a hard error (500) — never accept unsigned
- * webhooks on a payment endpoint.
+ * Stripe webhook endpoint: sends the order confirmation email on
+ * `checkout.session.completed`. Signature verification is skipped only outside
+ * production (dev convenience); a missing secret in production is a hard 500.
  */
 
 function formatShippingAddress(session: Stripe.Checkout.Session): string | undefined {
@@ -39,15 +34,14 @@ function formatShippingAddress(session: Stripe.Checkout.Session): string | undef
     return lines.length > 0 ? lines.join('\n') : undefined;
   }
 
-  // The address is collected on our own checkout page now, so Stripe's
-  // `shipping_details` is null — fall back to the `shipping_address` JSON we
-  // stored in session metadata at checkout time.
+  // Stripe's `shipping_details` is null (address is collected on our own
+  // checkout page) — fall back to the metadata JSON stored at checkout time.
   return formatMetadataShippingAddress(session.metadata, '\n', 'CA') ?? undefined;
 }
 
 /**
- * Map a retrieved Checkout Session to the data needed for an order
- * confirmation email. Returns `null` when the session has no customer email.
+ * Maps a retrieved Checkout Session to confirmation-email data; `null` when
+ * the session has no customer email.
  */
 export function mapCheckoutSessionToConfirmation(
   session: Stripe.Checkout.Session
@@ -116,19 +110,14 @@ export async function POST(request: Request) {
 
     if (event.type === 'checkout.session.completed') {
       const session = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-        // Only `line_items` is expandable. `customer_details` and
-        // `shipping_details` are always returned on a retrieved session —
-        // listing them in `expand` makes Stripe reject the request with 400.
+        // Only `line_items` is expandable — listing the always-returned
+        // `customer_details`/`shipping_details` makes Stripe reject with 400.
         expand: ['line_items'],
       });
 
-      // `checkout.session.completed` can fire while payment is still settling
-      // for async payment methods (Stripe later fires
-      // `checkout.session.async_payment_succeeded` / `async_payment_failed`
-      // once the payment settles). Only paid sessions get a confirmation email
-      // — matches the admin order list, which shows orders with
-      // `payment_status === 'paid'`. Acknowledge with 200 so Stripe doesn't
-      // retry this event.
+      // Async payment methods can fire this event before the payment settles;
+      // only paid sessions get an email (matches the admin order list). 200 so
+      // Stripe doesn't retry.
       if (session.payment_status !== 'paid') {
         console.log(
           `[Webhook] Session ${session.id} not yet paid (payment_status: ${session.payment_status}); skipping confirmation email`
@@ -136,9 +125,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ received: true });
       }
 
-      // App-level idempotency: once the confirmation is stamped on the session,
-      // never send it again — even after Resend's 24h idempotency-key window
-      // expires (Stripe retries webhooks for up to ~3 days).
+      // App-level idempotency: never re-send even after Resend's 24h
+      // idempotency-key window expires (Stripe retries webhooks for ~3 days).
       if (session.metadata?.confirmation_email_sent_at) {
         console.log(
           `[Webhook] Confirmation already sent for session ${session.id}; skipping`
@@ -164,9 +152,8 @@ export async function POST(request: Request) {
           `[Webhook] Failed to send confirmation email for session ${session.id}:`,
           error
         );
-        // Non-2xx makes Stripe retry the delivery with exponential backoff
-        // (same `event.id`, so Resend's idempotency key dedupes in-window
-        // retries; the stamp check above dedupes later retries).
+        // Non-2xx makes Stripe retry; Resend's idempotency key dedupes
+        // in-window retries and the stamp check dedupes later ones.
         return NextResponse.json(
           { error: 'Failed to send confirmation email' },
           { status: 500 }
@@ -186,8 +173,8 @@ export async function POST(request: Request) {
           `[Webhook] Failed to stamp confirmation metadata for session ${session.id}:`,
           stamp.error
         );
-        // Non-2xx so Stripe redelivers while Resend's idempotency key still
-        // dedupes; once a stamp lands, the check above dedupes later retries.
+        // Non-2xx so Stripe redelivers; Resend's idempotency key dedupes
+        // in-window retries and the stamp check dedupes later ones.
         return NextResponse.json(
           { error: 'Failed to stamp confirmation metadata' },
           { status: 500 }

@@ -66,8 +66,7 @@ describe("cartReducer", () => {
     expect(state.items[1].product.id).toBe("test-peony");
   });
 
-  // The server rejects any line above MAX_LINE_ITEM_QUANTITY at pay time, so
-  // the client must never let a quantity grow past the same cap.
+  // The server rejects any line above MAX_LINE_ITEM_QUANTITY at pay time, so the client must never exceed the same cap.
   test("ADD_TO_CART clamps the quantity at MAX_LINE_ITEM_QUANTITY", () => {
     const state = { items: [{ product: sampleProduct, quantity: 99 }] };
     const next = cartReducer(state, {
@@ -137,10 +136,7 @@ describe("cartReducer", () => {
     expect(state.items).toHaveLength(0);
   });
 
-  // Regression: quantities must stay positive integers (cart badge, order
-  // math, and the Stripe payload all assume integer counts). NaN and Infinity
-  // previously slipped through the `<= 0` guard and were serialized as `null`
-  // into localStorage.
+  // Quantities must stay positive integers — cart badge, order math, and the Stripe payload all assume integer counts.
   test("UPDATE_QUANTITY with NaN removes the item", () => {
     const stateWithItem = cartReducer(initialState, {
       type: "ADD_TO_CART",

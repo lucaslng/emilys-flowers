@@ -1,8 +1,5 @@
-// src/app/api/admin/login/route.ts
-//
-// Admin sign-in (OIDC). Redirects to the provider's authorize endpoint with a
-// PKCE challenge and a random `state`, stashing the verifier + state in
-// short-lived httpOnly cookies for the callback route to verify.
+// Admin sign-in (OIDC): redirects to the provider's authorize endpoint with a
+// PKCE challenge + random `state`, stashed in short-lived httpOnly cookies.
 
 import { NextResponse } from 'next/server';
 import {
@@ -28,9 +25,8 @@ export async function GET(request: Request) {
     return oidcNotConfiguredResponse();
   }
 
-  // Bounds unauthenticated authorize-redirect minting. Discovery is cached
-  // 1h per isolate, but cold-start floods would otherwise fan out to the
-  // IdP (issue #217).
+  // Bounds unauthenticated authorize-redirect minting — cold-start floods
+  // would otherwise fan out to the IdP.
   const rateLimited = await checkRateLimit(request, 'admin-login');
   if (rateLimited) {
     return rateLimited;

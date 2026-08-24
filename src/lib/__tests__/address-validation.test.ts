@@ -1,7 +1,3 @@
-// Unit tests for the shared delivery-address validation contract
-// (`src/lib/address-validation.ts`) — the same rules enforced by both the
-// client checkout form and the server (`POST /api/checkout`).
-
 import { test, expect, describe } from 'bun:test';
 import {
   ADDRESS_FIELD_MAX_LENGTHS,

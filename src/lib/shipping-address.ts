@@ -1,19 +1,9 @@
-// src/lib/shipping-address.ts
-//
-// Shared shipping-address presentation for the two surfaces that render it:
-// the order-confirmation email (webhook) and the admin order list. Both read
-// the same two sources — Stripe's `shipping_details` (null for us, since the
-// address is collected on our own checkout page) and the `shipping_address`
-// JSON stored in session metadata at checkout time.
-//
-// Isomorphic: no server-only imports.
+// Shipping-address presentation shared by the confirmation email and the admin order list; reads Stripe's
+// shipping_details plus the shipping_address JSON stored in session metadata. Isomorphic.
 
 import type Stripe from 'stripe';
 
-/**
- * `shipping_details` is returned by the Stripe API on Checkout Sessions but
- * is not yet present on the stripe-node v22 `Checkout.Session` type.
- */
+/** Present on the Stripe API but missing from stripe-node v22's Checkout.Session type. */
 export type SessionWithShippingDetails = Stripe.Checkout.Session & {
   shipping_details?: { name: string; address: Stripe.Address } | null;
 };
@@ -28,10 +18,7 @@ export interface StoredShippingAddress {
   postalCode: string;
 }
 
-/**
- * Parse the `shipping_address` JSON stored in session metadata. Non-string
- * field values coerce to ''; returns null when absent or unparseable.
- */
+/** Parses the shipping_address metadata JSON; non-string fields coerce to '', null when absent or unparseable. */
 export function parseMetadataShippingAddress(
   metadata: Stripe.Metadata | null | undefined
 ): StoredShippingAddress | null {
@@ -56,11 +43,7 @@ export function parseMetadataShippingAddress(
   }
 }
 
-/**
- * Render the stored address joined by `separator`: one line per field,
- * except city/province which share a comma-separated line, plus an optional
- * trailing country line. Empty fields drop out; null when nothing renders.
- */
+/** One line per field (city/province share a comma-separated line), optional trailing country; empty fields dropped, null when nothing renders. */
 export function formatMetadataShippingAddress(
   metadata: Stripe.Metadata | null | undefined,
   separator: string,

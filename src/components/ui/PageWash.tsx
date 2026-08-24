@@ -1,8 +1,4 @@
-/**
- * PageWash — a decorative soft radial light laid over a section. Purely
- * presentational (aria-hidden, pointer-events-none); the gradient varies
- * per surface and is passed as `background`.
- */
+/** Decorative soft radial light; purely presentational. */
 export default function PageWash({ background }: { background: string }) {
   return (
     <div

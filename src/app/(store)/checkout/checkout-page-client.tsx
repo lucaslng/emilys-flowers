@@ -24,16 +24,9 @@ import {
   type AddressFieldName,
 } from '@/lib/address-validation';
 
-/**
- * CheckoutPageClient — "the wrapping desk". The order summary reads like a
- * store receipt (stitched edges, dashed seams) and the payment button is a
- * big stamp. The delivery address is collected once, here; the shipping rate
- * is calculated server-side and shown in Stripe at payment.
- *
- * Field validation is shared with the server (`src/lib/address-validation.ts`)
- * so customers see the exact rule the API enforces — including Canadian
- * postal-code format — before anything leaves the browser.
- */
+// Field validation is shared with the server (`src/lib/address-validation.ts`)
+// so customers see the exact rule the API enforces before anything leaves the
+// browser.
 
 const EMPTY_ADDRESS: DeliveryAddress = {
   name: '',
@@ -46,8 +39,7 @@ const EMPTY_ADDRESS: DeliveryAddress = {
 
 /**
  * Defensively extract structured field errors from a non-OK checkout
- * response. The body is `{ error, fieldErrors? }` — `fieldErrors` may be
- * absent or malformed, so every entry is verified before use.
+ * response; `fieldErrors` may be absent or malformed.
  */
 function parseServerFieldErrors(data: unknown): AddressFieldError[] {
   if (typeof data !== 'object' || data === null || !('fieldErrors' in data)) {
@@ -87,19 +79,16 @@ export default function CheckoutPageClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [address, setAddress] = useState<DeliveryAddress>(EMPTY_ADDRESS);
-  /** Messages returned by the server, keyed by field. Wins over local ones until edited. */
   const [serverFieldErrors, setServerFieldErrors] = useState<
     Partial<Record<AddressFieldName, string>>
   >({});
   const [agreed, setAgreed] = useState(false);
-  /** The agreement error only appears once a submit was tried unchecked. */
   const [agreementAttempted, setAgreementAttempted] = useState(false);
 
   const agreementError = agreementAttempted && !agreed;
 
   const subtotal = getTotal();
 
-  /** Shared validation rules (presence + province + postal format), in form order. */
   const invalidFields = useMemo(
     () => validateDeliveryAddressFields(address),
     [address]
@@ -119,7 +108,7 @@ export default function CheckoutPageClient() {
   const handleCheckout = async () => {
     if (loading) return;
 
-    // Always give visible feedback for invalid input at submit attempt —
+    // Always give visible feedback for invalid input at submit attempt,
     // whether the button was clicked or the form submitted with Enter.
     if (invalidFields.length > 0) {
       setError('');
@@ -146,8 +135,7 @@ export default function CheckoutPageClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Only product references and quantities leave the browser — the
-          // server resolves names/prices from the Stripe catalog, so a
-          // tampered request can't buy any product at a chosen price.
+          // server resolves names/prices from the Stripe catalog.
           items: items.map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
@@ -168,8 +156,7 @@ export default function CheckoutPageClient() {
       if (!response.ok) {
         const serverErrors = parseServerFieldErrors(data);
         if (serverErrors.length > 0) {
-          // Map each server complaint onto its field; `line2` has no inline
-          // slot, so surface its messages in the banner instead.
+          // `line2` has no inline slot — surface its messages in the banner.
           const byField: Partial<Record<AddressFieldName, string>> = {};
           const bannerExtras: string[] = [];
           for (const { field, message } of serverErrors) {
@@ -198,9 +185,8 @@ export default function CheckoutPageClient() {
         'url' in data &&
         typeof (data as { url?: unknown }).url === 'string'
       ) {
-        // Navigation is async — loading stays true through this window so a
-        // second click can't fire a duplicate POST (a second real Stripe
-        // session / ChitChats shipment).
+        // Navigation is async — loading stays true so a second click can't
+        // fire a duplicate POST (a second real Stripe session / shipment).
         window.location.href = (data as { url: string }).url;
         return;
       }
@@ -237,7 +223,6 @@ export default function CheckoutPageClient() {
 
   return (
     <div className="relative isolate overflow-hidden py-12 sm:py-16">
-      {/* Warm wash */}
       <PageWash background="radial-gradient(ellipse 50% 40% at 80% 10%, rgba(243, 228, 211, 0.55), rgba(243, 228, 211, 0) 70%)" />
 
       <Container className="relative z-10">
@@ -247,7 +232,6 @@ export default function CheckoutPageClient() {
             <h1 className="mt-4 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               Checkout
             </h1>
-            {/* Hand-drawn arrow annotation */}
             <div className="mt-2 flex items-center justify-center gap-2">
               <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
@@ -257,7 +241,6 @@ export default function CheckoutPageClient() {
           </div>
 
           <form noValidate onSubmit={(event) => { event.preventDefault(); handleCheckout(); }}>
-            {/* Delivery address — where the blooms go */}
             <AddressFormPanel
               ref={addressPanelRef}
               address={address}
@@ -265,7 +248,7 @@ export default function CheckoutPageClient() {
               serverFieldErrors={serverFieldErrors}
             />
 
-            {/* Order Summary — the receipt */}
+            {/* Order summary — the receipt */}
             <div className="stitch relative mt-6 bg-background p-6 sm:p-8">
               <OrderReceipt
                 totalsClassName="mt-4 space-y-2 border-t border-dashed border-rose-line/40 pt-4"
@@ -301,7 +284,6 @@ export default function CheckoutPageClient() {
               </OrderReceipt>
             </div>
 
-            {/* Payment Button — the stamp */}
             <div className="mt-8">
               <div className="flex items-start gap-2">
                 <input

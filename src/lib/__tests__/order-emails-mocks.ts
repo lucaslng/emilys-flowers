@@ -1,15 +1,6 @@
-// Shared mock registrations for the order-email route tests (webhook + ship).
-// bun's `mock.module` registry is PROCESS-GLOBAL: a registration is shared
-// across every test file in one `bun test` process and is never torn down.
-// Registering the same module from more than one test file silently replaces
-// the registration, so whichever file registers last wins globally and the
-// other file observes the wrong mock. To avoid that, the `stripe` and
-// `resend` mocks live here and are registered EXACTLY ONCE — the helper
-// module is evaluated a single time per process regardless of how many test
-// files import it.
-// Test files drive the mocks by mutating the exported `orderEmailMocks`
-// state object (property writes, never reassignment) and call
-// `resetOrderEmailMocks()` in `beforeEach`.
+// bun's mock.module registry is process-global and never torn down: a second registration of the same module in
+// another test file would silently replace this one. The `stripe` and `resend` mocks are therefore registered
+// EXACTLY ONCE here; tests drive them via the exported state object + resetOrderEmailMocks() in beforeEach.
 
 import { mock } from 'bun:test';
 import type Stripe from 'stripe';
@@ -53,13 +44,9 @@ export function resetOrderEmailMocks() {
   orderEmailMocks.stripeUpdateAttempts = 0;
 }
 
-// Mock the `stripe` module so the route handlers never make real network
-// calls. The routes import `Stripe` as the default export and construct it
-// with `new Stripe(key, { httpClient: Stripe.createFetchHttpClient() })`, so
-// the mock needs the static factory plus the `webhooks` / `checkout`
-// namespaces used by the webhook and ship routes. The static `errors`
-// namespace mirrors the real SDK surface so routes can `instanceof`-check
-// typed Stripe errors (e.g. resource-missing → 404 in checkout/session).
+// Mirrors the real SDK surface the routes use: static httpClient factory plus
+// the webhooks/checkout namespaces. The static `errors` namespace lets routes
+// instanceof-check typed Stripe errors (resource_missing → 404).
 mock.module('stripe', () => {
   class MockStripeInvalidRequestError extends Error {
     readonly type = 'StripeInvalidRequestError';
@@ -114,14 +101,8 @@ mock.module('stripe', () => {
   return { default: MockStripe };
 });
 
-// Mock the `resend` package (the leaf dependency) so sends are controllable
-// per test. `@/lib/email` is deliberately NOT mocked: email.test.ts tests the
-// real senders in the same process, and bun's `mock.module` registry is
-// process-global — mocking `@/lib/email` here replaced the real module for
-// email.test.ts on CI and broke it. The real senders construct the client via
-// `new Resend(requireApiKey())`, so mocking `resend` gives the routes a
-// controllable client while the real email.ts logic (payload building, error
-// wrapping, idempotency option) still runs.
+// Mocking the leaf `resend` package keeps the real email.ts logic running; @/lib/email must stay unmocked —
+// the process-global registry replaced it for email.test.ts on CI.
 mock.module('resend', () => {
   class MockResend {
     emails = {

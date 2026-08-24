@@ -5,12 +5,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Stamp confirmation-email state onto a Checkout Session's metadata.
- * `sessions.update` replaces the whole metadata map, so existing keys are
- * merged in. Retries transient failures; returns the last error when every
- * attempt fails.
- */
+/** sessions.update replaces the whole metadata map, so existing keys are merged in; retries transient failures, returning the last error. */
 export async function stampConfirmationMetadata(
   updateSessionMetadata: (metadata: Record<string, string>) => Promise<unknown>,
   existingMetadata: Record<string, string> | null | undefined,

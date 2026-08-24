@@ -1,10 +1,6 @@
-// Tests for `GET /api/admin/callback` rate limiting (issue #217). The route
-// runs against the REAL `@/lib/admin-auth` — that module must never be mocked
-// (see ./ship-route.test.ts); outbound IdP calls are stubbed via
-// globalThis.fetch (they fail, driving the route's `error=signin` redirect,
-// which is enough to prove limiter pass-through). The rate-limit guard's
-// `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts (registered
-// once per process, driven via `rateLimitMocks`).
+// Runs against the REAL @/lib/admin-auth — that module must never be mocked (see ./ship-route.test.ts);
+// outbound IdP calls are stubbed via globalThis.fetch (they fail, driving the `error=signin` redirect,
+// which is enough to prove limiter pass-through).
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import { NextRequest } from 'next/server';
@@ -58,8 +54,7 @@ describe('GET /api/admin/callback', () => {
     process.env.OIDC_CLIENT_ID = 'client-id';
     process.env.OIDC_CLIENT_SECRET = 'client-secret';
     process.env.ADMIN_SESSION_SECRET = SESSION_SECRET;
-    // Part of REQUIRED_ENV_VARS — earlier files (e.g. admin-auth.test.ts)
-    // delete it from process.env, so it must be set here, not via .env.
+    // Part of REQUIRED_ENV_VARS — earlier files delete it from process.env, so it must be set here.
     process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetRateLimitMocks();
     originalFetch = globalThis.fetch;
@@ -86,8 +81,8 @@ describe('GET /api/admin/callback', () => {
   test('allows state-valid requests through and keys them by surface-prefixed IP', async () => {
     const response = await GET(callbackRequest());
 
-    // The stubbed IdP calls fail → `error=signin` redirect, but crucially the
-    // limiter passed the request through (no 429) under its own bucket.
+    // The stubbed IdP calls fail → `error=signin` redirect, but the limiter
+    // passed the request through (no 429) under its own bucket.
     expect(response.status).toBe(307);
     expect(response.headers.get('location') ?? '').toContain(
       '/admin/orders?error=signin'
@@ -109,7 +104,6 @@ describe('GET /api/admin/callback', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('60');
     expect((await response.json()).error).toBe('Too many requests');
-    // No IdP egress (discovery, token exchange, userinfo) on a rejected request.
     expect(fetchCalls).toBe(0);
   });
 
@@ -123,7 +117,6 @@ describe('GET /api/admin/callback', () => {
     expect(response.headers.get('location') ?? '').toContain(
       '/admin/orders?error=signin'
     );
-    // Cheap rejections stay quota-free.
     expect(rateLimitMocks.limitCalls).toHaveLength(0);
   });
 
@@ -145,7 +138,6 @@ describe('GET /api/admin/callback', () => {
     const response = await GET(callbackRequest());
 
     expect(response.status).toBe(307);
-    // The limiter was consulted (and threw), but availability wins.
     expect(rateLimitMocks.limitCalls).toHaveLength(1);
   });
 });

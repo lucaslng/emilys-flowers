@@ -1,10 +1,6 @@
 import BloomSpinner from '@/components/ui/BloomSpinner';
 import StoreShell from '@/components/layout/StoreShell';
 
-/**
- * Loading UI — Suspense fallback for route segments (Next.js 16 App Router).
- * Server Component: renders markup plus a client-side BloomSpinner.
- */
 export default function Loading() {
   return (
     <StoreShell>

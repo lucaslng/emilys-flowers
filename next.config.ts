@@ -1,5 +1,3 @@
-// next.config.ts
-
 import type { NextConfig } from "next";
 import {
   evaluateFlowersEnabled,
@@ -7,8 +5,7 @@ import {
 } from "./src/lib/flagship-flag";
 import { scanProductImages } from "./src/lib/product-image-manifest";
 
-// Webpack's dev runtime needs `unsafe-eval` (HMR, source maps), so allow it
-// only in development. Production builds keep a strict CSP.
+// Webpack's dev runtime needs `unsafe-eval` (HMR, source maps); production keeps a strict CSP.
 const isDev = process.env.NODE_ENV === "development";
 
 const csp = [
@@ -55,17 +52,15 @@ const securityHeaders = [
 ];
 
 export default async function nextConfig(): Promise<NextConfig> {
-  // Evaluate the flag once per build; workers inherit the result via env.
+  // Evaluated once per build in the main process; static-gen workers inherit the env vars.
   if (process.env.FLOWERS_ENABLED === undefined) {
     process.env.FLOWERS_ENABLED = String(await evaluateFlowersEnabled());
   }
 
-  // Evaluate the flag once per build; workers inherit the result via env.
   if (process.env.UNDER_CONSTRUCTION === undefined) {
     process.env.UNDER_CONSTRUCTION = String(await evaluateUnderConstruction());
   }
 
-  // Scan once per build; workers inherit the manifest via env.
   if (process.env.PRODUCT_IMAGES === undefined) {
     process.env.PRODUCT_IMAGES = JSON.stringify(scanProductImages());
   }
@@ -92,7 +87,7 @@ export default async function nextConfig(): Promise<NextConfig> {
       remotePatterns: [],
     },
     experimental: {
-      inlineCss: true, // Inlines critical CSS into the HTML payload
+      inlineCss: true,
     },
   };
 }

@@ -1,7 +1,4 @@
-// Server-only OIDC admin authentication + session helpers (login redirect,
-// callback token exchange, HS256 session JWT in the `admin_session` cookie).
-// Web Crypto + `jose` only — no Node-only APIs (runs on Cloudflare Workers
-// via OpenNext).
+// Server-only OIDC admin auth + HS256 session cookie; Web Crypto + jose only — no Node-only APIs (Cloudflare Workers).
 
 import { createRemoteJWKSet, jwtVerify, SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
@@ -59,7 +56,6 @@ export interface SessionClaims {
   groups?: string[] | string;
 }
 
-/** base64url-encode bytes (RFC 4648 §5): no padding, URL-safe alphabet. */
 export function base64url(bytes: Uint8Array): string {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -69,13 +65,11 @@ export function base64url(bytes: Uint8Array): string {
     .replace(/=+$/, '');
 }
 
-/** True when the session secret is set and strong enough to sign admin sessions. */
 function hasValidSessionSecret(): boolean {
   const secret = process.env.ADMIN_SESSION_SECRET;
   return typeof secret === 'string' && secret.length >= 32;
 }
 
-/** Throws unless the session secret is strong enough to sign admin sessions. */
 function assertValidSessionSecret(secret: string): void {
   if (secret.length < 32) {
     throw new Error(
@@ -88,23 +82,18 @@ function missingRequiredEnvVars(): string[] {
   const missing: string[] = REQUIRED_ENV_VARS.filter(
     (name) => !process.env[name]
   );
-  // Fail closed in production: the base URL must never be derived from a
-  // client-supplied Host header, so it is required there.
+  // Fail closed in production: never derive the base URL from a client-supplied Host header.
   if (process.env.NODE_ENV === 'production' && !process.env.BASE_URL) {
     missing.push('BASE_URL');
   }
   return missing;
 }
 
-/** True when all required OIDC env vars are set and the session secret is strong. */
 export function isOidcConfigured(): boolean {
   return missingRequiredEnvVars().length === 0 && hasValidSessionSecret();
 }
 
-/**
- * Parses `ADMIN_OIDC_GROUPS` (comma-separated) into the current allowlist;
- * an empty/unset value yields an empty list, which fails closed downstream.
- */
+/** Empty/unset ADMIN_OIDC_GROUPS yields an empty allowlist, which fails closed downstream. */
 function getAllowedGroupsFromEnv(): string[] {
   return (process.env.ADMIN_OIDC_GROUPS ?? '')
     .split(',')
@@ -112,10 +101,6 @@ function getAllowedGroupsFromEnv(): string[] {
     .filter(Boolean);
 }
 
-/**
- * Returns the OIDC config, throwing an Error that names exactly which
- * required env vars are missing.
- */
 export function getOidcConfig(redirectUri: string): OidcConfig {
   const missing = missingRequiredEnvVars();
   if (missing.length > 0) {
@@ -143,10 +128,8 @@ export function resolveRedirectUri(requestUrl: string): string {
   return `${base}/api/admin/callback`;
 }
 
-// Module-level discovery cache: `{ at, data }`, refetched after 1h.
 const discoveryCache = new Map<string, { at: number; data: OidcDiscovery }>();
 
-/** Fetches (and caches for 1h) the provider's OpenID configuration. */
 export async function getOidcDiscovery(
   issuer: string
 ): Promise<OidcDiscovery> {
@@ -182,7 +165,6 @@ export async function getOidcDiscovery(
   return data;
 }
 
-/** PKCE pair: 32 random bytes → base64url verifier; SHA-256(verifier) → challenge. */
 export async function generatePkcePair(): Promise<{
   verifier: string;
   challenge: string;
@@ -195,7 +177,6 @@ export async function generatePkcePair(): Promise<{
   return { verifier, challenge: base64url(new Uint8Array(digest)) };
 }
 
-/** Builds the provider authorize URL with PKCE + state params. */
 export function buildAuthorizeUrl(
   config: OidcConfig,
   discovery: OidcDiscovery,
@@ -213,7 +194,6 @@ export function buildAuthorizeUrl(
   return url.toString();
 }
 
-/** Exchanges the authorization code for an ID token (+ optional access token). */
 export async function exchangeCodeForTokens(
   config: OidcConfig,
   discovery: OidcDiscovery,
@@ -250,14 +230,11 @@ export async function exchangeCodeForTokens(
   };
 }
 
-// Module-level JWKS cache: one remote key set per JWKS URI, reused across
-// verifications instead of rebuilding (and re-fetching) on every call.
 const jwksCache = new Map<
   string,
   ReturnType<typeof createRemoteJWKSet>
 >();
 
-/** Verifies the ID token signature/issuer/audience against the provider JWKS. */
 export async function verifyIdToken(
   config: OidcConfig,
   discovery: OidcDiscovery,
@@ -312,7 +289,6 @@ export function isAllowedByGroups(
   return userGroups.some((group) => allowedGroups.includes(group));
 }
 
-/** Signs an 8h HS256 session JWT from the verified OIDC claims. */
 export async function createSessionToken(
   config: OidcConfig,
   claims: Record<string, unknown>
@@ -328,14 +304,7 @@ export async function createSessionToken(
     .sign(new TextEncoder().encode(config.sessionSecret));
 }
 
-/**
- * Verifies the `admin_session` JWT against `ADMIN_SESSION_SECRET` and
- * re-checks its `groups` claim against the CURRENT `ADMIN_OIDC_GROUPS`
- * allowlist, so allowlist changes revoke existing sessions before the 8h
- * TTL expires (the claim is baked in at login). Fails closed when the
- * allowlist is unset/empty. Returns `null` on any failure
- * (missing/malformed/expired/bad signature/no longer in an allowed group).
- */
+/** Returns null on any failure; re-checks groups against the CURRENT allowlist so allowlist edits revoke sessions before their 8h TTL. */
 export async function verifySessionToken(
   token: string | undefined
 ): Promise<SessionClaims | null> {
@@ -344,8 +313,7 @@ export async function verifySessionToken(
   if (!secret) {
     throw new Error('ADMIN_SESSION_SECRET is not configured on the server.');
   }
-  // Fail closed on the verify path too: a short secret is forgeable offline,
-  // so treat it as an invalid session rather than trusting its signature.
+  // A short secret is forgeable offline — treat as an invalid session rather than trusting its signature.
   if (secret.length < 32) return null;
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
@@ -371,7 +339,6 @@ export async function verifySessionToken(
   }
 }
 
-/** The shared 500 JSON body used by the OIDC routes when env config is absent. */
 export function oidcNotConfiguredResponse(): NextResponse {
   return NextResponse.json(
     { error: 'OIDC admin auth is not configured on the server.' },
@@ -379,7 +346,6 @@ export function oidcNotConfiguredResponse(): NextResponse {
   );
 }
 
-/** Cookie attributes shared by every admin/OIDC cookie this module issues. */
 export function sessionCookieOptions(maxAgeSeconds: number) {
   return {
     httpOnly: true,
@@ -390,7 +356,6 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
   };
 }
 
-/** Clears the transient OIDC state + PKCE verifier cookies on any response. */
 export function clearOidcCookies(response: NextResponse): void {
   response.cookies.delete({ name: OIDC_STATE_COOKIE, path: '/' });
   response.cookies.delete({ name: OIDC_VERIFIER_COOKIE, path: '/' });

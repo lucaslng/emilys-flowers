@@ -1,15 +1,5 @@
-// stripe-catalog.ts
-//
-// Server-only module: fetches the Stripe product catalog at build time and maps
-// it to the app's `Product` shape. Import only from Server Components, route
-// handlers, or other server-only modules — never from a client component (it
-// imports the `stripe` SDK and reads `process.env.STRIPE_SECRET_KEY`).
-//
-// The catalog is fetched once per build (memoized with React `cache`) and
-// statically prerendered, so there is no per-request Stripe call on the Worker.
-// Product images are scanned from `public/products/<slug>/` at build time by
-// `imagesForProduct`, falling back to a per-category SVG placeholder when the
-// folder is missing.
+// Server-only (imports the stripe SDK, reads STRIPE_SECRET_KEY): catalog fetched once per build via React cache,
+// images scanned from public/products/<slug>/ with a per-category SVG placeholder fallback.
 
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -21,13 +11,9 @@ import { IMAGE_EXT } from '@/lib/image-variants';
 import { listActiveProducts } from '@/lib/stripe-products';
 import { getStripeClient } from '@/lib/stripe-client';
 
-// Re-exported from the shared module so existing imports keep working.
 export { slugify };
 
-/**
- * Universal placeholder used whenever a Stripe product has no description.
- * One shared string — we do not generate per-product copy.
- */
+/** Shared placeholder for products without a description — deliberately not per-product copy. */
 export const PLACEHOLDER_DESCRIPTION =
   'A handcrafted ribbon flower, made to order from premium satin ribbon. ' +
   'Each bloom is shaped petal by petal, so no two are ever quite alike.';
@@ -41,10 +27,6 @@ function toCategory(raw: unknown): Product['category'] {
   return raw === 'bouquet' ? 'bouquet' : 'flower';
 }
 
-/**
- * Map a Stripe product + its default price onto the app's `Product` shape.
- * Pure and exported for unit testing.
- */
 export function mapStripeProduct(
   product: Stripe.Product,
   price: Stripe.Price
@@ -77,13 +59,7 @@ export function mapStripeProduct(
   };
 }
 
-/**
- * Resolve the real product images for a slug from `public/products/<slug>/`.
- * Returns URL paths (e.g. `/products/cream-white/01-main.jpg`), not fs paths.
- * Falls back to the category placeholder SVG when the folder is missing or
- * contains no image files (so `images` is never empty).
- * `baseDir` is injectable for tests; it defaults to the app's `public/products`.
- */
+/** Real images from public/products/<slug>/ as URL paths; placeholder fallback keeps `images` never empty. baseDir injectable for tests. */
 export function imagesForProduct(
   slug: string,
   category: Product['category'],
@@ -138,8 +114,7 @@ function dedupeSlugs(products: Product[]): Product[] {
   });
 }
 
-// Memoize across generateStaticParams + every page render during a build so
-// the catalog is fetched once, not once per product page.
+// React cache() at module scope so one fetch serves generateStaticParams + every page render.
 const getAllProductsCached = cache(fetchCatalog);
 
 /** All active, priceable products in the catalog. */

@@ -9,11 +9,7 @@ interface BloomSpinnerProps {
   color?: string;
 }
 
-/**
- * A small flower SVG whose petals bloom open + gently rotate, looping, for
- * loading states. Elegant, not childish. Respects prefers-reduced-motion
- * (static bloom at full scale, no rotation).
- */
+/** Flower SVG that blooms open + slowly rotates; static under reduced motion. */
 export default function BloomSpinner({
   size = 48,
   className = '',
@@ -28,14 +24,12 @@ export default function BloomSpinner({
 
       gsap.matchMedia({
         '(prefers-reduced-motion: no-preference)': () => {
-          // Bloom open from the center.
           gsap.from(group, {
             scale: 0,
             duration: 0.6,
             ease: 'power2.out',
             transformOrigin: '24px 24px',
           });
-          // Continuous slow rotation.
           gsap.to(group, {
             rotation: 360,
             duration: 8,
@@ -52,7 +46,6 @@ export default function BloomSpinner({
     { dependencies: [] }
   );
 
-  // 6 petals arranged radially around center (24, 24).
   const petals = Array.from({ length: 6 }, (_, i) => {
     const rotation = (i * 360) / 6;
     return (
@@ -77,7 +70,6 @@ export default function BloomSpinner({
       aria-hidden="true"
     >
       <g ref={petalGroup}>{petals}</g>
-      {/* Flower center */}
       <circle cx="24" cy="24" r="5" fill="#F9E4E4" />
     </svg>
   );

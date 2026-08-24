@@ -1,10 +1,5 @@
-// src/app/api/admin/orders/[sessionId]/ship/route.ts
-//
-// Confirms an order has shipped: rejects cross-origin (CSRF) requests,
-// format-checks the sessionId path param, verifies the admin session cookie,
-// looks up the Stripe checkout session for the customer's email/name, sends
-// the shipping-notification email, then persists the confirmation on the
-// session metadata (the admin list reads `shipped_at` / `shipping_estimate`).
+// Sends the shipped email, then persists `shipped_at`/`shipping_estimate` on
+// the Stripe session metadata (the admin list reads those stamps).
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendShippedEmail } from '@/lib/email';
@@ -28,9 +23,7 @@ export async function POST(
 
     const { sessionId } = await params;
 
-    // Format guard first — never forward a crafted id to Stripe. Mirrors the
-    // receipt route so malformed ids surface as a clean 400, not a raw
-    // Stripe SDK error / 500.
+    // Format guard first — never forward a crafted id to Stripe.
     if (!isValidCheckoutSessionId(sessionId)) {
       return NextResponse.json(
         { error: 'Invalid session id.' },
@@ -55,8 +48,8 @@ export async function POST(
       );
     }
 
-    // Trim + clamp to Stripe's 500-char metadata-value cap — an oversized
-    // `shipping_estimate` would make the `sessions.update` below fail.
+    // Clamp to Stripe's 500-char metadata-value cap — an oversized value
+    // would make the `sessions.update` below fail.
     const estimatedShippingTime =
       typeof body.estimatedShippingTime === 'string'
         ? clampMetadataValue(body.estimatedShippingTime)
@@ -78,10 +71,8 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // App-level idempotency: a session with `shipped_at` already sent its
-    // shipped email. Return 200 (not 409) on purpose — the client treats any
-    // non-ok response as an error, and an already-shipped state is a benign
-    // no-op.
+    // Already-shipped is a benign no-op — 200, not 409, because the client
+    // treats any non-ok response as an error.
     if (session.metadata?.shipped_at) {
       console.log(
         `[Admin ship] Session ${sessionId} already shipped; skipping duplicate send`
@@ -106,11 +97,9 @@ export async function POST(
       { idempotencyKey: `shipped-${sessionId}` }
     );
 
-    // Stamp the shipped state. `sessions.update` REPLACES the entire metadata
-    // map, so merge the existing keys — notably the webhook's
-    // `confirmation_email_sent_at` / `confirmation_email_id` stamps, which are
-    // the app-level dedupe guard against re-sending confirmation emails on
-    // Stripe webhook retries.
+    // `sessions.update` REPLACES the entire metadata map, so merge the
+    // existing keys — notably the webhook's confirmation-email stamps, which
+    // are the dedupe guard against re-sending on Stripe webhook retries.
     try {
       await stripe.checkout.sessions.update(sessionId, {
         metadata: {
@@ -120,12 +109,9 @@ export async function POST(
         },
       });
     } catch (error) {
-      // The shipped email was already delivered, but the failure must be
-      // observable: the order is NOT stamped as shipped, so the admin has to
-      // know. Within Resend's 24h idempotency window a resubmit is the safe
-      // recovery path — the `shipped-${sessionId}` key dedupes the email and
-      // the retry completes the missing stamp; only after 24h does a
-      // resubmit risk a duplicate email.
+      // The email already went out but the order is NOT stamped as shipped —
+      // the failure must be observable. Within Resend's 24h idempotency
+      // window a resubmit dedupes the email and completes the missing stamp.
       console.error(
         `[Admin ship] Failed to stamp shipped metadata for session ${sessionId}:`,
         error

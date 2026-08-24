@@ -1,21 +1,5 @@
-// src/app/api/checkout/session/route.ts
-//
-// GET /api/checkout/session?session_id=cs_...
-//
-// Checkout-success retrieval surface. The real checkout success URL carries
-// only `session_id={CHECKOUT_SESSION_ID}` (no product data), so the success
-// page fetches its receipt here: the session id is format-checked BEFORE any
-// Stripe call, the session + line items are retrieved from Stripe, and ONLY a
-// sanitized projection is returned:
-//
-//   { items: [{name, image, quantity, unitAmount}], subtotal, shipping, total, orderNumber }
-//
-// customer_details and metadata are NEVER returned — the browser must not
-// learn the customer's contact details or the shipment/address metadata.
-//
-// A format-valid id Stripe doesn't know maps to 404 (missing resource), not
-// 500 — other Stripe failures stay 500.
-// `image` is always a same-origin path (build-time manifest or placeholder).
+// Success-receipt retrieval: returns only a sanitized projection of the Stripe
+// session — never customer_details or metadata.
 
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -46,8 +30,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Rate-limit only requests that would reach Stripe — malformed ids are
-    // already rejected above and must not consume quota. Surface-prefixed
+    // Rate-limit only requests that would reach Stripe; the surface-prefixed
     // key keeps this bucket separate from POST /api/checkout's.
     const rateLimited = await checkRateLimit(request, 'checkout-session');
     if (rateLimited) {
@@ -60,7 +43,6 @@ export async function GET(request: Request) {
 
     const lineItems = session.line_items?.data ?? [];
     const items = lineItems.map((lineItem) => {
-      // One name drives both the label and the image lookup.
       const name = resolveLineItemName(lineItem);
       return {
         name,
@@ -84,9 +66,8 @@ export async function GET(request: Request) {
       orderNumber: session.metadata?.order_number ?? '',
     });
   } catch (error) {
-    // A format-valid id Stripe doesn't know (expired, other key, or crafted)
-    // is a missing resource, not a server fault — answer 404 so clients get
-    // correct semantics and we don't log phantom 5s.
+    // A format-valid id Stripe doesn't know is a missing resource, not a
+    // server fault — 404 avoids phantom 5s.
     if (isStripeResourceMissing(error)) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
@@ -106,10 +87,7 @@ function isStripeResourceMissing(error: unknown): boolean {
   );
 }
 
-/**
- * Display name for a retrieved line item. Prefers the expanded product name;
- * falls back to the line item description Stripe generated at purchase time.
- */
+/** Prefers the expanded product name; falls back to Stripe's purchase-time description. */
 function resolveLineItemName(lineItem: Stripe.LineItem): string {
   const product = lineItem.price?.product;
   if (

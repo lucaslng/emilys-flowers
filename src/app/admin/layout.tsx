@@ -1,6 +1,5 @@
-// Admin routes are exempt from the under-construction gate (the gate lives in
-// src/app/(store)/layout.tsx), so the owner can review orders and send
-// shipping notifications while the storefront is down.
+// Exempt from the under-construction gate (which lives in the (store) layout)
+// so the owner can review orders while the storefront is down.
 
 import type { ReactNode } from "react";
 import StoreShell from "@/components/layout/StoreShell";

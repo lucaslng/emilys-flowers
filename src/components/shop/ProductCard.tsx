@@ -11,24 +11,16 @@ import { addWithPetalBurst } from '@/lib/petal-burst';
 
 interface ProductCardProps {
   product: Product;
-  /** Featured-only emphasis: rose hairline border + a soft single shadow +
-   *  a small "Featured" ink-stamp tag. Listing grids pass nothing (false). */
+  /** Rose hairline border + soft shadow + "Featured" ink-stamp tag. */
   emphasized?: boolean;
-  /** Optional layout classes (order / col-span / lift) applied to the card
-   *  root by the featured grid. Listing grids pass nothing. */
+  /** Layout classes (order / col-span / lift) applied by the featured grid. */
   className?: string;
   /** Above-the-fold image: loads eagerly with fetchpriority=high (no preload). */
   priority?: boolean;
-  /** Heading level for the product name (default "h3"). Listing pages pass
-   *  "h2" so the heading outline reads h1 → h2 → h3 without skipping levels. */
+  /** Listing pages pass "h2" so the heading outline reads h1 → h2 → h3. */
   headingLevel?: 'h2' | 'h3';
 }
 
-/**
- * ProductCard — the "gift tag". A warm paper card (sharp corners, hairline
- * border, no shadow) with the product image sitting on a frosted wrapping-
- * paper ground, a stamped Martian Mono name, and a rose underline on hover.
- */
 export default function ProductCard({
   product,
   emphasized = false,
@@ -45,7 +37,6 @@ export default function ProductCard({
         emphasized ? 'is-emphasized' : ''
       } ${className}`.trim()}
     >
-      {/* Image — edge-to-edge, sharp corners, wrapping-paper ground */}
       <Link
         href={`/products/${product.slug}`}
         className="relative block aspect-square overflow-hidden bg-blush/30"
@@ -69,7 +60,6 @@ export default function ProductCard({
         {!product.inStock && <OutOfStockStamp />}
       </Link>
 
-      {/* Gift-tag label */}
       <div className="flex flex-1 flex-col p-5">
         <div className="gift-divider -mx-5 mb-4" />
         <Heading className="gift-name font-sans text-base font-bold uppercase tracking-[0.08em] text-foreground">
