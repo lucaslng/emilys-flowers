@@ -259,6 +259,48 @@ claim-check path on every admin request for a threat model that doesn't
 currently justify it. Revisit if the site gains multiple admins, longer
 session TTLs, or compliance requirements.
 
+## CASL compliance
+
+Both order emails are **purely transactional** (order confirmation + shipping
+notification). Under Canada's Anti-Spam Legislation, that means:
+
+- **Consent is waived** via CASL s.6(6)(b) (the message facilitates, completes,
+  or confirms a transaction the recipient entered into) and s.6(6)(d)/(f)
+  (notification about an ongoing purchase / delivery). **Important:** s.6(6)
+  waives only the *consent* limb (s.6(1)(a)) — the s.6(2) *form* requirements
+  still apply in full. The CRTC's guidance confirms messages riding an
+  s.6(6) exception must still carry prescribed sender identification and a
+  working unsubscribe mechanism.
+- **Prescribed information** (SOR/2012-36 s.2): every message identifies the
+  business ("Emily's Flowers", emilysflowers.ca) and provides a valid contact
+  channel (`contact@emilysflowers.ca`) via the footer rendered by `emailShell`
+  in `src/lib/email.ts`. Because this information is static (not a campaign
+  with expiry), it satisfies CASL s.6(3)'s requirement that the information
+  remain valid for 60 days after sending.
+
+### Unsubscribe runbook
+
+The unsubscribe mechanism is a mailto link:
+`mailto:contact@emilysflowers.ca?subject=Unsubscribe` (labeled "Unsubscribe" in
+the HTML footer; the text version asks the customer to reply to or email
+`contact@emilysflowers.ca` with the subject 'Unsubscribe'). Being a plain
+mailto address rather than a per-campaign link, it stays valid indefinitely —
+well beyond the 60-day rule.
+
+Requests arrive at `contact@emilysflowers.ca` with subject "Unsubscribe".
+Honor them within **10 business days** (CASL s.11(3)) by adding the customer's
+email address to Resend's suppression list (dashboard or API), scoped so
+future transactional emails to that customer are suppressed. There is no
+automated suppression wiring today — this is a manual step.
+
+### Keep the templates strictly transactional
+
+Adding any marketing or cross-sell content to these email templates changes
+their legal character: they become promotional CEMs requiring full express or
+implied consent (a 24-month implied-consent window applies post-purchase under
+CASL s.10(1)(b) and s.10(10)). Either keep these templates strictly transactional, or
+implement full consent tracking and handling first.
+
 ## Notes / gotchas
 
 - **stripe-node v22 type gap:** `Checkout.Session` has no `shipping_details`

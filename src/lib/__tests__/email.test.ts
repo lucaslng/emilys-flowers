@@ -90,6 +90,19 @@ describe('sendOrderConfirmationEmail', () => {
     expect(payload.html).toContain('$145.96');
   });
 
+  test('includes the CASL sender, contact, and unsubscribe footer', async () => {
+    const { client, sent } = createFakeClient();
+    await sendOrderConfirmationEmail(confirmationData, undefined, client);
+
+    const payload = sent[0];
+    expect(payload.html).toContain('emilysflowers.ca');
+    expect(payload.html).toContain('contact@emilysflowers.ca');
+    expect(payload.html).toContain('subject=Unsubscribe');
+    expect(payload.text).toContain('emilysflowers.ca');
+    expect(payload.text).toContain('contact@emilysflowers.ca');
+    expect(payload.text).toContain("subject 'Unsubscribe'");
+  });
+
   test('passes the idempotency key through as the SDK request option', async () => {
     const { client, sentOptions } = createFakeClient();
     await sendOrderConfirmationEmail(confirmationData, { idempotencyKey: 'evt_123' }, client);
@@ -154,6 +167,27 @@ describe('sendShippedEmail', () => {
     expect(payload.subject).toContain('is on its way');
     expect(payload.text).toContain('2-4 business days');
     expect(payload.html).toContain('2-4 business days');
+  });
+
+  test('includes the CASL sender, contact, and unsubscribe footer', async () => {
+    const { client, sent } = createFakeClient();
+    await sendShippedEmail(
+      {
+        to: 'customer@example.com',
+        orderNumber: 'EF-ABC123',
+        estimatedShippingTime: '2-4 business days',
+      },
+      undefined,
+      client
+    );
+
+    const payload = sent[0];
+    expect(payload.html).toContain('emilysflowers.ca');
+    expect(payload.html).toContain('contact@emilysflowers.ca');
+    expect(payload.html).toContain('subject=Unsubscribe');
+    expect(payload.text).toContain('emilysflowers.ca');
+    expect(payload.text).toContain('contact@emilysflowers.ca');
+    expect(payload.text).toContain("subject 'Unsubscribe'");
   });
 
   test('passes the idempotency key through as the SDK request option', async () => {
