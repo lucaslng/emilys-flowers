@@ -17,6 +17,7 @@ const footerLinks: FooterGroup[] = [
       { label: 'About Us', href: '/#why-emilys-flowers' },
       { label: 'FAQ', href: '/faq' },
       { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
     ],
   },
   {
