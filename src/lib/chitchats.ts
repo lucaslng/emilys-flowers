@@ -118,6 +118,17 @@ export function shipmentDashboardUrl(shipmentId: string): string {
 }
 
 /**
+ * True when `shipmentId` is a well-formed ChitChats shipment id
+ * (alphanumeric plus `_`/`-`, 4–64 chars). Metadata-controlled values are
+ * validated with this before being interpolated into the dashboard href so a
+ * spoofed value can never become a `javascript:` (or otherwise unexpected)
+ * link target — render it as plain text instead.
+ */
+export function isValidShipmentId(shipmentId: string): boolean {
+  return /^[A-Za-z0-9_-]{4,64}$/.test(shipmentId);
+}
+
+/**
  * Headers for ChitChats API calls. The access token is sent as a BARE token —
  * ChitChats rejects `Bearer <token>`.
  */

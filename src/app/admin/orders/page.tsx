@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 import { formatPrice } from '@/lib/format';
-import { shipmentDashboardUrl } from '@/lib/chitchats';
+import { isValidShipmentId, shipmentDashboardUrl } from '@/lib/chitchats';
 import { isOidcConfigured, verifySessionToken } from '@/lib/admin-auth';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
@@ -274,7 +274,7 @@ export default async function AdminOrdersPage({
                             {shippingEstimate ? ` — ${shippingEstimate}` : ''}
                           </span>
                         )}
-                        {shipmentId && (
+                        {shipmentId && isValidShipmentId(shipmentId) && (
                           <a
                             href={shipmentDashboardUrl(shipmentId)}
                             target="_blank"

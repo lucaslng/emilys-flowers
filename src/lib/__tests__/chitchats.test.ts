@@ -8,6 +8,7 @@ import {
   estimateShipmentWeight,
   buildShipmentPayload,
   validateDeliveryAddress,
+  isValidShipmentId,
   CA_PROVINCES,
   type ChitChatsRate,
 } from '@/lib/chitchats';
@@ -174,6 +175,29 @@ describe('buildShipmentPayload', () => {
       subtotalCents: 14998,
     });
     expect(withoutLine2.address_2).toBeUndefined();
+  });
+});
+
+describe('isValidShipmentId', () => {
+  test('accepts well-formed ChitChats shipment ids', () => {
+    expect(isValidShipmentId('123456')).toBe(true);
+    expect(isValidShipmentId('SHIP-1234')).toBe(true);
+    expect(isValidShipmentId('ab_cd-12')).toBe(true);
+    expect(isValidShipmentId('abcd')).toBe(true); // 4-char lower bound
+    expect(isValidShipmentId('a'.repeat(64))).toBe(true); // 64-char upper bound
+  });
+
+  test('rejects malformed ids', () => {
+    expect(isValidShipmentId('javascript:alert(1)')).toBe(false);
+    expect(isValidShipmentId('https://evil.example')).toBe(false);
+    expect(isValidShipmentId('')).toBe(false);
+    expect(isValidShipmentId('abc')).toBe(false); // too short (< 4)
+    expect(isValidShipmentId('a'.repeat(65))).toBe(false); // too long (> 64)
+    expect(isValidShipmentId('has space')).toBe(false);
+    expect(isValidShipmentId('../../etc')).toBe(false);
+    expect(isValidShipmentId('<script>')).toBe(false);
+    expect(isValidShipmentId("id';--")).toBe(false);
+    expect(isValidShipmentId('café')).toBe(false);
   });
 });
 
