@@ -34,7 +34,8 @@ The top-level config (including the `WORKER_SELF_REFERENCE` →
 `emilys-flowers` binding) is kept for `bun run preview` / local dev.
 
 The `ratelimits` array defines the `RATE_LIMITER` binding (10 requests /
-60 s, used by `src/lib/rate-limit.ts` to protect Stripe API quota). It is
+60 s, used by `src/lib/rate-limit.ts` to protect Stripe API quota and the
+admin OIDC sign-in endpoints). It is
 declared in **all three** config blocks — top level plus both `[env.*]`
 stanzas — with a **distinct `namespace_id` per block** (`1001` top-level,
 `1002` production, `1003` preview; string-wrapped ints, account-unique) so

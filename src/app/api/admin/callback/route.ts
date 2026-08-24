@@ -23,6 +23,7 @@ import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
 } from '@/lib/admin-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /** Constant-time state comparison (lengths must match). */
 function statesMatch(submitted: string, expected: string): boolean {
@@ -61,6 +62,14 @@ export async function GET(request: NextRequest) {
 
   if (!code || !state || !cookieState || !verifier || !statesMatch(state, cookieState)) {
     return failRedirect('signin');
+  }
+
+  // Only state-valid requests reach the IdP (discovery, token exchange,
+  // JWKS, userinfo); limit just before that egress so garbage callbacks are
+  // rejected quota-free (issue #217).
+  const rateLimited = await checkRateLimit(request, 'admin-callback');
+  if (rateLimited) {
+    return rateLimited;
   }
 
   let claims: Record<string, unknown>;

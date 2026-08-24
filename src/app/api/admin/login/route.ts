@@ -17,6 +17,7 @@ import {
   OIDC_STATE_MAX_AGE_SECONDS,
   OIDC_VERIFIER_COOKIE,
 } from '@/lib/admin-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: Request) {
   const redirectUri = resolveRedirectUri(request.url);
@@ -26,6 +27,14 @@ export async function GET(request: Request) {
       { error: 'OIDC admin auth is not configured on the server.' },
       { status: 500 }
     );
+  }
+
+  // Bounds unauthenticated authorize-redirect minting. Discovery is cached
+  // 1h per isolate, but cold-start floods would otherwise fan out to the
+  // IdP (issue #217).
+  const rateLimited = await checkRateLimit(request, 'admin-login');
+  if (rateLimited) {
+    return rateLimited;
   }
 
   const config = getOidcConfig(redirectUri);
