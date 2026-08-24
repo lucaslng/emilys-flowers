@@ -31,6 +31,8 @@ export const orderEmailMocks = {
   emailSendCalls: [] as unknown[][],
   emailShouldThrow: false,
   stripeUpdateShouldThrow: false,
+  stripeUpdateFailuresRemaining: 0,
+  stripeUpdateAttempts: 0,
 };
 
 export function resetOrderEmailMocks() {
@@ -47,6 +49,8 @@ export function resetOrderEmailMocks() {
   orderEmailMocks.emailSendCalls.length = 0;
   orderEmailMocks.emailShouldThrow = false;
   orderEmailMocks.stripeUpdateShouldThrow = false;
+  orderEmailMocks.stripeUpdateFailuresRemaining = 0;
+  orderEmailMocks.stripeUpdateAttempts = 0;
 }
 
 // Mock the `stripe` module so the route handlers never make real network
@@ -92,7 +96,14 @@ mock.module('stripe', () => {
           sessionId: string,
           params: { metadata: Record<string, string> }
         ) => {
-          if (orderEmailMocks.stripeUpdateShouldThrow) {
+          orderEmailMocks.stripeUpdateAttempts += 1;
+          const shouldFail =
+            orderEmailMocks.stripeUpdateShouldThrow ||
+            orderEmailMocks.stripeUpdateFailuresRemaining > 0;
+          if (shouldFail) {
+            if (orderEmailMocks.stripeUpdateFailuresRemaining > 0) {
+              orderEmailMocks.stripeUpdateFailuresRemaining -= 1;
+            }
             throw new Error('Stripe update failed');
           }
           orderEmailMocks.stripeUpdateCalls.push({ sessionId, params });

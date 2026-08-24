@@ -93,10 +93,12 @@ so they must be deployed as `wrangler secret put` per Worker (see
   update replaces the whole map, so the current keys are spread in). Before
   sending, the webhook skips (200) when `metadata.confirmation_email_sent_at`
   already exists, so Stripe retries after the Resend idempotency window expires
-  don't produce duplicate emails. If the stamp update itself fails after a
-  successful send, the handler logs and still returns 200 — the email was
-  already delivered, and a 500 would make Stripe retry and risk a duplicate
-  once Resend's idempotency window expires.
+  don't produce duplicate emails. The stamp goes through
+  `stampConfirmationMetadata` (`src/lib/webhook-stamp.ts`), which retries the
+  update up to 3 times with short backoff. If every attempt fails, the handler
+  returns **500** so Stripe redelivers while Resend's idempotency key still
+  dedupes (<24h); each redelivery re-attempts the stamp, and once it lands the
+  app-level check dedupes any later (>24h) retries.
 - All other event types → `200 { received: true }`.
 
 ### Local testing
