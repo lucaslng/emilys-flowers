@@ -20,9 +20,9 @@ import {
 import { shippingAddressMetadata } from '@/lib/address-validation';
 import { getStripeClient } from '@/lib/stripe-client';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isBaseUrlConfigured, resolveBaseOrigin } from '@/lib/base-url';
 
 export async function POST(request: Request) {
-  const origin = new URL(request.url).origin;
   try {
     // Malformed JSON is a client fault — clean 400, not the 500 catch below.
     let body: { items?: unknown; address?: unknown };
@@ -73,8 +73,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Rate-limit before any billable external call — this unauthenticated
-    // surface creates real shipments, so floods are an abuse vector. Cheap
+    if (!isBaseUrlConfigured()) {
+      // Fail closed like admin auth — redirect origins never come from the client-supplied Host header.
+      console.error(
+        '[Checkout] BASE_URL is not set; refusing Host-derived success/cancel URLs in production.'
+      );
+      return NextResponse.json(
+        { error: 'Checkout is not configured.' },
+        { status: 503 }
+      );
+    }
+
+    // Rate-limit before any billable external call (catalog fetch, ChitChats shipment, Stripe session) — cheap rejections stay quota-free.
     // rejections above stay quota-free.
     const rateLimited = await checkRateLimit(request, 'checkout');
     if (rateLimited) {
@@ -117,6 +127,9 @@ export async function POST(request: Request) {
 
     const orderNumber = generateOrderNumber();
 
+    // Pinned to BASE_URL in production — never the Host header.
+    const origin = resolveBaseOrigin(request.url);
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment',
       billing_address_collection: 'required',
@@ -125,8 +138,7 @@ export async function POST(request: Request) {
         price: r.priceId,
         quantity: r.quantity,
       })),
-      // Session id only — no display-only params; the receipt is retrieved
-      // server-side.
+      // Session id + order number only — no display-only params; the receipt (shipping included) is retrieved server-side.
       success_url: `${origin}/checkout/success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };

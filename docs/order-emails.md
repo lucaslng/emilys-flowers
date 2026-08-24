@@ -49,7 +49,7 @@ Resend domain).
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
 | `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
-| `BASE_URL` | `src/lib/admin-auth.ts` | The site's root URL (e.g. `https://emilysflowers.ca`); the OIDC callback URL is derived as `BASE_URL + /api/admin/callback` (the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
+| `BASE_URL` | `src/lib/base-url.ts` (OIDC callback via `src/lib/admin-auth.ts`; Stripe success/cancel URLs via the checkout route) | The site's root URL (e.g. `https://emilysflowers.ca`); redirect URLs are derived from it (`BASE_URL + /api/admin/callback` for OIDC — the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
 
 All of these are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY`,
 `STRIPE_WEBHOOK_SECRET`, and the OIDC vars are read at runtime on the Worker,
@@ -258,6 +258,48 @@ rare and cheap, and targeted revocation would add a KV binding plus a
 claim-check path on every admin request for a threat model that doesn't
 currently justify it. Revisit if the site gains multiple admins, longer
 session TTLs, or compliance requirements.
+
+## CASL compliance
+
+Both order emails are **purely transactional** (order confirmation + shipping
+notification). Under Canada's Anti-Spam Legislation, that means:
+
+- **Consent is waived** via CASL s.6(6)(b) (the message facilitates, completes,
+  or confirms a transaction the recipient entered into) and s.6(6)(d)/(f)
+  (notification about an ongoing purchase / delivery). **Important:** s.6(6)
+  waives only the *consent* limb (s.6(1)(a)) — the s.6(2) *form* requirements
+  still apply in full. The CRTC's guidance confirms messages riding an
+  s.6(6) exception must still carry prescribed sender identification and a
+  working unsubscribe mechanism.
+- **Prescribed information** (SOR/2012-36 s.2): every message identifies the
+  business ("Emily's Flowers", emilysflowers.ca) and provides a valid contact
+  channel (`contact@emilysflowers.ca`) via the footer rendered by `emailShell`
+  in `src/lib/email.ts`. Because this information is static (not a campaign
+  with expiry), it satisfies CASL s.6(3)'s requirement that the information
+  remain valid for 60 days after sending.
+
+### Unsubscribe runbook
+
+The unsubscribe mechanism is a mailto link:
+`mailto:contact@emilysflowers.ca?subject=Unsubscribe` (labeled "Unsubscribe" in
+the HTML footer; the text version asks the customer to reply to or email
+`contact@emilysflowers.ca` with the subject 'Unsubscribe'). Being a plain
+mailto address rather than a per-campaign link, it stays valid indefinitely —
+well beyond the 60-day rule.
+
+Requests arrive at `contact@emilysflowers.ca` with subject "Unsubscribe".
+Honor them within **10 business days** (CASL s.11(3)) by adding the customer's
+email address to Resend's suppression list (dashboard or API), scoped so
+future transactional emails to that customer are suppressed. There is no
+automated suppression wiring today — this is a manual step.
+
+### Keep the templates strictly transactional
+
+Adding any marketing or cross-sell content to these email templates changes
+their legal character: they become promotional CEMs requiring full express or
+implied consent (a 24-month implied-consent window applies post-purchase under
+CASL s.10(1)(b) and s.10(10)). Either keep these templates strictly transactional, or
+implement full consent tracking and handling first.
 
 ## Notes / gotchas
 

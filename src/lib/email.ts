@@ -26,6 +26,10 @@ export interface SendEmailOptions {
 
 const FROM_ADDRESS = "Emily's Flowers <hello@emilysflowers.ca>";
 
+// Static values keep CASL's 60-day contact-info validity (s.6(3)) trivially true.
+const CONTACT_EMAIL = 'contact@emilysflowers.ca';
+const UNSUBSCRIBE_MAILTO = `mailto:${CONTACT_EMAIL}?subject=Unsubscribe`;
+
 // Warm "gift tag" palette — mirrors the site design tokens in globals.css.
 const EMAIL_BG = '#FEFAF5';
 const EMAIL_SURFACE = '#FCF5EF';
@@ -55,6 +59,37 @@ function greeting(customerName?: string): string {
   return customerName ? `Hi ${customerName},` : 'Hello,';
 }
 
+function complianceFooterHtml(): string {
+  return `
+        <tr>
+          <td style="padding-top:20px; margin-top:20px; border-top:1px dashed ${EMAIL_STITCH}; font-family:${EMAIL_FONT_MONO}; font-size:11px; line-height:1.6; color:${EMAIL_MUTED};">
+            <p style="margin:0 0 8px;">
+              You're receiving this email because you placed an order with
+              Emily's Flowers (emilysflowers.ca).
+            </p>
+            <p style="margin:0 0 8px;">
+              Questions about your order? Email
+              <a href="mailto:${CONTACT_EMAIL}" style="color:${EMAIL_ROSE};">${CONTACT_EMAIL}</a>.
+            </p>
+            <p style="margin:0;">
+              To stop receiving these emails,
+              <a href="${UNSUBSCRIBE_MAILTO}" style="color:${EMAIL_ROSE};">Unsubscribe</a>
+              (or reply with the subject "Unsubscribe").
+            </p>
+          </td>
+        </tr>`;
+}
+
+function complianceFooterLines(): string[] {
+  return [
+    '',
+    '---',
+    `You're receiving this email because you placed an order with Emily's Flowers (emilysflowers.ca).`,
+    `Contact: ${CONTACT_EMAIL}`,
+    `To stop receiving these emails, reply to or email ${CONTACT_EMAIL} with the subject 'Unsubscribe'.`,
+  ];
+}
+
 function emailShell(innerHtml: string): string {
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; padding:24px 0;">
@@ -73,10 +108,11 @@ function emailShell(innerHtml: string): string {
           </td>
         </tr>
         <tr>
-          <td style="padding-top:20px; font-family:${EMAIL_FONT_MONO}; font-size:13px; line-height:1.6; color:${EMAIL_TEXT};">
+          <td style="padding-top:20px; padding-bottom:24px; font-family:${EMAIL_FONT_MONO}; font-size:13px; line-height:1.6; color:${EMAIL_TEXT};">
             ${innerHtml}
           </td>
         </tr>
+        ${complianceFooterHtml()}
       </table>
     </td>
   </tr>
@@ -170,6 +206,7 @@ function buildOrderConfirmationText(data: OrderConfirmationData): string {
     '',
     'Warmly,',
     "Emily's Flowers",
+    ...complianceFooterLines(),
   ].join('\n');
 }
 
@@ -217,6 +254,7 @@ function buildShippedText(data: {
     '',
     'Warmly,',
     "Emily's Flowers",
+    ...complianceFooterLines(),
   ].join('\n');
 }
 
