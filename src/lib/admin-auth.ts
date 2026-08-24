@@ -88,6 +88,17 @@ export function isOidcConfigured(): boolean {
 }
 
 /**
+ * Parses `ADMIN_OIDC_GROUPS` (comma-separated) into the current allowlist;
+ * an empty/unset value yields an empty list, which fails closed downstream.
+ */
+function getAllowedGroupsFromEnv(): string[] {
+  return (process.env.ADMIN_OIDC_GROUPS ?? '')
+    .split(',')
+    .map((group) => group.trim())
+    .filter(Boolean);
+}
+
+/**
  * Returns the OIDC config, throwing an Error that names exactly which
  * required env vars are missing.
  */
@@ -104,10 +115,7 @@ export function getOidcConfig(redirectUri: string): OidcConfig {
     clientId: process.env.OIDC_CLIENT_ID!,
     clientSecret: process.env.OIDC_CLIENT_SECRET!,
     redirectUri,
-    allowedGroups: (process.env.ADMIN_OIDC_GROUPS ?? '')
-      .split(',')
-      .map((group) => group.trim())
-      .filter(Boolean),
+    allowedGroups: getAllowedGroupsFromEnv(),
     sessionSecret: process.env.ADMIN_SESSION_SECRET!,
   };
 }
@@ -294,8 +302,12 @@ export async function createSessionToken(
 }
 
 /**
- * Verifies the `admin_session` JWT against `ADMIN_SESSION_SECRET`.
- * Returns `null` on any failure (missing/malformed/expired/bad signature).
+ * Verifies the `admin_session` JWT against `ADMIN_SESSION_SECRET` and
+ * re-checks its `groups` claim against the CURRENT `ADMIN_OIDC_GROUPS`
+ * allowlist, so allowlist changes revoke existing sessions before the 8h
+ * TTL expires (the claim is baked in at login). Fails closed when the
+ * allowlist is unset/empty. Returns `null` on any failure
+ * (missing/malformed/expired/bad signature/no longer in an allowed group).
  */
 export async function verifySessionToken(
   token: string | undefined
@@ -311,6 +323,14 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     if (typeof payload.sub !== 'string') return null;
+    if (
+      !isAllowedByGroups(
+        payload as Record<string, unknown>,
+        getAllowedGroupsFromEnv()
+      )
+    ) {
+      return null;
+    }
     return {
       sub: payload.sub,
       email: typeof payload.email === 'string' ? payload.email : undefined,
