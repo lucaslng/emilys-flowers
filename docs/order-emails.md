@@ -33,8 +33,8 @@ Resend domain).
 | `src/app/admin/orders/admin-login.tsx` | **Removed** — the password login island no longer exists; replaced by the OIDC flow |
 | `src/app/admin/orders/ship-form.tsx` | Client island: estimate input → `POST /api/admin/orders/[sessionId]/ship` |
 | `src/lib/admin-auth.ts` | OIDC client + session JWT helpers: discovery, PKCE, token exchange, ID-token verification, group check |
-| `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE) |
-| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `admin_session` JWT cookie |
+| `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE); rate-limited 10/min/IP (`admin-login:` key) |
+| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `admin_session` JWT cookie; rate-limited 10/min/IP (`admin-callback:` key, consulted only after the state check passes) |
 | `src/app/api/admin/logout/route.ts` | Clears the `admin_session` cookie |
 | `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Format-checks `sessionId` (`cs_(live|test)`, shared helper in `src/lib/stripe-session-id.ts`; malformed → 400), then sends the shipped email + persists metadata |
 
@@ -151,7 +151,11 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   against the `ADMIN_OIDC_GROUPS` allowlist. On success it sets the
   `admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
   `sameSite: lax`, `secure` in production — and redirects to `/admin/orders`.
-  `GET /api/admin/logout` clears the cookie. The page and the ship route
+  `GET /api/admin/logout` clears the cookie. Both `GET /api/admin/login` and
+  `GET /api/admin/callback` are rate-limited 10 requests / 60 s per client IP
+  via the Workers `RATE_LIMITER` binding (surface-prefixed keys; the callback
+  is limited only after its state check passes, so garbage callbacks stay
+  quota-free). The page and the ship route
   verify the `admin_session` JWT and re-check it against
   `ADMIN_OIDC_GROUPS` on every request, so removing a group from the
   allowlist revokes existing sessions immediately. Removing a user from the
