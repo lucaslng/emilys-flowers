@@ -155,6 +155,16 @@ useGSAP(() => {
 ScrollTriggers created inside `useGSAP` are automatically cleaned up on unmount
 (via `context.revert()`). Don't create ScrollTriggers outside `useGSAP`.
 
+## Line boil (CSS-only hand-drawn jitter)
+
+`.line-boil` / `.line-boil-fine` are CSS keyframe animations that make
+hand-drawn SVG line art tremble like ink settling. Constraints baked into the
+keyframes: 0%/100% sit at zero so the loop is seamless and the reduced-motion
+collapse lands exactly on the static composition; `transform-box: fill-box`
+centers the jitter per element; and draw-in effects must animate
+`stroke-dashoffset` (not transform) so they compose with the boil without
+conflict.
+
 ## PetalBurst — the singleton pattern
 
 `PetalBurst` is a global delight interaction: when a user adds a product to

@@ -1,9 +1,5 @@
-// src/app/api/admin/logout/route.ts
-//
-// Admin sign-out: clears the `admin_session` cookie and returns to the admin
-// sign-in page. POST-only (form-submitted from the admin UI) so a plain link
-// or prefetch cannot trigger the state change; same-origin enforced like the
-// ship route so a cross-site form cannot force a sign-out.
+// Admin sign-out: clears the `admin_session` cookie. POST-only + same-origin
+// so a link, prefetch, or cross-site form cannot force a sign-out.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE } from '@/lib/admin-auth';
@@ -17,8 +13,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 303 so the browser follows the redirect with GET regardless of how the
-  // target page handles POST.
+  // 303 so the browser follows the redirect with GET.
   const response = NextResponse.redirect(
     new URL('/admin/orders', request.url).toString(),
     303

@@ -83,7 +83,6 @@ function TextField({
   label: string;
   value: string;
   autoComplete?: string;
-  /** Specific message shown inline when present (undefined = valid). */
   error?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -139,7 +138,6 @@ export function SelectField({
   children,
 }: {
   id: string;
-  /** Form field name when it differs from the DOM id (the province posts as `province`). */
   name?: string;
   label: string;
   value: string;
@@ -186,11 +184,7 @@ export function SelectField({
 }
 
 export interface AddressFormPanelHandle {
-  /**
-   * Marks every field touched so invalid ones show their messages, and
-   * focuses the first of `errors` when given (the local submit path; the
-   * server-error path reveals without moving focus).
-   */
+  /** Marks every field touched and focuses the first of `errors` when given. */
   revealAllErrors(errors?: AddressFieldError[]): void;
 }
 
@@ -201,22 +195,16 @@ interface AddressFormPanelProps {
   serverFieldErrors: Partial<Record<AddressFieldName, string>>;
 }
 
-/**
- * AddressFormPanel — "where the blooms go". Owns the touched-field state and
- * inline error display for the delivery address; the parent keeps ownership
- * of the address value, server feedback, and submit-time validation wiring.
- */
+/** Owns touched-field state and inline error display; the parent owns the address value. */
 const AddressFormPanel = forwardRef<AddressFormPanelHandle, AddressFormPanelProps>(
   function AddressFormPanel({ address, onFieldChange, serverFieldErrors }, ref) {
     const [touched, setTouched] = useState<Record<RequiredAddressField, boolean>>(UNTOUCHED);
 
-    /** Shared validation rules (presence + province + postal format), in form order. */
     const invalidFields = useMemo(
       () => validateDeliveryAddressFields(address),
       [address]
     );
 
-    /** The same rules keyed by field for quick inline lookup. */
     const validationErrors = useMemo(() => {
       const byField: Partial<Record<AddressFieldName, string>> = {};
       for (const { field, message } of invalidFields) {
@@ -225,10 +213,8 @@ const AddressFormPanel = forwardRef<AddressFormPanelHandle, AddressFormPanelProp
       return byField;
     }, [invalidFields]);
 
-    /**
-     * The message to show for a field, if any: server feedback wins until the
-     * customer edits that field; otherwise show the shared rule once touched.
-     */
+    // Server feedback wins until the customer edits that field; otherwise
+    // show the shared rule once touched.
     const fieldError = (field: AddressFieldName): string | undefined => {
       const serverMessage = serverFieldErrors[field];
       if (serverMessage) return serverMessage;

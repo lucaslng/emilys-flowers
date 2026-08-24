@@ -1,9 +1,5 @@
-// Tests for `GET /api/admin/login` rate limiting (issue #217). The route runs
-// against the REAL `@/lib/admin-auth` — that module must never be mocked (see
-// ./ship-route.test.ts); outbound IdP discovery is stubbed via
-// globalThis.fetch instead. The rate-limit guard's `@opennextjs/cloudflare`
-// mock lives in ./rate-limit-mocks.ts (registered once per process, driven
-// via `rateLimitMocks`).
+// Runs against the REAL @/lib/admin-auth — that module must never be mocked (see ./ship-route.test.ts);
+// outbound IdP discovery is stubbed via globalThis.fetch instead.
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import {
@@ -39,8 +35,7 @@ describe('GET /api/admin/login', () => {
     process.env.OIDC_CLIENT_ID = 'client-id';
     process.env.OIDC_CLIENT_SECRET = 'client-secret';
     process.env.ADMIN_SESSION_SECRET = SESSION_SECRET;
-    // Part of REQUIRED_ENV_VARS — earlier files (e.g. admin-auth.test.ts)
-    // delete it from process.env, so it must be set here, not via .env.
+    // Part of REQUIRED_ENV_VARS — earlier files delete it from process.env, so it must be set here.
     process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetRateLimitMocks();
     originalFetch = globalThis.fetch;
@@ -85,7 +80,6 @@ describe('GET /api/admin/login', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('60');
     expect((await response.json()).error).toBe('Too many requests');
-    // The outbound IdP discovery fetch must never happen on a rejected request.
     let fetchCalls = 0;
     globalThis.fetch = (async () => {
       fetchCalls++;
@@ -112,7 +106,6 @@ describe('GET /api/admin/login', () => {
     const response = await GET(loginRequest());
 
     expect(response.status).toBe(307);
-    // The limiter was consulted (and threw), but availability wins.
     expect(rateLimitMocks.limitCalls).toHaveLength(1);
   });
 

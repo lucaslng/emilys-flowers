@@ -13,11 +13,6 @@ interface CartItemProps {
   item: CartItemType;
 }
 
-/**
- * CartItem — a "gift tag" hanging in the cart. Warm paper card, sharp
- * corners, dashed seam under the name. All quantity/remove behaviour and
- * micro-animations are unchanged.
- */
 export default function CartItem({ item }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCart();
   const { product, quantity } = item;
@@ -25,18 +20,13 @@ export default function CartItem({ item }: CartItemProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const qtyRef = useRef<HTMLSpanElement>(null);
   const totalRef = useRef<HTMLSpanElement>(null);
-  // Holds the in-flight exit tween so we can kill it on unmount and avoid
-  // a stale `onComplete` firing `removeFromCart` after navigation.
+  // Kill the in-flight exit tween on unmount so a stale `onComplete` can't
+  // mutate cart state after the user has navigated away.
   const removeTweenRef = useRef<gsap.core.Tween | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  // Quantity-change micro-interaction: a subtle scale bump on the
-  // quantity number and the line total whenever `quantity` changes.
   useScaleBump(quantity, [qtyRef, totalRef], rootRef);
 
-  // Kill any in-flight exit tween if the component unmounts mid-animation
-  // (e.g. user navigates away) so a stale onComplete can't mutate cart
-  // state after the user has moved on.
   useEffect(() => {
     return () => {
       removeTweenRef.current?.kill();
@@ -57,7 +47,6 @@ export default function CartItem({ item }: CartItemProps) {
   const handleRemove = () => {
     if (isRemoving) return;
     const node = rootRef.current;
-    // Reduced motion or missing ref: dispatch immediately, no animation.
     if (!node || prefersReducedMotion()) {
       removeFromCart(product.id);
       return;
@@ -75,7 +64,6 @@ export default function CartItem({ item }: CartItemProps) {
       data-cart-item
       className="gift-card cart-item-card group flex gap-4 p-4 sm:gap-6 sm:p-6"
     >
-      {/* Image — sharp corners, wrapping-paper ground */}
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden bg-blush/30 sm:h-28 sm:w-28">
         <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
         <ProductImage
@@ -85,7 +73,6 @@ export default function CartItem({ item }: CartItemProps) {
         />
       </div>
 
-      {/* Details */}
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex items-start justify-between">
           <div>
@@ -120,7 +107,6 @@ export default function CartItem({ item }: CartItemProps) {
         </div>
 
         <div className="mt-3 flex items-center justify-between">
-          {/* Quantity Controls */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleDecrement}
@@ -173,7 +159,6 @@ export default function CartItem({ item }: CartItemProps) {
             </button>
           </div>
 
-          {/* Line Total */}
           <span
             ref={totalRef}
             className="font-sans text-lg font-bold tabular-nums text-foreground"

@@ -10,18 +10,12 @@ interface FilterBarProps {
   priceRange: [number, number];
   selectedPriceRange: [number, number];
   onPriceRangeChange: (range: [number, number]) => void;
-  /** Optional secondary category group (e.g. flower color) shown as a second
-   *  row of pills below the primary category row. */
+  /** Optional secondary category group (e.g. flower color) below the primary row. */
   secondaryCategories?: { label: string; value: string }[];
   selectedSecondaryCategory?: string;
   onSecondaryCategoryChange?: (value: string) => void;
 }
 
-/**
- * FilterBar — the "catalogue index". A stitched index card where filters
- * read as stamped tabs: category + color pills, price sliders, and a sort
- * select. Sharp corners and warm stamps — the geometric voice.
- */
 export default function FilterBar({
   categories,
   selectedCategory,
@@ -44,7 +38,6 @@ export default function FilterBar({
 
   return (
     <div className="stitch relative flex flex-col gap-5 bg-surface p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-      {/* Category Filters (primary + optional secondary) */}
       <div className="flex flex-col gap-3">
         <div
           role="group"
@@ -68,7 +61,6 @@ export default function FilterBar({
           ))}
         </div>
 
-        {/* Secondary Category Filter (e.g. flower color) */}
         {secondaryCategories && onSecondaryCategoryChange && (
           <div
             role="group"
@@ -94,7 +86,6 @@ export default function FilterBar({
         )}
       </div>
 
-      {/* Price Range */}
       <div
         role="group"
         aria-label="Filter by price"
@@ -142,7 +133,6 @@ export default function FilterBar({
         </span>
       </div>
 
-      {/* Sort */}
       <div
         role="group"
         aria-label="Sort products"

@@ -11,13 +11,6 @@ const navLinks = [
   { href: '/bouquets', label: 'Bouquets' },
 ];
 
-/**
- * Navbar — the "gift tag" band. A paper strip with a stitched bottom seam;
- * the logo sits on a slightly-tilted gift tag, the links read as stamped
- * labels, and the cart is a round gift-button. Keeps every a11y contract:
- * sticky nav landmark, visible focus, mobile menu focus management, and
- * Escape-to-close.
- */
 export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { getItemCount } = useCart();
@@ -30,21 +23,18 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
   const toggleRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
 
-  // Closing the menu always returns focus to the toggle (Escape, link click,
-  // or tapping the toggle itself). WCAG 2.4.3 Focus Order / 2.4.7 Focus Visible.
+  // Closing the menu always returns focus to the toggle (WCAG 2.4.3).
   const closeMenu = useCallback(() => {
     setMobileOpen(false);
     toggleRef.current?.focus();
   }, []);
 
-  // Opening the menu moves focus to the first menu link.
   useEffect(() => {
     if (mobileOpen) {
       firstLinkRef.current?.focus();
     }
   }, [mobileOpen]);
 
-  // Escape closes the open menu and returns focus to the toggle.
   useEffect(() => {
     if (!mobileOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -58,11 +48,9 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
-      {/* Stitched seam — the paper band's bottom edge */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#E4C9B8]/70" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-[#E4C9B8]/40" />
 
-      {/* Subtle ambient petals — behind all nav content (z -1), non-interactive */}
       <span className="petal-nav text-rose-line text-xs"  style={{ left: '8%',  top: '12px', animationDuration: '9s',  animationDelay: '0s' }}   aria-hidden="true">❀</span>
       <span className="petal-nav text-rose-line text-sm"  style={{ left: '24%', top: '38px', animationDuration: '12s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
       <span className="petal-nav text-rose-line text-base" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }}   aria-hidden="true">❀</span>
@@ -73,20 +61,17 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
-          {/* Logo — a tilted gift tag. Always a Link (the page h1 lives in
-              each page's content, keeping the heading outline clean). */}
+          {/* Always a Link — the page h1 lives in each page's content. */}
           <Link
             href="/"
             className="group relative -rotate-1 rounded-none border border-rose-line/60 bg-surface px-3 py-1.5 font-sans text-sm font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:border-rose-line hover:text-rose-deep sm:text-base"
           >
             Emily&#39;s Flowers
-            {/* Tiny hand-drawn heart pinned to the tag */}
             <span aria-hidden="true" className="absolute -right-2.5 -top-2.5 text-xs text-rose-deep transition-transform duration-300 group-hover:scale-125">
               ♡
             </span>
           </Link>
 
-          {/* Desktop Nav — centered relative to the full row width */}
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">
             {visibleLinks.map((link) => (
               <Link
@@ -99,7 +84,6 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
             ))}
           </div>
 
-          {/* Cart Icon & Mobile Toggle */}
           <div className="flex items-center gap-4">
             <Link
               href="/cart"
@@ -135,7 +119,6 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
               )}
             </Link>
 
-            {/* Mobile Hamburger */}
             <button
               ref={toggleRef}
               className="flex items-center text-foreground md:hidden"
@@ -179,7 +162,6 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
           </div>
         </div>
 
-        {/* Mobile Menu — drops open like a gift box lid */}
         {mobileOpen && (
           <div
             id="mobile-nav-menu"

@@ -1,5 +1,4 @@
-// The manifest is parsed from process.env.PRODUCT_IMAGES (memoized per raw
-// value), so each test sets its own value and restores it afterwards.
+// PRODUCT_IMAGES parsing is memoized per raw value, so each test sets its own value and restores it afterwards.
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import { resolveReceiptImage } from '@/lib/receipt-images';

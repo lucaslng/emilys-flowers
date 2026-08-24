@@ -1,11 +1,5 @@
-/**
- * Shared delivery-address validation for checkout.
- *
- * Used by BOTH the client checkout form (per-field error messages) and the
- * server (`src/lib/chitchats.ts`, `POST /api/checkout`) so both sides enforce
- * identical rules. Keep this module free of server-only imports — it is
- * bundled into client JS.
- */
+// Shared delivery-address validation used by BOTH the client checkout form and the server —
+// keep free of server-only imports (bundled into client JS).
 
 /** Canadian province/territory codes accepted by ChitChats. */
 export const CA_PROVINCES = [
@@ -39,11 +33,7 @@ export interface AddressFieldError {
   message: string;
 }
 
-/**
- * Canadian postal code (`A1A 1A1`). Case-insensitive; the separator between
- * the two halves may be a space, a hyphen, or omitted. First-position letters
- * exclude D/F/I/O/Q/U/W/Z; third-position letters exclude D/F/I/O/Q/U.
- */
+/** Canadian postal code (A1A 1A1); separator may be space/hyphen/omitted; letter set excludes D/F/I/O/Q/U (+W/Z in first position). */
 export const CA_POSTAL_CODE_REGEX =
   /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i;
 
@@ -51,15 +41,9 @@ export function isValidCAPostalCode(value: string): boolean {
   return CA_POSTAL_CODE_REGEX.test(value.trim());
 }
 
-/**
- * Canonical postal-code form: trimmed, uppercase, single-space separator
- * ("  m5v-2t6 " → "M5V 2T6", "m5v2t6" → "M5V 2T6"). Best-effort for invalid
- * input.
- */
+/** Canonical form: trimmed, uppercase, single-space separator; best-effort for invalid input. */
 export function normalizeCAPostalCode(value: string): string {
   const compact = value.trim().toUpperCase().replace(/[\s-]+/g, '');
-  // A well-formed (case-insensitive, separator-free) code is exactly 6
-  // characters — split it into its two halves at the canonical position.
   return compact.length === 6
     ? `${compact.slice(0, 3)} ${compact.slice(3)}`
     : compact;
@@ -92,13 +76,7 @@ function fieldValue(
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/**
- * Validate an untrusted delivery-address payload and return one structured
- * error per invalid field, in form order. Returns [] when the address is
- * fully valid. Rules: name/line1/city/province/postalCode required non-empty;
- * province must be a known CA code; postalCode must be a valid Canadian
- * postal code; `line2` is optional and never produces an error.
- */
+/** One structured error per invalid field, in form order; [] when fully valid. */
 export function validateDeliveryAddressFields(
   address: unknown,
 ): AddressFieldError[] {
@@ -136,12 +114,7 @@ function isKnownProvince(value: string): boolean {
 /** Stripe caps every Checkout Session metadata value at 500 characters. */
 export const STRIPE_METADATA_VALUE_MAX_LENGTH = 500;
 
-/**
- * Clamp a free-form string to Stripe's metadata-value cap: trim surrounding
- * whitespace first, then hard-slice. Same treatment `truncateDeliveryAddress`
- * gives each address field, for values that aren't address fields (e.g. the
- * admin ship route's `estimatedShippingTime`).
- */
+/** Trim then hard-slice to Stripe's metadata cap — same treatment truncateDeliveryAddress gives each field. */
 export function clampMetadataValue(
   value: string,
   maxLength: number = STRIPE_METADATA_VALUE_MAX_LENGTH
@@ -149,11 +122,7 @@ export function clampMetadataValue(
   return value.trim().slice(0, maxLength);
 }
 
-/**
- * Per-field caps: fully-filled fields serialize to ≈349 chars + ≈85 chars of
- * JSON overhead — under the 500-char cap with margin. The client form
- * enforces them via `maxLength`; the server clamps again (never trust the client).
- */
+/** Per-field caps sized so full addresses serialize under Stripe's 500-char cap; client enforces via maxLength, server clamps again. */
 export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
   name: 80,
   line1: 120,
@@ -163,21 +132,16 @@ export const ADDRESS_FIELD_MAX_LENGTHS: Record<AddressFieldName, number> = {
   postalCode: 7,
 };
 
-/**
- * Structural address shape (mirrors chitchats.ts's `DeliveryAddress` without
- * importing it — that would cycle, since chitchats.ts imports this module).
- */
+/** Mirrors chitchats.ts's DeliveryAddress without importing it — that would cycle. */
 export interface ValidatedDeliveryAddress {
   name: string;
   line1: string;
-  /** Apartment/unit line — optional. */
   line2?: string;
   city: string;
   province: string;
   postalCode: string;
 }
 
-/** Clamp an already-validated (trimmed) address to `ADDRESS_FIELD_MAX_LENGTHS`. */
 export function truncateDeliveryAddress(
   address: ValidatedDeliveryAddress
 ): ValidatedDeliveryAddress {
@@ -215,12 +179,7 @@ function serializeShippingAddress(address: ValidatedDeliveryAddress): string {
   });
 }
 
-/**
- * Serialize the address for the `shipping_address` metadata, hard-guaranteed
- * to fit Stripe's 500-char cap: per-field truncation normally suffices, but
- * JSON escape inflation (each quote/backslash doubles) can still overflow —
- * so drop the optional `line2`, then shorten the longest field until it fits.
- */
+/** Hard-guaranteed ≤500 chars: JSON escape inflation can overflow per-field truncation, so drop line2 then shorten the longest field until it fits. */
 export function shippingAddressMetadataValue(
   address: ValidatedDeliveryAddress
 ): string {
@@ -229,13 +188,11 @@ export function shippingAddressMetadataValue(
   let value = serializeShippingAddress(truncated);
   if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
 
-  // Escape inflation: drop the optional apartment/unit line and retry.
   const { line2: _line2, ...withoutLine2 } = truncated;
   value = serializeShippingAddress(withoutLine2);
   if (value.length <= STRIPE_METADATA_VALUE_MAX_LENGTH) return value;
 
-  // Removing one raw char shrinks the serialized form by 1–2 chars, so
-  // cutting `overflow` raw chars always makes progress — this terminates.
+  // Removing one raw char shrinks the serialized form by 1–2 chars, so cutting `overflow` always makes progress.
   const current: Record<(typeof METADATA_ADDRESS_FIELDS)[number], string> = {
     name: withoutLine2.name,
     line1: withoutLine2.line1,
@@ -268,13 +225,7 @@ export interface ShippingAddressMetadata {
   value: ValidatedDeliveryAddress;
 }
 
-/**
- * Build the `shipping_address` metadata once: `json` goes into Stripe
- * metadata and `value` (parsed back from that same string) feeds the
- * ChitChats payload, so the label always mirrors what was stored — including
- * when the 500-char fallback drops `line2` or shortens a field. Callers must
- * not re-serialize or re-parse either half.
- */
+/** json goes to Stripe metadata; value is parsed back from that exact string so the shipment label mirrors what was stored even after truncation. */
 export function shippingAddressMetadata(
   address: ValidatedDeliveryAddress
 ): ShippingAddressMetadata {

@@ -1,10 +1,5 @@
-// StarMotif — the "origami star base" motif from the product photography:
-// a crisp 8-point folded star, the geometric counterpoint to the satin
-// petals. Purely decorative (aria-hidden). Optional slow spin via the
-// `animate-star` utility (collapsed by the reduced-motion guard).
-//
-// Fills use `currentColor`, so the parent controls the tone via a text
-// color utility (e.g. `text-rose`).
+// Decorative 8-point "origami star" motif; fills use `currentColor` so the
+// parent controls the tone via a text color utility.
 
 interface StarMotifProps {
   className?: string;
@@ -22,7 +17,6 @@ export default function StarMotif({ className = '', size = 96 }: StarMotifProps)
       className={className}
       aria-hidden="true"
     >
-      {/* 8-point star built from two rotated squares + folded facets */}
       <g fill="currentColor">
         <rect x="38" y="38" width="24" height="24" opacity="0.55" />
         <rect x="38" y="38" width="24" height="24" opacity="0.55" transform="rotate(45 50 50)" />

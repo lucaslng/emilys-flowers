@@ -1,9 +1,7 @@
 import { test, expect, describe, afterEach } from "bun:test";
 import { prefersReducedMotion } from "@/lib/reduced-motion";
 
-// The browser branch is exercised with a stubbed window.matchMedia (no real
-// DOM). `afterEach` restores the global so the SSR/no-window case below stays
-// hermetic regardless of test order.
+// The browser branch runs against a stubbed window.matchMedia; afterEach restores it so the SSR case below stays hermetic.
 afterEach(() => {
   delete (globalThis as Record<string, unknown>).window;
 });

@@ -9,11 +9,6 @@ interface FlowersPageClientProps {
   products: Product[];
 }
 
-/**
- * FlowersPageClient — "the garden catalogue". The header is a left-aligned
- * catalogue plate (title + handwritten annotation + star motif); filters
- * run in a stitched index card; products hang on the staggered specimen wall.
- */
 export default function FlowersPageClient({
   products,
 }: FlowersPageClientProps) {

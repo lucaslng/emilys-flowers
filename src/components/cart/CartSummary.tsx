@@ -8,11 +8,7 @@ import Reveal from '@/components/ui/Reveal';
 import OrderReceipt from '@/components/order/OrderReceipt';
 import { useScaleBump } from '@/lib/use-scale-bump';
 
-/**
- * CartSummary — "the receipt". A stitched receipt card with a dashed seam
- * under the heading. Shipping is calculated at checkout, so the total here
- * is the items subtotal.
- */
+// Shipping is calculated at checkout, so the total here is the items subtotal.
 export default function CartSummary() {
   const { getTotal, getItemCount } = useCart();
   const subtotal = getTotal();
@@ -21,8 +17,6 @@ export default function CartSummary() {
   const rootRef = useRef<HTMLDivElement>(null);
   const totalRef = useRef<HTMLSpanElement>(null);
 
-  // Cost-number micro-interaction: a subtle scale bump on the Total
-  // whenever it changes.
   useScaleBump(subtotal, [totalRef], rootRef);
 
   return (

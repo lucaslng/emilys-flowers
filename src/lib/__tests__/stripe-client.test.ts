@@ -1,6 +1,3 @@
-// Unit tests for the shared Stripe client (`src/lib/stripe-client.ts`):
-// null when the key is unset, memoized per key, rebuilt when the key changes.
-
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import { getStripeClient } from '@/lib/stripe-client';
 

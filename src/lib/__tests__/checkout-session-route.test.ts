@@ -1,14 +1,6 @@
-// Tests for `GET /api/checkout/session` — the checkout-success retrieval
-// surface. The session id is format-checked against ^cs_(live|test)_ BEFORE
-// any Stripe call, and the response is a sanitized projection only:
-// { items, subtotal, shipping, total, orderNumber }. customer_details and
-// metadata must never leak.
-// The `stripe` mock is NOT registered here: bun's `mock.module` registry is
-// process-global across test files (see ./order-emails-mocks.ts), so this
-// file reuses the shared registration and drives it through the exported
-// `orderEmailMocks` state object. The rate-limit guard's
-// `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts (registered
-// once per process, driven via `rateLimitMocks`).
+// The session id is format-checked against ^cs_(live|test)_ BEFORE any Stripe call; the response is a sanitized
+// projection only — customer_details and metadata must never leak. Reuses the shared stripe mock from
+// ./order-emails-mocks.ts and the @opennextjs/cloudflare mock from ./rate-limit-mocks.ts (registered once per process).
 
 import { test, expect, describe, beforeEach } from 'bun:test';
 import {
@@ -211,7 +203,6 @@ describe('GET /api/checkout/session', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('60');
     expect((await response.json()).error).toBe('Too many requests');
-    // The billable Stripe call must never happen on a rejected request.
     expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(0);
   });
 
@@ -230,7 +221,6 @@ describe('GET /api/checkout/session', () => {
     const response = await GET(sessionRequest('cs_test_abc123'));
 
     expect(response.status).toBe(200);
-    // The limiter was consulted (and threw), but availability wins.
     expect(rateLimitMocks.limitCalls).toHaveLength(1);
     expect(orderEmailMocks.stripeRetrieveCalls).toHaveLength(1);
   });

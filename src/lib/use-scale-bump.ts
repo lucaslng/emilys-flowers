@@ -4,18 +4,12 @@ import { useRef, type RefObject } from 'react';
 import { gsap, useGSAP } from '@/lib/gsap';
 import { prefersReducedMotion } from '@/lib/reduced-motion';
 
-/**
- * Scale-bump micro-interaction: a subtle scale pulse on the element(s)
- * referenced by `targets` whenever `dependency` changes. Skips the initial
- * mount so the bump only plays on real changes, and no-ops under reduced
- * motion. `scope` limits the tween's context to the component root.
- */
+/** Scale pulse on `targets` whenever `dependency` changes; skips the initial mount and no-ops under prefers-reduced-motion. */
 export function useScaleBump(
   dependency: unknown,
   targets: ReadonlyArray<RefObject<HTMLElement | null>>,
   scope: RefObject<HTMLElement | null>
 ): void {
-  // Skips the bump on the initial mount (only react to real changes).
   const isFirstRun = useRef(true);
 
   useGSAP(

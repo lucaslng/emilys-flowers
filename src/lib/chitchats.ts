@@ -1,14 +1,4 @@
-// Thin server-only client + pure helpers for ChitChats shipping.
-//
-// ChitChats has NO standalone rates endpoint — rates are returned when a
-// shipment is created with `postage_type: "unknown"`. The checkout route
-// creates a shipment to obtain rates, charges the cheapest one as a Stripe
-// shipping option, and stores the shipment id / tracking URL in session
-// metadata so the admin can open the shipment later.
-//
-// The pure helpers are isomorphic — no Node-only `Buffer`, no DOM — so they
-// can be unit-tested with bun without touching the network. The client
-// functions read `process.env` and are server-only.
+// Thin server-only ChitChats client + isomorphic pure helpers (no Node-only APIs, unit-testable without the network).
 
 import type { LineItem } from '@/lib/order';
 import {
@@ -17,9 +7,6 @@ import {
   type AddressFieldError,
 } from '@/lib/address-validation';
 
-// Shared contract re-exports: `CA_PROVINCES` / `CaProvince` used to live here;
-// they now come from the client-safe `@/lib/address-validation` so both sides
-// of checkout enforce identical rules. Re-exported for backward compatibility.
 export { CA_PROVINCES } from '@/lib/address-validation';
 export type { CaProvince } from '@/lib/address-validation';
 
@@ -27,9 +14,7 @@ export interface ChitChatsRate {
   postage_type: string;
   postage_description: string;
   /**
-   * Total to charge the customer (postage + insurance + taxes + fees), as
-   * string dollars e.g. "9.68". ChitChats returns no currency field — assume
-   * CAD (the account currency).
+   * Total to charge (postage + insurance + taxes + fees), string dollars e.g. "9.68"; ChitChats returns no currency field — assume CAD.
    */
   payment_amount: string;
   delivery_time_description?: string;
@@ -41,11 +26,9 @@ export interface ChitChatsShipment {
   rates: ChitChatsRate[];
 }
 
-/** The address shape the checkout page collects (and we store in metadata). */
 export interface DeliveryAddress {
   name: string;
   line1: string;
-  /** Apartment/unit line — optional. */
   line2?: string;
   city: string;
   province: string;
@@ -63,7 +46,6 @@ export interface ChitChatsShipmentLineItem {
 export interface ChitChatsShipmentInput {
   name: string;
   address_1: string;
-  /** Apartment/unit line — only sent when present. */
   address_2?: string;
   city: string;
   province_code: string;
@@ -71,10 +53,7 @@ export interface ChitChatsShipmentInput {
   country_code: string;
   package_contents: 'merchandise';
   /**
-   * Free-text description of the shipment for ChitChats' customs
-   * declaration. ChitChats derives the declaration from `line_items` when
-   * they are present (always, for us), so this mirrors the same wording as a
-   * fallback.
+   * Free-text customs description; ChitChats derives the declaration from `line_items` when present, so this mirrors them as a fallback.
    */
   description: string;
   value: string;
@@ -93,46 +72,31 @@ export interface ChitChatsShipmentInput {
   line_items: ChitChatsShipmentLineItem[];
 }
 
-/** True when both ChitChats credentials are present. */
 export function isChitchatsConfigured(): boolean {
   return Boolean(
     process.env.CHITCHATS_CLIENT_ID && process.env.CHITCHATS_ACCESS_TOKEN
   );
 }
 
-/** API base URL: `CHITCHATS_BASE_URL` or the production default. */
 export function chitchatsApiBaseUrl(): string {
   return process.env.CHITCHATS_BASE_URL ?? 'https://chitchats.com';
 }
 
-/** ChitChats client ID from env, or `''` when unset. */
 export function chitchatsClientId(): string {
   return process.env.CHITCHATS_CLIENT_ID ?? '';
 }
 
-/**
- * ChitChats dashboard URL for a shipment (admin-facing; requires login):
- * `{base}/clients/{clientId}/shipments/{shipmentId}`.
- */
+/** Admin-facing dashboard URL (requires login): {base}/clients/{clientId}/shipments/{shipmentId}. */
 export function shipmentDashboardUrl(shipmentId: string): string {
   return `${chitchatsApiBaseUrl()}/clients/${chitchatsClientId()}/shipments/${shipmentId}`;
 }
 
-/**
- * True when `shipmentId` is a well-formed ChitChats shipment id
- * (alphanumeric plus `_`/`-`, 4–64 chars). Metadata-controlled values are
- * validated with this before being interpolated into the dashboard href so a
- * spoofed value can never become a `javascript:` (or otherwise unexpected)
- * link target — render it as plain text instead.
- */
+/** Metadata-controlled ids are validated before href interpolation so a spoofed value can't become a javascript: link target. */
 export function isValidShipmentId(shipmentId: string): boolean {
   return /^[A-Za-z0-9_-]{4,64}$/.test(shipmentId);
 }
 
-/**
- * Headers for ChitChats API calls. The access token is sent as a BARE token —
- * ChitChats rejects `Bearer <token>`.
- */
+/** ChitChats rejects `Bearer <token>` — the access token must be sent bare. */
 export function chitchatsHeaders(): Record<string, string> {
   return {
     Authorization: process.env.CHITCHATS_ACCESS_TOKEN ?? '',
@@ -140,12 +104,7 @@ export function chitchatsHeaders(): Record<string, string> {
   };
 }
 
-/**
- * Create a ChitChats shipment. With `postage_type: "unknown"` this is how
- * rates are obtained — there is no standalone rates endpoint. Throws an
- * `Error` with a readable message on non-2xx or network failure (including
- * the API error message when present).
- */
+/** Creates a shipment with postage_type "unknown" — ChitChats has no standalone rates endpoint, so this is how rates are obtained. */
 export async function createShipment(
   input: ChitChatsShipmentInput
 ): Promise<ChitChatsShipment> {
@@ -165,8 +124,7 @@ export async function createShipment(
       method: 'POST',
       headers: chitchatsHeaders(),
       body: JSON.stringify(input),
-      // A hung ChitChats request must not leave the customer spinning at
-      // checkout — abort after 10s and surface a readable error.
+      // Abort after 10s so a hung ChitChats request can't leave the customer spinning at checkout.
       signal: AbortSignal.timeout(10_000),
     });
   } catch (error) {
@@ -189,8 +147,7 @@ export async function createShipment(
   }
 
   const body = (await response.json()) as { shipment?: ChitChatsShipment };
-  // Validate the body shape so a malformed 2xx response throws a readable
-  // error here instead of a TypeError escaping to the route's generic 500.
+  // Validate shape so a malformed 2xx throws a readable error instead of a TypeError reaching the route's generic 500.
   if (!body.shipment || !Array.isArray(body.shipment.rates)) {
     throw new Error(
       'ChitChats API returned an unexpected response (missing shipment rates).'
@@ -199,12 +156,7 @@ export async function createShipment(
   return body.shipment;
 }
 
-/**
- * Parse a rate's `payment_amount` into integer cents, or `null` when it
- * doesn't parse to a finite positive number. Malformed rates must never be
- * charged — a NaN→0 fallback would make a broken rate win as "$0 shipping",
- * violating the always-charge-the-real-rate decision.
- */
+/** Malformed rates must never be charged — a NaN→0 fallback would let a broken rate win as "$0 shipping". */
 function paymentAmountToCentsOrNull(paymentAmount: string): number | null {
   const parsed = Number(paymentAmount);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
@@ -217,12 +169,7 @@ export interface CheapestRate {
   cents: number;
 }
 
-/**
- * Cheapest rate by `payment_amount`. Rates whose `payment_amount` doesn't
- * parse to a finite positive number are skipped; `null` when no valid rates
- * survive. The returned `cents` is the strict parse of the chosen rate —
- * callers must charge it directly instead of re-parsing.
- */
+/** Cheapest rate by parsed cents; invalid rates skipped, null when none survive. Callers must charge the returned cents rather than re-parsing. */
 export function pickCheapestRate(rates: ChitChatsRate[]): CheapestRate | null {
   let cheapest: CheapestRate | null = null;
   for (const rate of rates) {
@@ -235,44 +182,24 @@ export function pickCheapestRate(rates: ChitChatsRate[]): CheapestRate | null {
   return cheapest;
 }
 
-// Weight estimate constant (grams): each product is assumed to weigh ~250g.
-// There is deliberately no base weight for the parcel itself.
+// Grams per product; deliberately no base weight for the parcel itself.
 const WEIGHT_PER_PRODUCT_GRAMS = 250;
 
-/** Estimate shipment weight in grams: 250g per product, no base weight. */
 export function estimateShipmentWeight(totalQuantity: number): number {
   return WEIGHT_PER_PRODUCT_GRAMS * totalQuantity;
 }
 
-/**
- * Detailed shipment-level description sent to ChitChats (used for its
- * customs declaration). Names what the parcel contains — handmade
- * decorative ribbon flowers, never live plants — and carries the order
- * number so a shipment can be matched back to its order.
- */
+/** Customs-declaration wording: ribbon flowers, never live plants, plus the order number for matching. */
 function describeShipment(orderNumber: string): string {
   return `Handmade decorative ribbon flowers and bouquets (artificial floral crafts, no live plants) - Emily's Flowers order ${orderNumber}`;
 }
 
-/**
- * Detailed customs description for one line item. ChitChats composes the
- * customs declaration from these when `line_items` are present (which
- * overrides the shipment-level description), so each line pairs the product
- * name with what the item physically is.
- */
+/** ChitChats composes the customs declaration from line_items when present, overriding the shipment-level description. */
 function describeLineItem(name: string): string {
   return `${name} - handmade decorative ribbon flower arrangement`;
 }
 
-/**
- * Build the ChitChats create-shipment payload for a checkout. Declared value
- * is the order subtotal; line items carry their own line totals plus a
- * detailed goods description (what actually lands on the customs
- * declaration); the shipment-level `description` mirrors them; weight comes
- * from `estimateShipmentWeight`; fixed 30×20×10 cm parcel; `postage_type`
- * "unknown" so ChitChats returns rates; `ship_date` "today" (required for
- * rates).
- */
+/** Declared value is the order subtotal; postage_type "unknown" + ship_date "today" make ChitChats return rates. */
 export function buildShipmentPayload({
   address,
   items,
@@ -288,17 +215,12 @@ export function buildShipmentPayload({
   return {
     name: address.name,
     address_1: address.line1,
-    // ChitChats supports `address_2`; only send it when the customer
-    // provided an apartment/unit line.
     ...(address.line2 ? { address_2: address.line2 } : {}),
     city: address.city,
     province_code: address.province,
     postal_code: address.postalCode,
     country_code: 'CA',
     package_contents: 'merchandise',
-    // Shipment-level description for ChitChats' customs declaration.
-    // ChitChats builds the declaration from `line_items` when present, so
-    // this mirrors the same wording as a fallback.
     description: describeShipment(orderNumber),
     value: (subtotalCents / 100).toFixed(2),
     value_currency: 'cad',
@@ -315,9 +237,6 @@ export function buildShipmentPayload({
     ship_date: 'today',
     line_items: items.map((item) => ({
       quantity: item.quantity,
-      // Per-line goods description — this is what ChitChats actually puts on
-      // the customs declaration when line items are present, so each line
-      // names the product AND what it physically is.
       description: describeLineItem(item.name),
       value_amount: ((item.price * item.quantity) / 100).toFixed(2),
       currency_code: 'cad',
@@ -329,18 +248,7 @@ export type DeliveryAddressValidation =
   | { ok: true; address: DeliveryAddress }
   | { ok: false; fieldErrors: AddressFieldError[] };
 
-/**
- * Validate a checkout delivery address in a SINGLE pass: name, line1, city,
- * province and postalCode required non-empty strings; `line2`
- * (apartment/unit) optional.
- *
- * Field rules are delegated to the shared `validateDeliveryAddressFields`
- * contract (identical to what the client form enforces). Strings are trimmed;
- * the province is normalized to uppercase and the postal code to the
- * canonical "A1A 1A1" form. On success the normalized address is returned;
- * on failure the per-field errors come back on the same normalized values,
- * so callers never need a second validation pass over the raw input.
- */
+/** Single-pass validation delegating rules to validateDeliveryAddressFields; errors come back on normalized values so callers never re-validate raw input. */
 export function validateDeliveryAddress(
   address: unknown
 ): DeliveryAddressValidation {
@@ -361,8 +269,6 @@ export function validateDeliveryAddress(
       ? normalizeCAPostalCode(record.postalCode)
       : '';
 
-  // Field rules come from the shared contract — identical to what the client
-  // checkout form enforces.
   const fieldErrors = validateDeliveryAddressFields({
     name,
     line1,

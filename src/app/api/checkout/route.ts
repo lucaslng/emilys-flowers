@@ -24,8 +24,7 @@ import { isBaseUrlConfigured, resolveBaseOrigin } from '@/lib/base-url';
 
 export async function POST(request: Request) {
   try {
-    // Malformed JSON is a client fault, not a server one — surface it as a
-    // clean 400 instead of letting it fall into the 500 catch below.
+    // Malformed JSON is a client fault — clean 400, not the 500 catch below.
     let body: { items?: unknown; address?: unknown };
     try {
       body = await request.json();
@@ -37,9 +36,8 @@ export async function POST(request: Request) {
     }
     const { items, address } = body;
 
-    // The client may only send {productId, quantity} pairs. Names, prices and
-    // any other financial identifier are resolved server-side below — a
-    // client-supplied price can never reach Stripe or ChitChats.
+    // Only {productId, quantity} pairs are accepted; names/prices are always
+    // resolved server-side so a client-supplied price can never reach Stripe.
     const validation = validateCheckoutItems(items);
     if (!validation.ok) {
       return NextResponse.json(
@@ -48,12 +46,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Merge duplicate productIds (the cart UI does this client-side; the
-    // server must not trust it). Validation runs BOTH before AND after
-    // merging: merging alone first could launder invalid entries — e.g.
-    // fractional or garbage quantities that happen to sum to a valid value —
-    // into lines that pass validation; re-validating the merged list also
-    // fails closed when summed quantities exceed MAX_LINE_ITEM_QUANTITY.
+    // The server must not trust the cart's client-side merge. Validate before
+    // AND after merging: merging alone could launder invalid entries whose
+    // sum happens to be valid, and re-validation fails closed on summed
+    // quantities over MAX_LINE_ITEM_QUANTITY.
     const mergedItems = mergeCheckoutItems(
       items as CheckoutItemPayload[]
     );
@@ -78,8 +74,7 @@ export async function POST(request: Request) {
     }
 
     if (!isBaseUrlConfigured()) {
-      // Same fail-closed stance as admin auth (issue #218): redirect origins
-      // must never come from the client-supplied Host header in production.
+      // Fail closed like admin auth — redirect origins never come from the client-supplied Host header.
       console.error(
         '[Checkout] BASE_URL is not set; refusing Host-derived success/cancel URLs in production.'
       );
@@ -89,18 +84,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Rate-limit before any billable external call (catalog fetch, ChitChats
-    // shipment, Stripe session) — this unauthenticated surface creates real
-    // shipments, so floods are an abuse vector (issue #209). Cheap
+    // Rate-limit before any billable external call (catalog fetch, ChitChats shipment, Stripe session) — cheap rejections stay quota-free.
     // rejections above stay quota-free.
     const rateLimited = await checkRateLimit(request, 'checkout');
     if (rateLimited) {
       return rateLimited;
     }
 
-    // Resolve every productId against the live Stripe catalog: default price
-    // id, display name and unit amount all come from Stripe, never from the
-    // request. Unknown products are rejected.
+    // Resolve every productId against the live Stripe catalog — names, price
+    // ids and amounts come from Stripe, never from the request.
     const catalog = await getCatalogIndex();
     const resolved: Array<{
       productId: string;
@@ -109,8 +101,6 @@ export async function POST(request: Request) {
       unitAmount: number;
       quantity: number;
     }> = [];
-    // Iterate ONLY the merged list — duplicates must never reach Stripe as
-    // separate line_items.
     for (const item of mergedItems) {
       const entry = catalog.get(item.productId);
       if (!entry) {
@@ -127,8 +117,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
       });
     }
-    // Catalog-resolved line items — the ONLY item list used downstream
-    // (Stripe line_items and the ChitChats shipment payload alike).
+    // The only item list used downstream (Stripe line_items and ChitChats alike).
     const resolvedItems: LineItem[] = resolved.map((r) => ({
       id: r.productId,
       name: r.name,
@@ -138,7 +127,7 @@ export async function POST(request: Request) {
 
     const orderNumber = generateOrderNumber();
 
-    // Pinned to BASE_URL in production (issue #218) — never the Host header.
+    // Pinned to BASE_URL in production — never the Host header.
     const origin = resolveBaseOrigin(request.url);
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -146,29 +135,22 @@ export async function POST(request: Request) {
       billing_address_collection: 'required',
       metadata: { order_number: orderNumber },
       line_items: resolved.map((r) => ({
-        // Catalog-resolved Stripe Price objects — NOT inline price_data.
         price: r.priceId,
         quantity: r.quantity,
       })),
-      // Session id + order number only — no display-only params; the receipt
-      // (shipping included) is retrieved server-side (issue #177).
+      // Session id + order number only — no display-only params; the receipt (shipping included) is retrieved server-side.
       success_url: `${origin}/checkout/success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/cart?canceled=true`,
     };
 
     // ChitChats has no standalone rates endpoint — rates come back when a
-    // shipment is created with `postage_type: "unknown"`. When configured,
-    // create the shipment up front, charge the cheapest rate as the Stripe
-    // shipping option, and stash the shipment id / tracking URL in metadata.
-    // Fail closed: if we can't get a rate, never silently charge the old
-    // flat rate.
+    // shipment is created with `postage_type: "unknown"`. Fail closed: no
+    // rate means checkout fails, never a silently-charged flat rate.
     if (isChitchatsConfigured()) {
       const addressValidation = validateDeliveryAddress(address);
       if (!addressValidation.ok) {
-        // Structured per-field errors (from the shared contract, on the
-        // normalized address from the single validation pass) let the client
-        // form highlight exactly which fields the customer must fix. The
-        // `error` string is unchanged.
+        // Per-field errors let the client form highlight exactly which
+        // fields the customer must fix; the `error` string is unchanged.
         return NextResponse.json(
           {
             error: 'A delivery address is required to calculate shipping.',
@@ -178,9 +160,8 @@ export async function POST(request: Request) {
         );
       }
 
-      // Build the shipping object once: `value` feeds the ChitChats payload,
-      // `json` goes to Stripe metadata — the label always matches what was
-      // stored, even when the 500-char fallback kicks in.
+      // One object feeds both the ChitChats payload and Stripe metadata, so
+      // the label always matches what was stored.
       const shipping = shippingAddressMetadata(addressValidation.address);
 
       const subtotalCents = computeLineItemTotal(resolvedItems);
@@ -213,8 +194,8 @@ export async function POST(request: Request) {
         );
       }
 
-      // Cents come from the strict parse inside pickCheapestRate — never
-      // re-parsed (a lenient NaN→0 fallback would charge $0 shipping).
+      // Cents come from the strict parse inside pickCheapestRate — a lenient
+      // NaN→0 fallback would charge $0 shipping.
       sessionParams.shipping_options = [
         {
           shipping_rate_data: {

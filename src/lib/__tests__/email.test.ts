@@ -121,8 +121,7 @@ describe('sendOrderConfirmationEmail', () => {
     const original = process.env.RESEND_API_KEY;
     delete process.env.RESEND_API_KEY;
     try {
-      // No client injected: the default parameter `new Resend(requireApiKey())`
-      // evaluates and must throw because the env var is absent.
+      // No client injected: the default `new Resend(requireApiKey())` evaluates and throws on the missing env var.
       await expect(
         sendOrderConfirmationEmail(confirmationData, undefined)
       ).rejects.toThrow('RESEND_API_KEY');
@@ -209,8 +208,7 @@ describe('sendShippedEmail', () => {
     const original = process.env.RESEND_API_KEY;
     delete process.env.RESEND_API_KEY;
     try {
-      // No client injected: the default parameter `new Resend(requireApiKey())`
-      // evaluates and must throw because the env var is absent.
+      // No client injected: the default `new Resend(requireApiKey())` evaluates and throws on the missing env var.
       await expect(
         sendShippedEmail(
           {

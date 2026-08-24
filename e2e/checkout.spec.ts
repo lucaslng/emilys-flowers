@@ -59,7 +59,6 @@ test.describe("Checkout flow", () => {
     await page.getByLabel("Street address").fill("12 Rose Lane");
     await page.getByLabel("City").fill("Toronto");
     await page.getByLabel("Province").selectOption("ON");
-    // Malformed postal code — correct format is A1A 1A1.
     await page.getByLabel("Postal code").fill("ABC");
     // Blur first: revealing the postal error shifts layout and swallows the click.
     await page.getByLabel("Postal code").blur();
@@ -67,8 +66,7 @@ test.describe("Checkout flow", () => {
     await page.getByRole("checkbox", { name: /I agree/i }).check();
     await page.getByRole("button", { name: "Pay with Stripe" }).click();
 
-    // Client-side validation blocks submission before any fetch, so the
-    // server-error banner never appears here.
+    // Client-side validation blocks submission before any fetch — no server-error banner here.
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(
       page.getByText("Enter a valid Canadian postal code")
@@ -104,7 +102,6 @@ test.describe("Checkout flow", () => {
     );
     await expect(agreementError).toBeVisible();
 
-    // Prove the block holds: no navigation and no fetch after a settle window.
     await page.waitForTimeout(1_000);
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(agreementError).toBeVisible();

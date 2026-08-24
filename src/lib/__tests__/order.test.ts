@@ -196,8 +196,7 @@ describe('validateCheckoutItems ({productId, quantity} wire shape)', () => {
   });
 
   test('extra fields (name/price smuggling) are tolerated by validation but carry no weight', () => {
-    // Validation passes — the route simply never reads name/price from the
-    // request; resolution happens against the Stripe catalog.
+    // Validation passes; the route never reads name/price — resolution happens against the Stripe catalog.
     expect(
       validateCheckoutItems([
         { productId: 'prod_rose', quantity: 2, name: 'Ribbon Rose', price: 1 },

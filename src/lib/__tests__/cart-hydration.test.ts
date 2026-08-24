@@ -85,9 +85,7 @@ describe("sanitizeStoredCart", () => {
     expect(out).toEqual([{ product: rose, quantity: 2 }]);
   });
 
-  // The server rejects any line above MAX_LINE_ITEM_QUANTITY at pay time, so
-  // an oversized stored quantity is clamped (item preserved) instead of
-  // surviving until checkout fails with "Invalid line item".
+  // The server rejects any line above MAX_LINE_ITEM_QUANTITY at pay time, so stored overages are clamped instead of failing at checkout.
   test("clamps quantities above the per-line cap, preserving the item", () => {
     const out = sanitizeStoredCart([
       { product: rose, quantity: 500 },

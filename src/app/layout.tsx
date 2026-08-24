@@ -5,15 +5,13 @@ import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Martian Mono = the geometric/grid voice (structure, labels, UI).
-// Variable font, all weights available.
 const martian = Martian_Mono({
   variable: "--font-martian",
   subsets: ["latin"],
 });
 
-// Reenie Beanie = the hand-drawn/chalk voice (accents, callouts,
-// annotations). Single weight (400) — deliberately NOT used for long copy
-// because of its small x-height.
+// Reenie Beanie = the hand-drawn/chalk voice (accents, callouts) — never long
+// copy, its small x-height hurts readability.
 const reenie = Reenie_Beanie({
   weight: "400",
   variable: "--font-reenie",

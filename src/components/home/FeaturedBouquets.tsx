@@ -6,14 +6,7 @@ import Reveal from '@/components/ui/Reveal';
 import StarMotif from '@/components/ui/StarMotif';
 import PageWash from '@/components/ui/PageWash';
 
-/**
- * FeaturedBouquets — "the bouquet wall". NOT a symmetric triptych: three
- * gift-tag cards overlap at different heights and tilts, like keepsakes
- * pinned to a board. The center card is emphasized (rose border + soft
- * shadow) and lifted above its neighbours. Reveal animates the outer
- * wrappers; the tilts live on inner divs so GSAP and CSS transforms never
- * fight.
- */
+// Reveal animates the outer wrappers; tilts live on inner divs so GSAP and CSS transforms never fight.
 export default async function FeaturedBouquets() {
   const showFlowers = isFlowersEnabled();
   const featured = (await getFeaturedProducts()).filter(
@@ -22,7 +15,6 @@ export default async function FeaturedBouquets() {
 
   return (
     <section className="relative isolate overflow-hidden bg-background py-16 sm:py-24">
-      {/* Faint warm wash behind the wall */}
       <PageWash background="radial-gradient(ellipse 55% 45% at 50% 20%, rgba(249, 228, 228, 0.4), rgba(254, 250, 245, 0) 70%)" />
 
       <Container className="relative z-10">
@@ -42,7 +34,6 @@ export default async function FeaturedBouquets() {
           </div>
         </Reveal>
 
-        {/* Asymmetric collage: wide center, tilted flanks, varied heights */}
         <Reveal
           stagger
           className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-12 lg:items-start lg:gap-6"

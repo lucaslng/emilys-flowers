@@ -21,8 +21,6 @@ type ButtonOwnProps<T extends ElementType> = {
 type ButtonProps<T extends ElementType = 'button'> = ButtonOwnProps<T> &
   Omit<ComponentPropsWithoutRef<T>, keyof ButtonOwnProps<T>>;
 
-/* Warm-stamped buttons: sharp corners (the geometric voice), a satin-blush
-   primary, a rose-outlined secondary, and a quiet ghost. */
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
     'bg-blush text-foreground hover:bg-[#F0D4D4] active:shadow-[0_0_15px_rgba(212,165,165,0.5)] border border-transparent',
@@ -47,10 +45,8 @@ export default function Button<T extends ElementType = 'button'>({
   className = '',
   ...props
 }: ButtonProps<T>) {
-  // Cast to a concrete ElementType so JSX prop checks resolve against a real
-  // element signature instead of an unresolved generic `T` (TS 6 can't narrow
-  // `ComponentProps<T>` for a generic `T` here). Call-site type safety is
-  // preserved by the `ButtonProps<T>` signature above.
+  // Cast to a concrete ElementType — TS can't narrow `ComponentProps<T>` for a
+  // generic `T` here; call-site safety is preserved by `ButtonProps<T>`.
   const Component = (as ?? 'button') as ElementType;
   return (
     <Component

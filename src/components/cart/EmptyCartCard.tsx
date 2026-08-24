@@ -4,15 +4,9 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import Button from '@/components/ui/Button';
 
-/**
- * EmptyCartCard — the open-gift-box empty state shared by the cart and
- * checkout pages. Motif, copy, heading level, and spacing come from the
- * caller so each page keeps its exact current look.
- */
+/** Empty-cart state shared by the cart and checkout pages. */
 interface EmptyCartCardProps {
-  /** Extra classes on the stitch card (min-height, vertical padding). */
   className?: string;
-  /** Decorative motif(s) above the heading. */
   motif: ReactNode;
   headingLevel?: 'h1' | 'h2';
   title?: string;

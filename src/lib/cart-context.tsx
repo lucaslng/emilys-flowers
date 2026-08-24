@@ -63,9 +63,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
 
     case 'UPDATE_QUANTITY': {
       const { id, quantity } = action.payload;
-      // Only positive integers are valid quantities (the cart badge, order
-      // math, and Stripe payload all assume integer counts). Anything else —
-      // 0, negatives, NaN, Infinity, fractions — removes the line.
+      // Quantities must be positive integers — the badge, order math, and Stripe payload all assume integer counts.
       if (quantity <= 0 || !Number.isInteger(quantity)) {
         return {
           ...state,
@@ -95,12 +93,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
   }
 }
 
-// Cart → line-item seam. AGENTS.md: the order math lives in `src/lib/order.ts` and operates on the
-// flat `LineItem` shape. `CartItem` is cart-internal; this seam flattens it at
-// the cart's edge so the provider (and any cart consumer) reuses the same
-// helpers the checkout success page uses.
-
-/** Flatten cart items to the flat `LineItem` shape the order module expects. */
+// Seam between cart-internal CartItem and the flat LineItem shape the shared order math operates on.
 export function toLineItems(items: CartItem[]): LineItem[] {
   return items.map((item) => ({
     id: item.product.id,
@@ -111,15 +104,7 @@ export function toLineItems(items: CartItem[]): LineItem[] {
   }));
 }
 
-/**
- * Keep only structurally valid `CartItem`s from an untrusted stored cart
- * (localStorage is user-editable and can be corrupted). Anything that lacks
- * the full `Product` shape or a positive-integer quantity is dropped so a bad
- * store degrades to an empty (or trimmed) cart instead of poisoning totals
- * with `NaN` or crashing on missing product fields. Quantities above the
- * server's per-line cap are clamped so an oversized stored cart survives to
- * checkout instead of dying there with "Invalid line item".
- */
+/** localStorage is user-editable: drop malformed items and clamp over-cap quantities so a bad store can't poison totals or die at checkout. */
 export function sanitizeStoredCart(parsed: unknown): CartItem[] {
   if (!Array.isArray(parsed)) return [];
   return parsed.filter(isCartItem).map((item) =>
@@ -173,10 +158,7 @@ const STORAGE_KEY = 'emilys-flowers-cart';
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [] });
 
-  // Live-region announcement for cart actions (WCAG 4.1.2 / 3.2.1): a
-  // visually-hidden `role="status"` element stays mounted in the provider tree
-  // and announces add/remove/clear/quantity changes to screen readers. The
-  // message clears after a short delay so a repeat action re-announces.
+  // Screen-reader live region (WCAG 4.1.2); the message clears after a delay so repeat actions re-announce.
   const [announcement, setAnnouncement] = useState('');
   const announceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -191,7 +173,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, 2000);
   }, []);
 
-  // Clear any in-flight announcement timer on unmount to avoid a leak.
   useEffect(() => {
     return () => {
       if (announceTimerRef.current) {
@@ -205,7 +186,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
-        // Sanitize: a corrupted/hand-edited store must not poison the cart.
         dispatch({ type: 'HYDRATE', payload: sanitizeStoredCart(parsed) });
       }
     } catch {
@@ -281,10 +261,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return (
     <CartContext.Provider value={value}>
       {children}
-      {/* Visually-hidden live region for cart announcements (WCAG 4.1.2).
-          `role="status"` implies aria-live="polite"; always mounted so screen
-          readers detect content changes. No sr-only utility exists in the
-          codebase, so the hiding is done with inline styles. */}
+      {/* Visually-hidden live region (WCAG 4.1.2); role="status" implies aria-live="polite"; inline styles since no sr-only utility exists. */}
       <span
         role="status"
         style={{

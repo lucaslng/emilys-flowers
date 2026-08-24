@@ -1,15 +1,8 @@
-// product-utils.ts
-//
-// Client-safe pure helpers for product listing/filtering. No Stripe, no server
-// imports — safe to use from Client Components.
+// Client-safe pure helpers — no Stripe, no server imports.
 
 import type { Product } from '@/types';
 
-/**
- * Min–max price in cents across the given products, as `[min, max]`.
- * Returns `[0, 0]` for an empty list so callers never feed `Infinity`
- * into `min`/`max` attributes.
- */
+/** [min, max] in cents; [0, 0] when empty so Infinity never reaches min/max attributes. */
 export function getPriceRange(products: Product[]): [number, number] {
   if (products.length === 0) return [0, 0];
   const prices = products.map((p) => p.price);

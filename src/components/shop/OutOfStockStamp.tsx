@@ -1,6 +1,3 @@
-/**
- * OutOfStockStamp — the "Out of Stock" ink stamp laid over a product photo.
- */
 export default function OutOfStockStamp() {
   return (
     <div className="absolute inset-0 z-[2] flex items-center justify-center bg-background/80">

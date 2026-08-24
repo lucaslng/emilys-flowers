@@ -38,16 +38,14 @@ export default function Reveal({
       if (!targets) return;
 
       if (prefersReducedMotion()) {
-        // Reduced motion: show immediately, no animation.
         gsap.set(container.current, { opacity: 1, y: 0, clearProps: 'transform,opacity' });
         if (stagger) gsap.set(targets, { opacity: 1, y: 0, clearProps: 'transform,opacity' });
         return;
       }
 
       if (stagger) {
-        // The `reveal-init` class hides the WRAPPER (opacity:0) to prevent
-        // FOUC. But we animate the CHILDREN, not the wrapper — so we must
-        // un-hide the wrapper first, then animate children in.
+        // `reveal-init` hides the wrapper to prevent FOUC; un-hide it before
+        // animating the children.
         gsap.set(container.current, { opacity: 1, y: 0 });
         gsap.fromTo(
           targets,
@@ -67,9 +65,8 @@ export default function Reveal({
           }
         );
       } else {
-        // fromTo (not `from`): the `reveal-init` class already sets opacity:0 /
-        // translateY, so `from()` would snapshot 0 as the END state and stay
-        // invisible. Explicit end state guarantees the reveal.
+        // fromTo (not `from`): `reveal-init` already sets the start state, so
+        // `from()` would snapshot it as the END state and stay invisible.
         gsap.fromTo(
           targets,
           { opacity: 0, y },

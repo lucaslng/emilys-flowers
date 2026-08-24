@@ -2,11 +2,6 @@ import { test, expect, describe, beforeEach } from 'bun:test';
 import type Stripe from 'stripe';
 import { orderEmailMocks, resetOrderEmailMocks } from './order-emails-mocks';
 
-// NOTE: the `stripe` and `resend` mocks live in `./order-emails-mocks`,
-// registered exactly once per process. bun's `mock.module` registry is
-// process-global and shared across test files, so registering the same
-// modules here again would silently replace that registration.
-
 const { POST, mapCheckoutSessionToConfirmation } = await import(
   '@/app/api/webhooks/stripe/route'
 );
@@ -231,9 +226,7 @@ describe('POST /api/webhooks/stripe', () => {
   test('sends the confirmation email and stamps metadata on success', async () => {
     orderEmailMocks.currentEvent = completedEvent();
     orderEmailMocks.currentSession = makeSession({
-      // Pre-existing keys (e.g. `shipped_at` written later by the admin ship
-      // route) must survive the stamp — `sessions.update` replaces the whole
-      // metadata map.
+      // Pre-existing keys must survive the stamp — sessions.update replaces the whole metadata map.
       metadata: { shipped_at: '2026-01-01T00:00:00Z' },
     });
 
@@ -275,8 +268,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     const response = await POST(completedRequest());
 
-    // Non-2xx makes Stripe redeliver while Resend's idempotency key still
-    // dedupes; once a stamp lands, the metadata check dedupes later retries.
+    // Non-2xx makes Stripe redeliver while Resend's idempotency key still dedupes; once a stamp lands, the metadata check dedupes later retries.
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
       error: 'Failed to stamp confirmation metadata',

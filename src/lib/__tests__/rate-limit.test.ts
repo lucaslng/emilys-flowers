@@ -1,6 +1,4 @@
-// Unit tests for `checkRateLimit` (src/lib/rate-limit.ts): keys must be
-// surface-prefixed (issue #209) and every failure mode fails open.
-// The `@opennextjs/cloudflare` mock lives in ./rate-limit-mocks.ts.
+// Keys must be surface-prefixed and every failure mode fails open.
 
 import { test, expect, describe, beforeEach } from 'bun:test';
 import {
@@ -69,7 +67,6 @@ describe('checkRateLimit', () => {
     const result = await checkRateLimit(requestAt('203.0.113.7'), 'checkout');
 
     expect(result).toBeNull();
-    // The limiter was consulted (and threw), but availability wins.
     expect(rateLimitMocks.limitCalls).toHaveLength(1);
   });
 });

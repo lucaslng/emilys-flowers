@@ -1,8 +1,6 @@
 @import "tailwindcss";
 
-/* Emily's Flowers — "warm handmade" design system: satin softness vs. crisp
-   geometric structure; warm blush/cream/champagne with pink as the ONLY
-   chromatic accent, zero cool tones. Fonts load via next/font in layout.tsx. */
+/* Brand: satin softness vs. crisp geometry; pink is the ONLY chromatic accent — zero cool tones. */
 
 :root {
   /* Warm paper creams — no cool tints anywhere */
@@ -43,15 +41,12 @@ body {
 }
 
 /* ─── Focus & Skip Link (WCAG 2.4.7 / 2.4.1 / 2.4.11) ───────────── */
-/* Visible focus indicator: currentColor = the element's text color, which
-   already meets 4.5:1 on its background, so the outline always contrasts. */
+/* currentColor already meets 4.5:1 on its background, so the outline always contrasts. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
 
-/* Skip link: visually hidden until focused, then shown fixed at top-left
-   above the sticky nav. */
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -92,8 +87,6 @@ html {
 }
 
 /* ─── Warm alert banner ────────────────────────────────────────── */
-/* Error/warning banner used by checkout and the admin order review:
-   hairline peach border on a blush ground with deep terracotta text. */
 @layer components {
   .alert-warm {
     @apply border border-[#E8C4B4] bg-[#FDF0EA] p-4 font-sans text-sm text-[#9C4A2F];
@@ -109,8 +102,7 @@ html {
     scroll-behavior: auto !important;
   }
   .reveal-init { opacity: 1 !important; transform: none !important; }
-  /* Success-receipt sections are revealed by a GSAP timeline targeting
-     `[data-reveal]` (no `reveal-init` class), so guard them here too. */
+  /* Revealed by GSAP timelines (no `reveal-init` class), so guard them here too. */
   [data-reveal] { opacity: 1 !important; transform: none !important; }
   .page-enter { opacity: 1 !important; transform: none !important; }
 }
@@ -126,17 +118,14 @@ html {
   100% { transform: rotate(3deg); }
 }
 
-/* Sticker float — gentle bob + slight sway/rotation, like a die-cut
-   sticker catching a breeze. Transform-only (no layout shift); the
-   reduced-motion guard collapses it to the static tilt. */
+/* Transform-only bob + sway; the reduced-motion guard collapses it to the static tilt. */
 @keyframes sticker-float {
   0%   { transform: translateY(-5px) rotate(-1.2deg); }
   100% { transform: translateY(5px) rotate(1.2deg); }
 }
 
-/* Vertical fall is driven by `top` (container-relative %), so a petal truly
-   traverses its parent and resets OFF-SCREEN (clipped by `overflow: hidden`).
-   `transform` only carries the gentle horizontal sway + rotation. */
+/* Vertical fall uses `top` (so the petal traverses its parent and resets
+   off-screen); `transform` carries only the horizontal sway + rotation. */
 @keyframes petal-fall {
   0%   { top: -12%; transform: translateX(0px)  rotate(0deg);   opacity: 0; }
   10%  { opacity: 0.85; }
@@ -196,11 +185,8 @@ html {
   50%      { transform: rotate(1.5deg); }
 }
 
-/* Hand-drawn "line boil" — tiny transform jitter so hand-drawn line art
-   trembles like ink still settling. Very subtle (<1.5px translate,
-   ±0.5deg rotate) with irregular keyframe spacing so it never reads as a
-   mechanical loop. 0%/100% sit at zero so the loop is seamless and the
-   reduced-motion collapse lands exactly on the static composition. */
+/* Hand-drawn "line boil": subtle irregular jitter; 0%/100% sit at zero so the
+   loop is seamless and the reduced-motion collapse lands on the static art. */
 @keyframes line-boil {
   0%   { transform: translate(0px, 0px)     rotate(0deg); }
   12%  { transform: translate(0.6px, -0.8px) rotate(0.35deg); }
@@ -213,9 +199,7 @@ html {
   100% { transform: translate(0px, 0px)      rotate(0deg); }
 }
 
-/* Finer boil for small hand-drawn accents (icon-sized line art): gentler
-   jitter so tiny strokes shimmer without reading as wobble. Same seamless
-   loop, transform-only, and reduced-motion guarantees as `line-boil`. */
+/* Gentler jitter for icon-sized line art; same seamless-loop guarantees. */
 @keyframes line-boil-fine {
   0%   { transform: translate(0px, 0px)     rotate(0deg); }
   15%  { transform: translate(0.4px, -0.5px) rotate(0.2deg); }
@@ -253,11 +237,8 @@ html {
   animation: ribbon-sway 6s ease-in-out infinite;
 }
 
-/* Hand-drawn line boil — for hand-drawn line art ONLY (arrows, ribbon tails,
-   bud strokes, specimen strokes). `transform-box: fill-box` centers the
-   jitter on each element's own bounds, and transform-only means no layout
-   shift. Explicitly disabled under reduced motion so the artwork is
-   pixel-identical to the static composition. */
+/* `transform-box: fill-box` centers the jitter per element; disabled under
+   reduced motion so the artwork is pixel-identical to the static composition. */
 .line-boil {
   transform-box: fill-box;
   transform-origin: center;
@@ -281,9 +262,8 @@ html {
   }
 }
 
-/* Decorative petals. Base `opacity: 0` so that under `prefers-reduced-motion`
-   (which forces the animation to a single 0.01ms iteration) the petals settle
-   to their non-animated state and stay invisible. */
+/* Base `opacity: 0` so under reduced motion (single 0.01ms iteration)
+   the petals settle to their non-animated state and stay invisible. */
 .petal {
   position: absolute;
   pointer-events: none;
@@ -310,8 +290,6 @@ html {
 }
 
 /* ─── Texture: frosted wrapping-paper grid ─────────────────────── */
-/* The "crisp geometric structure" half of the brand: a faint rose grid,
-   like tracing paper over a gift box. */
 .wrapping-grid {
   background-image:
     linear-gradient(to right, rgba(177, 110, 110, 0.055) 1px, transparent 1px),
@@ -337,10 +315,6 @@ html {
 }
 
 /* ─── Product Card: warm "gift tag" language ───────────────────── */
-/* Evolves the museum-plaque card: sharp corners, warm hairline border,
-   no shadow, paper-cream ground. Hover warms the border and draws a rose
-   underline under the name. The reduced-motion guard forces transitions
-   to ~instant, so the underline snaps to full width on hover. */
 .gift-card {
   border: 1px solid #EDE0D4;
   border-radius: 0;
@@ -378,8 +352,6 @@ html {
 }
 
 /* ─── Specimen wall: staggered herbarium grid ──────────────────── */
-/* Asymmetric product wall — columns 2 & 4 sit lower, like specimens
-   pinned to a board at different heights. */
 .specimen-wall {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

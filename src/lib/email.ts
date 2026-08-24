@@ -1,12 +1,7 @@
 import { Resend } from 'resend';
 import { formatCAD, formatPrice, formatShippingLabel } from '@/lib/format';
 
-/**
- * Order email sending via Resend.
- *
- * Both senders read `process.env.RESEND_API_KEY` and throw a clear error when
- * it is missing. An optional client can be injected for tests.
- */
+// Order emails via Resend; both senders throw when RESEND_API_KEY is missing, with an injectable client for tests.
 
 export interface EmailLineItem {
   name: string;
@@ -46,9 +41,7 @@ const EMAIL_ROSE_LINE = '#B16E6E'; // non-text rose — tag/panel borders
 const EMAIL_BLUSH = '#F9E4E4'; // soft satin pink panel
 const EMAIL_STITCH = '#E4C9B8'; // dashed seam
 
-// System font stacks only — no web fonts in email. The mono stack approximates
-// Martian Mono (the site's geometric voice); the hand stack echoes the
-// Reenie Beanie accents.
+// System font stacks only — email clients don't load web fonts; the mono stack approximates Martian Mono, the hand stack echoes Reenie Beanie.
 const EMAIL_FONT_MONO =
   "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace";
 const EMAIL_FONT_HAND = "'Segoe Script', 'Bradley Hand', cursive";
@@ -275,17 +268,7 @@ function requireApiKey(): string {
   return apiKey;
 }
 
-/**
- * Send an order confirmation email.
- *
- * @param data  Order details to render into the email.
- * @param opts  Optional idempotency key. Passed via the SDK's
- *              `idempotencyKey` request option (sent as the HTTP
- *              `Idempotency-Key` header) so Stripe webhook retries don't
- *              produce duplicate emails.
- * @param client  Injectable Resend client (defaults to one built from
- *                `process.env.RESEND_API_KEY`).
- */
+/** Idempotency key rides the Idempotency-Key header so Stripe webhook retries don't produce duplicate emails. */
 export async function sendOrderConfirmationEmail(
   data: OrderConfirmationData,
   opts?: SendEmailOptions,
@@ -311,16 +294,7 @@ export async function sendOrderConfirmationEmail(
   return { id: response.data.id };
 }
 
-/**
- * Send a "your order shipped" email.
- *
- * @param data  Order + shipping details to render into the email.
- * @param opts  Optional idempotency key. Passed via the SDK's
- *              `idempotencyKey` request option (sent as the HTTP
- *              `Idempotency-Key` header).
- * @param client  Injectable Resend client (defaults to one built from
- *                `process.env.RESEND_API_KEY`).
- */
+/** Same idempotency-key contract as sendOrderConfirmationEmail. */
 export async function sendShippedEmail(
   data: {
     to: string;

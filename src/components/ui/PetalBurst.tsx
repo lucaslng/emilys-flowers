@@ -1,15 +1,9 @@
 'use client';
 
 /**
- * PetalBurst — a "petal burst" delight effect for the add-to-cart moment:
- * small petal SVGs fly from an origin point (e.g. the Add to Cart button) to a
- * target point (e.g. the cart icon), spinning and fading as they travel.
- *
- * Mount <PetalBurstLayer ref={layerRef} /> ONCE near the root of a client tree,
- * then call layerRef.current?.burst(from, to) with viewport coordinates
- * (e.g. getBoundingClientRect() centers). Exports PetalBurstLayer + the
- * PetalBurstHandle ref type. Coordinates are viewport-relative because the
- * layer is `position: fixed`; under prefers-reduced-motion, burst() is a no-op.
+ * PetalBurst — petal-burst delight effect. Mount <PetalBurstLayer ref={...} />
+ * once near the root of a client tree, then call burst(from, to) with viewport
+ * coordinates (the layer is `position: fixed`). No-op under reduced motion.
  */
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
@@ -50,12 +44,10 @@ function createPetal(color: string): HTMLDivElement {
 export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps>(
   function PetalBurstLayer({ className }, ref) {
     const layerRef = useRef<HTMLDivElement>(null);
-    // Track in-flight timelines so we can kill + clean them up on unmount.
     const timelinesRef = useRef<Set<gsap.core.Timeline>>(new Set());
 
     useImperativeHandle(ref, () => ({
       burst(from, to) {
-        // Respect reduced-motion: do nothing.
         if (prefersReducedMotion()) return;
 
         const layer = layerRef.current;
@@ -87,10 +79,10 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
           const endY = to.y + (Math.random() - 0.5) * 18;
 
           const startRot = Math.random() * 360;
-          const spin = 180 + Math.random() * 360; // 180–540deg
+          const spin = 180 + Math.random() * 360;
           const endRot = startRot + spin * (Math.random() < 0.5 ? -1 : 1);
-          const duration = 0.7 + Math.random() * 0.3; // 0.7–1.0s
-          const offset = i * 0.04; // ~0.04s stagger between petals
+          const duration = 0.7 + Math.random() * 0.3;
+          const offset = i * 0.04;
 
           gsap.set(petal, {
             x: startX,
@@ -100,7 +92,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
             opacity: 0,
           });
 
-          // Travel + spin (GPU-friendly: transform only).
           tl.to(
             petal,
             {
@@ -113,7 +104,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
             offset,
           );
 
-          // Opacity: fade in quickly, fade out near the end.
           tl.to(petal, { opacity: 1, duration: 0.15, ease: 'power1.out' }, offset)
             .to(
               petal,
@@ -131,7 +121,6 @@ export const PetalBurstLayer = forwardRef<PetalBurstHandle, PetalBurstLayerProps
       },
     }));
 
-    // Kill any in-flight tweens and drop leftover petal nodes on unmount.
     useEffect(() => {
       const timelines = timelinesRef.current;
       return () => {

@@ -10,11 +10,6 @@ interface BouquetsPageClientProps {
   products: Product[];
 }
 
-/**
- * BouquetsPageClient — "the gift shelf". A right-leaning header plate, the
- * stitched filter index, then the staggered specimen wall (three bouquets
- * hang at different heights, like gifts on a mantel).
- */
 export default function BouquetsPageClient({
   products,
 }: BouquetsPageClientProps) {

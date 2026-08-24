@@ -1,9 +1,4 @@
-/**
- * ArrowFlourish — the hand-drawn annotation arrow used beside handwritten
- * labels. Three sizes with distinct hand-drawn paths (not a scaled single
- * drawing); `flip` mirrors it for right-aligned compositions. Decorative
- * (aria-hidden) and boils via `.line-boil`.
- */
+/** Hand-drawn annotation arrow; sizes have distinct paths (not a scaled single drawing). */
 const VARIANTS = {
   sm: {
     width: 64,

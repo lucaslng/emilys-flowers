@@ -69,9 +69,7 @@ test.describe("Cart functionality", () => {
   });
 
   test("corrupted stored cart degrades to an empty cart instead of NaN totals", async ({ page }) => {
-    // Narrow edge case where seeding localStorage directly is clearer: a
-    // structurally invalid stored cart (missing product fields) previously
-    // hydrated as-is and produced $NaN totals. The sanitizer must drop it.
+    // Structurally invalid stored carts must be dropped by the sanitizer, not hydrated into $NaN totals.
     await seedCart(page, [{ product: { id: "x", name: "Broken" }, quantity: 1 }]);
     await page.goto("/cart");
     await expect(

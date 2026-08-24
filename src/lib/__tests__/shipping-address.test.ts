@@ -1,7 +1,3 @@
-// Unit tests for the shared shipping-address lib (`src/lib/shipping-address.ts`):
-// metadata parsing guards and the separator-parameterized formatter that both
-// the webhook (newline + country) and the admin page (comma) render through.
-
 import { test, expect, describe } from 'bun:test';
 import {
   formatMetadataShippingAddress,

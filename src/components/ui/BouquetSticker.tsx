@@ -1,17 +1,7 @@
-// BouquetSticker — the brand's hero visual: a photo of a handcrafted
-// satin-ribbon bouquet presented as a cartoon die-cut sticker. The asset
-// is a transparent cutout (alpha preserved); the sticker look comes from
-// a drop-shadow FILTER stack that follows the bouquet's silhouette:
-// an opaque white fill first (the sticker paper backing), then eight
-// zero-blur white offsets (4 cardinal + 4 diagonal) that union into a
-// hard, chunky cartoon outline, then two warm cocoa shadows for lift off
-// the page. Static tilt (default 1°, configurable via the `tilt` prop) +
-// baked-in gentle float (bob + sway) via the `.sticker-float` utility —
-// collapsed by the global reduced-motion guard. Purely decorative
-// (aria-hidden).
-//
-// The photo is a plain <img> with explicit dimensions: the project's
-// next/image loader is for product images, and this asset is pre-cropped
+// The sticker look is a drop-shadow FILTER stack following the bouquet's
+// silhouette: opaque white fill + eight zero-blur white offsets (the cartoon
+// outline) + two warm cocoa shadows. Plain <img> with explicit dimensions —
+// the next/image loader is for product images; this asset is pre-cropped
 // and served as-is from /stickers.
 
 interface BouquetStickerProps {

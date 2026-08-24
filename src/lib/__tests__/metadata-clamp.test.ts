@@ -21,8 +21,7 @@ describe('clampMetadataValue', () => {
     expect(clampMetadataValue('  2-4 business days  ')).toBe(
       '2-4 business days'
     );
-    // Whitespace counts toward the cap: trimming happens first, so a
-    // 505-char string padded to 510 clamps to exactly 500 content chars.
+    // Whitespace counts toward the cap: trimming happens first, so 505 padded to 510 clamps to exactly 500.
     expect(clampMetadataValue(`  ${'z'.repeat(505)}  `)).toBe('z'.repeat(500));
   });
 });

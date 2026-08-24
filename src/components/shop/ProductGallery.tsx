@@ -13,13 +13,7 @@ interface ProductGalleryProps {
   priority?: boolean;
 }
 
-/**
- * ProductGallery — the specimen-sheet image block. Shows every photo of the
- * product: a main image with a row of small "detail stamps" beneath it.
- * Clicking a stamp swaps the main image; the active stamp wears a rose
- * border + underline (gift-tag language). With a single photo the stamps
- * are omitted entirely. The Out-of-Stock stamp sits over the main image.
- */
+/** Main image plus a row of clickable thumbnails (omitted for a single photo). */
 export default function ProductGallery({
   product,
   sizes,
@@ -30,7 +24,6 @@ export default function ProductGallery({
 
   return (
     <div>
-      {/* Main image */}
       <div className="relative aspect-square overflow-hidden bg-blush/30">
         <ProductImage
           key={selected}
@@ -43,7 +36,6 @@ export default function ProductGallery({
         {!product.inStock && <OutOfStockStamp />}
       </div>
 
-      {/* Detail stamps — only when there is more than one photo */}
       {count > 1 && (
         <div
           role="group"

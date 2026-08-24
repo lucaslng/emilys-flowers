@@ -8,13 +8,8 @@ import Button from '@/components/ui/Button';
 import Container from '@/components/ui/Container';
 
 /**
- * 404 — "This bloom has wandered off."
- *
- * A pressed-flower specimen card: a single handcrafted ribbon flower pressed
- * flat and mounted on a warm gift-tag label, with "404" as its specimen
- * catalog number. Motion: the card settles onto the page, the flower head
- * blooms open, the stem draws in, and a gentle puff of petals drifts upward.
- * All motion is gated behind prefers-reduced-motion.
+ * 404 — a pressed-flower specimen card. All motion is gated behind
+ * prefers-reduced-motion.
  */
 
 const OUTER_PETAL_D = 'M100 40 C 84 54, 84 74, 100 80 C 116 74, 116 54, 100 40 Z';
@@ -40,7 +35,6 @@ export default function NotFoundClient({
 
       gsap.matchMedia({
         '(prefers-reduced-motion: no-preference)': () => {
-          // Card settles onto the page like a specimen being placed down.
           if (card) {
             gsap.from(card, {
               opacity: 0,
@@ -50,7 +44,6 @@ export default function NotFoundClient({
               ease: 'power3.out',
             });
           }
-          // Flower head blooms open from its center.
           if (bloom) {
             gsap.from(bloom, {
               scale: 0,
@@ -61,7 +54,6 @@ export default function NotFoundClient({
               delay: 0.25,
             });
           }
-          // Stem + leaves draw in via stroke-dashoffset (stem first, leaves after).
           stems.forEach((path, i) => {
             const length = path.getTotalLength();
             gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
@@ -72,7 +64,6 @@ export default function NotFoundClient({
               delay: 0.5 + (i === 0 ? 0 : 0.25),
             });
           });
-          // A gentle puff of petals drifts upward from the bloom once it's open.
           const svg = flowerSvg.current;
           if (svg) {
             const r = svg.getBoundingClientRect();
@@ -84,7 +75,6 @@ export default function NotFoundClient({
           }
         },
         '(prefers-reduced-motion: reduce)': () => {
-          // Everything visible immediately, no motion, no petal burst.
           if (bloom) {
             gsap.set(bloom, { scale: 1, opacity: 1, transformOrigin: '100px 80px' });
           }
@@ -125,11 +115,9 @@ export default function NotFoundClient({
       ref={root}
       className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-background py-8 sm:py-10"
     >
-      {/* Frosted wrapping grid + warm light */}
       <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
       <div aria-hidden="true" className="vignette absolute inset-0" />
 
-      {/* Ambient falling petals — behind content (z-0), reduced-motion-guarded */}
       <span className="petal text-rose-line text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
       <span className="petal text-rose-line text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
       <span className="petal text-rose-line text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
@@ -141,7 +129,6 @@ export default function NotFoundClient({
           ref={cardRef}
           className="gift-card is-emphasized mx-auto max-w-xl px-8 py-8 sm:px-12 sm:py-10"
         >
-          {/* Pressed ribbon flower specimen */}
           <div className="flex justify-center">
             <svg
               ref={flowerSvg}
@@ -152,11 +139,9 @@ export default function NotFoundClient({
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
-              {/* Hand-drawn specimen strokes — boil like ink settling.
-                  GSAP's stem draw-in animates stroke-dashoffset (not
-                  transform), so the two compose without conflict. */}
+              {/* The stem draw-in animates stroke-dashoffset (not transform),
+                  so it composes with .line-boil without conflict. */}
               <g className="line-boil">
-                {/* Stem + leaves — draw in on mount (warm tan, not green) */}
                 <path
                   data-stem
                   d="M100 115 Q 97 180 100 270"
@@ -184,13 +169,12 @@ export default function NotFoundClient({
                   fillOpacity={0.25}
                 />
 
-                {/* Ribbon tails — the "ribbon" in ribbon flower */}
+                {/* Ribbon tails */}
                 <path d="M95 115 Q 86 140 82 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
                 <path d="M105 115 Q 114 140 118 168" stroke="#D4A5A5" strokeWidth={2.5} strokeLinecap="round" fill="none" />
               </g>
               <rect x={95} y={111} width={10} height={9} rx={1.5} fill="#D4A5A5" />
 
-              {/* Flower head — blooms open from center */}
               <g ref={flowerGroup}>
                 {outerPetals}
                 {innerPetals}
@@ -200,30 +184,24 @@ export default function NotFoundClient({
             </svg>
           </div>
 
-          {/* Specimen label divider */}
           <div className="gift-divider my-5" />
 
-          {/* Specimen catalog number */}
           <p className="text-center font-sans text-[11px] uppercase tracking-[0.3em] text-muted">
             Specimen &#8470;404
           </p>
 
-          {/* Heading */}
           <h1 className="mt-3 text-center font-sans text-2xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-3xl">
             This bloom has wandered off
           </h1>
 
-          {/* Handwritten nudge */}
           <p className="mt-2 text-center font-hand text-3xl leading-none text-rose-deep">
             let&rsquo;s find our way back ♡
           </p>
 
-          {/* Subtext */}
           <p className="mt-3 text-center font-sans text-base text-muted">
             The page you&rsquo;re looking for isn&rsquo;t in our garden.
           </p>
 
-          {/* CTAs */}
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Button as={Link} href="/" variant="primary" size="lg">
               Return home

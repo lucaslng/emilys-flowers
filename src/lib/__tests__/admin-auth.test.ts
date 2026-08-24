@@ -447,8 +447,7 @@ describe('clearOidcCookies', () => {
 
     clearOidcCookies(response);
 
-    // `cookies.delete` expires the cookie (empty value, epoch expiry) rather
-    // than removing the entry from the response's cookie map.
+    // `cookies.delete` expires the cookie (empty value, epoch expiry) rather than removing it from the map.
     expect(response.cookies.get(OIDC_STATE_COOKIE)?.value).toBe('');
     expect(response.cookies.get(OIDC_VERIFIER_COOKIE)?.value).toBe('');
   });
@@ -496,8 +495,7 @@ describe('outbound IdP fetches', () => {
         jwksUri: 'https://accounts.example.com/jwks',
         issuer: 'https://accounts.example.com',
       };
-      // The stub returns `{}` with no id_token → the exchange throws after
-      // the fetch, proving the request itself went through the timeout path.
+      // The stub returns `{}` with no id_token → the exchange throws after the fetch, proving the timeout path ran.
       await expect(
         exchangeCodeForTokens(config, discovery, 'code-123', 'verifier-123')
       ).rejects.toThrow('id_token missing from response');

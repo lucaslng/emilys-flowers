@@ -2,17 +2,7 @@ import type { Product } from '@/types';
 import { SITE_URL } from '@/lib/site';
 import { formatPrice } from '@/lib/format';
 
-/**
- * Serialize a JSON-LD payload for embedding in a
- * `<script type="application/ld+json">` tag.
- *
- * `JSON.stringify` leaves `<` unescaped, so any string value containing
- * `</script>` would terminate the script element early and allow HTML
- * injection into the document body. Escaping `<` (and the U+2028/U+2029
- * line separators) as `\uXXXX` is output-safe: inside JSON string literals
- * these escapes parse back to the original characters, so structured-data
- * consumers see identical semantics.
- */
+/** Escapes < and U+2028/9 as \uXXXX so a value containing </script> can't terminate the script tag; the escapes parse back to identical characters. */
 export function serializeJsonLd(data: Record<string, unknown>): string {
   return JSON.stringify(data)
     .replace(/</g, '\\u003c')

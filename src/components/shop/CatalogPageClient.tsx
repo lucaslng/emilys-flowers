@@ -20,16 +20,12 @@ const sortOptions = [
 interface CatalogPageClientProps {
   products: Product[];
   title: string;
-  /** Handwritten count line after the number, e.g. "hand-folded blooms". */
+  /** Handwritten count line after the number. */
   countLabel: string;
   description: string;
-  /** Handwritten annotation beside the arrow, e.g. "pick your favourites". */
+  /** Handwritten annotation beside the arrow. */
   annotation: string;
-  /**
-   * The two catalogues deliberately mirror each other: "left" is the
-   * garden-catalogue plate, "right" leans against the page edge with a
-   * flipped arrow. Do not flatten into one alignment.
-   */
+  /** The two catalogues deliberately mirror each other — do not flatten into one alignment. */
   align?: 'left' | 'right';
   /** Full CSS background for the corner wash (position + tint vary per page). */
   washGradient: string;
@@ -40,11 +36,7 @@ interface CatalogPageClientProps {
   matchSecondaryCategory?: (product: Product, value: string) => boolean;
 }
 
-/**
- * CatalogPageClient — shared listing client for /flowers and /bouquets.
- * Per-page identity (copy, mirroring, wash tint, filter dimensions) arrives
- * entirely via props so both routes keep their exact existing markup.
- */
+/** Shared listing client for /flowers and /bouquets; per-page identity arrives via props. */
 export default function CatalogPageClient({
   products,
   title,
@@ -121,11 +113,9 @@ export default function CatalogPageClient({
 
   return (
     <div className="relative isolate overflow-hidden pb-16 pt-12 sm:pb-24 sm:pt-16">
-      {/* Soft corner wash */}
       <PageWash background={washGradient} />
 
       <Container className="relative z-10">
-        {/* Header plate */}
         <div
           className={
             isRightAligned
@@ -150,7 +140,6 @@ export default function CatalogPageClient({
           >
             {description}
           </p>
-          {/* Hand-drawn arrow annotation */}
           <div
             className={`mt-3 flex items-center gap-2${
               isRightAligned ? ' justify-end' : ''
@@ -170,7 +159,6 @@ export default function CatalogPageClient({
           </div>
         </div>
 
-        {/* Filters */}
         <div className="mt-10">
           <FilterBar
             categories={categoryOptions}
@@ -188,7 +176,6 @@ export default function CatalogPageClient({
           />
         </div>
 
-        {/* Product Wall */}
         <div className="mt-12">
           <ProductGrid
             products={filtered}

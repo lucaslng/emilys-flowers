@@ -1,6 +1,5 @@
-// Storefront routes live in the `(store)` route group (URL-transparent) so the
-// under-construction gate applies to them but NOT to /admin/* (which has its
-// own layout at src/app/admin/layout.tsx).
+// The (store) route group scopes the under-construction gate to storefront
+// routes only — /admin/* has its own layout and stays reachable.
 
 import type { ReactNode } from "react";
 import { isUnderConstruction } from "@/lib/flagship-flag";

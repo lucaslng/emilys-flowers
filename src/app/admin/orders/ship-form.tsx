@@ -4,12 +4,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import Button from '@/components/ui/Button';
 
-/**
- * Inline "confirm shipment" form for a single order. POSTs the estimated
- * shipping time to /api/admin/orders/<sessionId>/ship, shows inline
- * error/success feedback, and reloads on success so the order re-renders
- * with its shipped badge.
- */
+/** Inline "confirm shipment" form for a single order. */
 export default function ShipForm({ sessionId }: { sessionId: string }) {
   const [estimate, setEstimate] = useState('');
   const [error, setError] = useState('');
@@ -31,10 +26,8 @@ export default function ShipForm({ sessionId }: { sessionId: string }) {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        // A metadata-stamp failure (`emailSent: true`) means the shipped
-        // email already went out — the server's message carries the precise
-        // retry guidance (safe within 24h, duplicate risk after), so surface
-        // it verbatim instead of the generic retry prompt.
+        // A metadata-stamp failure (`emailSent: true`) means the email already
+        // went out — surface the server's precise retry guidance verbatim.
         if (
           data &&
           typeof data === 'object' &&
@@ -53,8 +46,7 @@ export default function ShipForm({ sessionId }: { sessionId: string }) {
       }
 
       setSuccess('Shipped — the customer has been notified.');
-      // Let the success message render, then reload so the order shows its
-      // shipped badge (the ship route persists metadata before responding).
+      // Let the success message render before the reload shows the shipped badge.
       window.setTimeout(() => window.location.reload(), 1000);
     } catch (err) {
       setError(

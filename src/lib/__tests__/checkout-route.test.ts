@@ -1,16 +1,6 @@
-// Tests for `POST /api/checkout` with ChitChats shipping configured.
-//
-// bun runs each test file in its own process, so the `stripe`,
-// `@/lib/chitchats`, and `@/lib/catalog-index` mocks registered here are
-// per-file and don't collide with the process-global mocks in
-// `./order-emails-mocks.ts` (webhook/ship tests).
-// `@/lib/chitchats` is mocked with the REAL pure helpers (spread from the
-// pre-imported module) and only `isChitchatsConfigured` / `createShipment`
-// overridden — the route's pure logic (rate picking, payload building,
-// address validation) still runs for real.
-// `@/lib/catalog-index` is mocked so catalog resolution never touches Stripe:
-// the route must resolve {productId, quantity} pairs against this index and
-// reject unknown product ids.
+// bun runs each test file in its own process, so these per-file mocks don't collide with ./order-emails-mocks.ts.
+// @/lib/chitchats is mocked with the REAL pure helpers spread in; only isChitchatsConfigured/createShipment are overridden,
+// so the route's pure logic (rate picking, payload building, address validation) still runs for real.
 
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
 import type { ChitChatsShipment } from '@/lib/chitchats';
@@ -53,8 +43,7 @@ mock.module('@/lib/chitchats', () => ({
   },
 }));
 
-// The catalog index the route resolves productIds against. Product ids are
-// Stripe product ids; prices/names come from here, never from the request.
+// Stripe product ids; prices/names resolve from here, never from the request.
 const catalogIndex = new Map(
   [
     {
@@ -98,8 +87,7 @@ mock.module('stripe', () => {
 
 const { POST } = await import('@/app/api/checkout/route');
 
-// The wire shape: product references + quantities ONLY. Names/prices in the
-// request would be a security regression (issue #170).
+// The wire shape: product references + quantities ONLY — client-supplied names/prices must never be trusted.
 const validItems = [
   { productId: 'prod_rose', quantity: 2 },
   { productId: 'prod_bouquet', quantity: 1 },
@@ -155,8 +143,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
     const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
 
-    // line_items use Stripe Price objects resolved from the catalog — never
-    // inline price_data built from client-supplied values.
+    // Catalog-resolved Price objects, never inline price_data built from client-supplied values.
     expect(params.line_items).toEqual([
       { price: 'price_rose', quantity: 2 },
       { price: 'price_bouquet', quantity: 1 },
@@ -172,8 +159,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
       },
     ]);
     expect(params.billing_address_collection).toBe('required');
-    // The address is collected on our own checkout page — Stripe must not
-    // ask for a second one.
+    // The address is collected on our own checkout page — Stripe must not ask for a second one.
     expect(params.shipping_address_collection).toBeUndefined();
 
     const metadata = params.metadata as Record<string, string>;
@@ -187,7 +173,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(metadata.chitchats_postage_type).toBe('expedited');
     expect(JSON.parse(metadata.shipping_address)).toEqual(validAddress);
 
-    // Success URLs carry only the session id placeholder (issue #177).
+    // Success URLs carry only the session id placeholder.
     const successUrl = params.success_url as string;
     expect(successUrl).toContain('&session_id={CHECKOUT_SESSION_ID}');
     expect(successUrl).not.toContain('&items=');
@@ -208,8 +194,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
       }>;
     };
 
-    // Declared customs/insurance value comes from the catalog subtotal
-    // (2999*2 + 8999*1 = 14997 cents), not from anything the client sent.
+    // Declared customs/insurance value comes from the catalog subtotal (2999*2 + 8999*1 = 14997 cents).
     expect(payload.value).toBe('149.97');
     expect(payload.line_items).toEqual([
       {
@@ -288,8 +273,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(response.status).toBe(200);
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
     const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
-    // The Stripe amount is the strict parse of the CHOSEN rate's
-    // payment_amount — never a re-parse with a NaN→0 fallback.
+    // The Stripe amount is the strict parse of the CHOSEN rate's payment_amount — never a NaN→0 fallback re-parse.
     expect(params.shipping_options).toEqual([
       {
         shipping_rate_data: {
@@ -304,7 +288,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
   });
 
   test('truncates over-long address fields in BOTH the ChitChats payload and the shipping_address metadata', async () => {
-    // Server must clamp and mirror the same truncated address into both.
     const overLongAddress = {
       name: 'N'.repeat(500),
       line1: 'L'.repeat(500),
@@ -335,7 +318,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
       string
     >;
 
-    // The ChitChats label mirrors exactly what was stored in metadata.
     expect(payload.name).toBe(stored.name);
     expect(payload.address_1).toBe(stored.line1);
     expect(payload.address_2).toBe(stored.line2);
@@ -350,9 +332,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
   });
 
   test('pathological escape inflation: the ChitChats payload derives from the SAME serialized value as the metadata', async () => {
-    // Quote-heavy fields force the fallback (drop line2, then shorten); the
-    // payload must be built from the parsed-back stored value, not the
-    // clamped-but-full address.
+    // Quote-heavy fields force the fallback (drop line2, then shorten); the payload must come from the parsed-back stored value.
     const quoteHeavyAddress = {
       name: '"'.repeat(200),
       line1: '"'.repeat(200),
@@ -386,7 +366,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
     >;
     expect(payload.name).toBe(stored.name);
     expect(payload.address_1).toBe(stored.line1);
-    // The fallback drops line2 on BOTH sides.
     expect('line2' in stored).toBe(false);
     expect(payload.address_2).toBeUndefined();
     expect(payload.city).toBe(stored.city);
@@ -507,7 +486,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
   test('creates a session without shipping options when ChitChats is not configured', async () => {
     checkoutMocks.chitchatsConfigured = false;
 
-    // No address required on this path — matches the pre-ChitChats behavior.
+    // No address required when shipping rates are unavailable.
     const response = await POST(checkoutRequest({ items: validItems }));
 
     expect(response.status).toBe(200);
@@ -528,12 +507,11 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(await response.json()).toEqual({
       error: 'Stripe is not configured.',
     });
-    // Fails closed before any catalog/ChitChats/Stripe calls.
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
     expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
 
-  // --- Redirect origin pinning (issue #218) ---
+  // --- Redirect origin pinning ---
 
   test('derives success/cancel URLs from BASE_URL when set', async () => {
     const env = process.env as Record<string, string | undefined>;
@@ -609,7 +587,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     }
   });
 
-  // --- Catalog-membership rejections (issue #170) ---
+  // --- Catalog-membership rejections ---
 
   test('returns 400 for an unknown productId', async () => {
     const response = await POST(
@@ -670,8 +648,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(1);
     const params = checkoutMocks.sessionCreateCalls[0] as Record<string, unknown>;
 
-    // prod_rose appears twice in the request but must reach Stripe once,
-    // with quantities summed (2 + 3 = 5).
     expect(params.line_items).toEqual([
       { price: 'price_rose', quantity: 5 },
       { price: 'price_bouquet', quantity: 1 },
@@ -709,7 +685,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
     const response = await POST(
       checkoutRequest({
         items: [
-          // A crafted payload trying to smuggle a 1¢ price through.
           { ...validItems[0], name: 'Ribbon Rose', price: 1 },
         ],
         address: validAddress,
@@ -725,7 +700,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(payload.value).toBe('59.98'); // 2999 * 2 from the catalog
   });
 
-  // --- Rate limiting (issue #209) ---
+  // --- Rate limiting ---
 
   test('consults the limiter with a checkout-prefixed key before any billable call', async () => {
     const request = new Request('http://localhost/api/checkout', {
@@ -755,7 +730,6 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('60');
     expect((await response.json()).error).toBe('Too many requests');
-    // Neither billable external call may happen on a rejected request.
     expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
     expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
   });

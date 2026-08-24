@@ -1,13 +1,7 @@
-// src/lib/stripe-products.ts
+// Workers-safe Stripe catalog listing shared by stripe-catalog.ts and catalog-index.ts —
+// must NOT import node:* modules (catalog-index runs in the Workers request path).
 //
-// Shared, Workers-safe Stripe catalog listing used by BOTH the build-time
-// catalog (`src/lib/stripe-catalog.ts`) and the runtime checkout index
-// (`src/lib/catalog-index.ts`). This module must NOT import node:* modules —
-// catalog-index runs in the Cloudflare Workers request path, where node:fs is
-// unavailable (image scanning stays in stripe-catalog.ts).
-//
-// Auto-paginates `products.list` via `starting_after`: Stripe caps a single
-// page at 100 results, so without cursor-following any product past #101
+// Auto-paginates past Stripe's 100-per-page cap: without cursor-following, any product past #101
 // silently vanished from the storefront and became unpurchasable.
 
 import Stripe from 'stripe';
@@ -28,12 +22,7 @@ function hasUsableDefaultPrice(
   );
 }
 
-/**
- * List every active Stripe product with its default price expanded, following
- * `has_more`/`starting_after` cursors until the catalog is exhausted. Products
- * without a usable default price are skipped with a warning attributed to
- * `source` (the calling module's name, so logs stay attributable).
- */
+/** Lists every active product with default_price expanded, following cursors; unusable products skipped with a warning attributed to `source`. */
 export async function listActiveProducts(
   stripe: Stripe,
   source: string
