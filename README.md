@@ -30,8 +30,6 @@ bun run cf-typegen # regenerate cloudflare-env.d.ts from wrangler.jsonc bindings
 bunx tsc --noEmit # ad-hoc typecheck (no script defined)
 ```
 
-There is no `lint` or `typecheck` script. `bun test` runs the unit tests.
-
 ## Deployment — Cloudflare Workers
 
 This app deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (OpenNext), not Vercel.
