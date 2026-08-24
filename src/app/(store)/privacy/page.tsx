@@ -177,14 +177,6 @@ export default function PrivacyPolicyPage() {
                   or debit card details) in accordance with Stripe&rsquo;s Privacy Policy.
                 </li>
                 <li>
-                  <strong>Marketing and Advertising.</strong> We may use your personal information
-                  for marketing and promotional purposes, such as to send marketing, advertising
-                  and promotional communications by email, text message or postal mail, and to show
-                  you advertisements for products or services. This may include using your personal
-                  information to better tailor the Services and advertising on our Site and other
-                  websites.
-                </li>
-                <li>
                   <strong>Security and Fraud Prevention.</strong> We use your personal information
                   to detect, investigate or take action regarding possible fraudulent, illegal or
                   malicious activity.
@@ -197,6 +189,10 @@ export default function PrivacyPolicyPage() {
                   with you.
                 </li>
               </ul>
+              <p className={pClass}>
+                We do not use your personal information for marketing or advertising, and we do not
+                sell your personal information.
+              </p>
             </Section>
 
             <Section title="Local Storage">
@@ -217,22 +213,11 @@ export default function PrivacyPolicyPage() {
               </p>
               <ul className={ulClass}>
                 <li>
-                  With vendors or other third parties who perform services on our behalf (e.g., IT
-                  management, payment processing, data analytics, customer support, cloud storage,
-                  fulfillment and shipping).
-                </li>
-                <li>
-                  With business and marketing partners to provide services and advertise to you.
-                  Our business and marketing partners will use your information in accordance with
-                  their own privacy notices.
-                </li>
-                <li>
-                  When you direct or request us to disclose certain information to third parties,
-                  such as to ship you products.
-                </li>
-                <li>
-                  With our affiliates or otherwise within our corporate group, in our legitimate
-                  interests to run a successful business.
+                  With service providers who perform services on our behalf, including Stripe
+                  (payment processing), ChitChats (shipping), Resend (delivery of order
+                  confirmation and shipping emails), and Cloudflare (hosting and security). These
+                  providers process your information on our behalf to fulfill your orders and
+                  operate the Services.
                 </li>
                 <li>
                   In connection with a business transaction such as a merger or bankruptcy, to
@@ -266,10 +251,8 @@ export default function PrivacyPolicyPage() {
                         Identifiers such as basic contact details and certain order information
                       </td>
                       <td className="border-b border-rose-line/40 p-3 align-top" rowSpan={3}>
-                        Vendors and third parties who perform services on our behalf (such as
-                        Internet service providers, payment processors, fulfillment partners,
-                        customer support partners and data analytics providers); business and
-                        marketing partners; affiliates
+                        Service providers who perform services on our behalf (payment processing,
+                        shipping, email delivery, hosting and security)
                       </td>
                     </tr>
                     <tr>
@@ -330,10 +313,11 @@ export default function PrivacyPolicyPage() {
                 insecure channels to communicate sensitive or confidential information to us.
               </p>
               <p className={pClass}>
-                How long we retain your personal information depends on different factors, such as
-                whether we need the information to maintain your account, to provide the Services,
-                comply with legal obligations, resolve disputes or enforce other applicable
-                contracts and policies.
+                We keep your personal information only as long as needed for the purposes described
+                in this Privacy Policy. Shopping cart contents stay in your browser&rsquo;s local
+                storage until you clear them or complete your order. Order records are retained for
+                up to seven years to meet tax, accounting, and other legal obligations. Customer
+                support communications are kept as long as necessary to resolve your request.
               </p>
             </Section>
 
@@ -377,11 +361,10 @@ export default function PrivacyPolicyPage() {
                   denial.
                 </li>
                 <li>
-                  <strong>Managing Communication Preferences:</strong> We may send you promotional
-                  emails, and you may opt out of receiving these at any time by using the
-                  unsubscribe option displayed in our emails to you. If you opt out, we may still
-                  send you non-promotional emails, such as those about your account or orders that
-                  you have made.
+                  <strong>Managing Communication Preferences:</strong> We only send emails about
+                  your orders, such as order confirmations and shipping updates. If we ever send
+                  promotional emails in the future, we will obtain your consent first and include
+                  an unsubscribe option you can use at any time.
                 </li>
               </ul>
               <p className={pClass}>
@@ -410,18 +393,19 @@ export default function PrivacyPolicyPage() {
                 or lodge your complaint with your local data protection authority.
               </p>
 
-              <h2 className={h3Class}>International Users</h2>
+              <h2 className={h3Class}>Where Your Information Is Processed</h2>
               <p className={pClass}>
-                Please note that we may transfer, store and process your personal information
-                outside the country you live in. Your personal information is also processed by
-                staff and third party service providers and partners in these countries.
+                Your personal information is primarily processed in Canada, including by ChitChats
+                to arrange shipping for your orders. Some of our service providers process
+                information in the United States: Stripe (payments), Cloudflare (hosting and
+                security), and Resend (order emails).
               </p>
               <p className={pClass}>
-                If we transfer your personal information out of Europe, we will rely on recognized
-                transfer mechanisms like the European Commission&rsquo;s Standard Contractual
-                Clauses, or any equivalent contracts issued by the relevant competent authority of
-                the UK, as relevant, unless the data transfer is to a country that has been
-                determined to provide an adequate level of protection.
+                We require these service providers contractually to protect your personal
+                information with safeguards comparable to those described in this Privacy Policy.
+                Please note that personal information processed in another country may be accessed
+                by the courts, law enforcement, and national security authorities of that country
+                in accordance with their laws.
               </p>
 
               <h2 className={h3Class}>Contact</h2>
