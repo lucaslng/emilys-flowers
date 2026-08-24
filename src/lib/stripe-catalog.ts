@@ -17,6 +17,7 @@ import Stripe from 'stripe';
 import { cache } from 'react';
 import type { Product } from '@/types';
 import { slugify } from '@/lib/slugify';
+import { listActiveProducts } from '@/lib/stripe-products';
 
 // Re-exported from the shared module so existing imports keep working.
 export { slugify };
@@ -112,22 +113,11 @@ async function fetchCatalog(): Promise<Product[]> {
   }
 
   const stripe = new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
-  const { data } = await stripe.products.list({
-    limit: 100,
-    expand: ['data.default_price'],
-    active: true,
-  });
+  const listed = await listActiveProducts(stripe, 'stripe-catalog');
 
   const products: Product[] = [];
-  for (const p of data) {
-    const dp = p.default_price;
-    if (typeof dp !== 'object' || dp === null || dp.unit_amount == null) {
-      console.warn(
-        `[stripe-catalog] Skipping "${p.name}" (${p.id}): no default price.`
-      );
-      continue;
-    }
-    const mapped = mapStripeProduct(p, dp);
+  for (const p of listed) {
+    const mapped = mapStripeProduct(p, p.default_price);
     products.push({
       ...mapped,
       images: imagesForProduct(mapped.slug, mapped.category),
