@@ -471,6 +471,7 @@ describe('outbound IdP fetches', () => {
   }
 
   test('discovery requests carry an abort signal (10s timeout)', async () => {
+    delete process.env.OIDC_ISSUER;
     const { calls, restore } = stubFetchCapturingInit();
     try {
       await getOidcDiscovery('https://timeout-check.example.com');
@@ -504,6 +505,76 @@ describe('outbound IdP fetches', () => {
       expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
     } finally {
       restore();
+    }
+  });
+});
+
+describe('discovery issuer cross-check', () => {
+  function stubDiscoveryDoc(doc: Record<string, unknown>): {
+    calls: () => number;
+    restore: () => void;
+  } {
+    const originalFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls += 1;
+      return { ok: true, json: async () => doc };
+    }) as unknown as typeof fetch;
+    return { calls: () => calls, restore: () => (globalThis.fetch = originalFetch) };
+  }
+
+  test('fails closed on an issuer mismatch and does not cache the rejected document', async () => {
+    const stub = stubDiscoveryDoc({
+      issuer: 'https://evil.example.com',
+      authorization_endpoint: 'https://evil.example.com/authorize',
+      token_endpoint: 'https://evil.example.com/token',
+      jwks_uri: 'https://evil.example.com/jwks',
+    });
+    try {
+      await expect(
+        getOidcDiscovery('https://issuer-mismatch.example.com')
+      ).rejects.toThrow(/mismatch/i);
+      await expect(
+        getOidcDiscovery('https://issuer-mismatch.example.com')
+      ).rejects.toThrow(/mismatch/i);
+      expect(stub.calls()).toBe(2);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  test('succeeds when the discovery issuer matches OIDC_ISSUER exactly', async () => {
+    const stub = stubDiscoveryDoc({
+      issuer: 'https://accounts.example.com',
+      authorization_endpoint: 'https://accounts.example.com/authorize',
+      token_endpoint: 'https://accounts.example.com/token',
+      jwks_uri: 'https://accounts.example.com/jwks',
+    });
+    try {
+      const discovery = await getOidcDiscovery(
+        'https://issuer-match.example.com'
+      );
+      expect(discovery.issuer).toBe('https://accounts.example.com');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  test('skips the cross-check when OIDC_ISSUER is unset', async () => {
+    delete process.env.OIDC_ISSUER;
+    const stub = stubDiscoveryDoc({
+      issuer: 'https://someone-else.example.com',
+      authorization_endpoint: 'https://someone-else.example.com/authorize',
+      token_endpoint: 'https://someone-else.example.com/token',
+      jwks_uri: 'https://someone-else.example.com/jwks',
+    });
+    try {
+      const discovery = await getOidcDiscovery(
+        'https://issuer-unset.example.com'
+      );
+      expect(discovery.issuer).toBe('https://someone-else.example.com');
+    } finally {
+      stub.restore();
     }
   });
 });
