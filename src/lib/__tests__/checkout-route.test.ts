@@ -617,4 +617,19 @@ describe('POST /api/checkout with ChitChats configured', () => {
     expect(rateLimitMocks.limitCalls).toHaveLength(0);
     expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
   });
+
+  test('returns 400 (not 500) for a malformed JSON body', async () => {
+    const request = new Request('http://localhost/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{not json',
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: 'Invalid request body.' });
+    expect(checkoutMocks.sessionCreateCalls).toHaveLength(0);
+    expect(checkoutMocks.shipmentCreateCalls).toHaveLength(0);
+  });
 });

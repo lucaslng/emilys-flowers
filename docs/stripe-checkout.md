@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     billing_address_collection: 'required',
     metadata: { order_number },
     line_items: lineItems,          // Stripe Price objects — NOT inline price_data
-    success_url: `${origin}/checkout/success?success=true&order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/checkout/success?order=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/cart?canceled=true`,
   })
 

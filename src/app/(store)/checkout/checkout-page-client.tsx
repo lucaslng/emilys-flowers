@@ -313,6 +313,7 @@ export default function CheckoutPageClient() {
               ? `Please check the highlighted delivery address fields. ${bannerExtras.join(' ')}`
               : 'Please check the highlighted delivery address fields.'
           );
+          setLoading(false);
           return;
         }
         throw new Error(parseErrorMessage(data, 'Failed to create checkout session'));
@@ -324,13 +325,19 @@ export default function CheckoutPageClient() {
         'url' in data &&
         typeof (data as { url?: unknown }).url === 'string'
       ) {
+        // Navigation is async — loading stays true through this window so a
+        // second click can't fire a duplicate POST (a second real Stripe
+        // session / ChitChats shipment).
         window.location.href = (data as { url: string }).url;
+        return;
       }
+
+      setError('Could not start checkout. Please try again.');
+      setLoading(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Something went wrong. Please try again.'
       );
-    } finally {
       setLoading(false);
     }
   };
