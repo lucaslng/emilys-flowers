@@ -81,6 +81,16 @@ html {
   scroll-margin-top: 5rem;
 }
 
+/* appearance:none hides the native glyph, so draw the checked state here. */
+.checkbox-check:checked {
+  border-color: var(--rose-deep);
+  background-color: var(--rose-deep);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FEFAF5' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 13l4 4L19 7'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+}
+
 /* ─── Reduced Motion Guard ─────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -199,6 +199,11 @@ export default function CheckoutPageClient() {
   const [serverFieldErrors, setServerFieldErrors] = useState<
     Partial<Record<AddressFieldName, string>>
   >({});
+  const [agreed, setAgreed] = useState(false);
+  /** The agreement error only appears once a submit was tried unchecked. */
+  const [agreementAttempted, setAgreementAttempted] = useState(false);
+
+  const agreementError = agreementAttempted && !agreed;
 
   const subtotal = getTotal();
 
@@ -260,7 +265,16 @@ export default function CheckoutPageClient() {
     if (invalidFields.length > 0) {
       setError('');
       setServerFieldErrors({});
+      if (!agreed) setAgreementAttempted(true);
       revealAllErrors(invalidFields);
+      return;
+    }
+
+    if (!agreed) {
+      setError('');
+      setServerFieldErrors({});
+      setAgreementAttempted(true);
+      document.getElementById('terms-agreement')?.focus();
       return;
     }
 
@@ -538,6 +552,51 @@ export default function CheckoutPageClient() {
 
             {/* Payment Button — the stamp */}
             <div className="mt-8">
+              <div className="flex items-start gap-2">
+                <input
+                  id="terms-agreement"
+                  name="terms-agreement"
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(event) => {
+                    setAgreed(event.target.checked);
+                    if (event.target.checked) setAgreementAttempted(false);
+                  }}
+                  aria-invalid={agreementError}
+                  aria-describedby={agreementError ? 'terms-agreement-error' : undefined}
+                  className={`checkbox-check h-6 w-6 shrink-0 cursor-pointer appearance-none rounded-none border bg-background transition-colors focus:border-rose-line ${
+                    agreementError ? 'border-[#9C4A2F]' : 'border-border'
+                  }`}
+                />
+                <label
+                  htmlFor="terms-agreement"
+                  className="font-sans text-sm text-foreground"
+                >
+                  I agree to the{' '}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-deep underline decoration-rose-line underline-offset-4 transition-colors hover:text-foreground"
+                  >
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-deep underline decoration-rose-line underline-offset-4 transition-colors hover:text-foreground"
+                  >
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+              {agreementError && (
+                <p id="terms-agreement-error" className="mt-1 font-sans text-xs text-[#9C4A2F]">
+                  Please agree to the Terms of Service and Privacy Policy before paying.
+                </p>
+              )}
               {error && (
                 <div
                   role="alert"
