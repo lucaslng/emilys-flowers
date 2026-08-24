@@ -118,6 +118,9 @@ Gotchas:
   (fall back to `git stash show -p | git apply`, or copy the files).
 - This moves working-tree changes only. Already-committed changes move via
   cherry-pick, or by creating the lane from the branch that contains them.
+- Run git from inside the target worktree's own directory. `git -C main …`
+  executed while CWD is already `main/` resolves to `main/main` and fails
+  confusingly — drop the `-C` when the shell is already there.
 - After a successful pop the source worktree is clean and the stash is dropped
   automatically.
 

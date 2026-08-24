@@ -45,6 +45,7 @@ writing code that touches any of these areas.
 | [shipping.md](./shipping.md) | Before touching `src/lib/chitchats.ts`, the ChitChats wiring in the checkout route, the webhook's shipping-address fallback, or the admin "View shipment" link. Covers the create-shipment-for-rates flow, env vars, auth gotchas, and metadata keys. |
 | [order-emails.md](./order-emails.md) | Before touching `src/lib/email.ts`, the Stripe webhook route, or `src/app/admin/orders/**`. Covers the Resend confirmation + shipped emails, the webhook, the OIDC-gated admin flow, and the `ADMIN_SESSION_SECRET` rotation runbook (the only admin-session kill switch). |
 | [opengraph-image.md](./opengraph-image.md) | Before editing the social share image (`public/opengraph-image.png`). Covers the `og-src/` + `scripts/og/` source pipeline, safe zones, brand tokens, and type rules. |
+| [agent-lanes.md](./agent-lanes.md) | Before running parallel specialist lanes (multi-file refactors, hardening rounds). Covers wave planning, the per-lane contract, gate ownership, commit/review flow, and PR mechanics. |
 
 ## Quick orientation
 
