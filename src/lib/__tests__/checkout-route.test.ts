@@ -2,7 +2,7 @@
 // @/lib/chitchats is mocked with the REAL pure helpers spread in; only isChitchatsConfigured/createShipment are overridden,
 // so the route's pure logic (rate picking, payload building, address validation) still runs for real.
 
-import { test, expect, describe, beforeEach, mock } from 'bun:test';
+import { test, expect, describe, beforeEach, afterEach, mock } from 'bun:test';
 import { unsetEnv } from './env-helpers';
 import type { ChitChatsShipment } from '@/lib/chitchats';
 import { ADDRESS_FIELD_MAX_LENGTHS } from '@/lib/address-validation';
@@ -111,6 +111,10 @@ function checkoutRequest(body: unknown): Request {
   });
 }
 
+const ORIGINAL_STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const ORIGINAL_CHITCHATS_CLIENT_ID = process.env.CHITCHATS_CLIENT_ID;
+const ORIGINAL_CHITCHATS_ACCESS_TOKEN = process.env.CHITCHATS_ACCESS_TOKEN;
+
 describe('POST /api/checkout with ChitChats configured', () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
@@ -129,6 +133,24 @@ describe('POST /api/checkout with ChitChats configured', () => {
     checkoutMocks.sessionCreateCalls.length = 0;
     checkoutMocks.shipmentCreateCalls.length = 0;
     resetRateLimitMocks();
+  });
+
+  afterEach(() => {
+    if (ORIGINAL_STRIPE_SECRET_KEY === undefined) {
+      unsetEnv('STRIPE_SECRET_KEY');
+    } else {
+      process.env.STRIPE_SECRET_KEY = ORIGINAL_STRIPE_SECRET_KEY;
+    }
+    if (ORIGINAL_CHITCHATS_CLIENT_ID === undefined) {
+      unsetEnv('CHITCHATS_CLIENT_ID');
+    } else {
+      process.env.CHITCHATS_CLIENT_ID = ORIGINAL_CHITCHATS_CLIENT_ID;
+    }
+    if (ORIGINAL_CHITCHATS_ACCESS_TOKEN === undefined) {
+      unsetEnv('CHITCHATS_ACCESS_TOKEN');
+    } else {
+      process.env.CHITCHATS_ACCESS_TOKEN = ORIGINAL_CHITCHATS_ACCESS_TOKEN;
+    }
   });
 
   test('creates a session with catalog-resolved price ids and the cheapest ChitChats rate as the shipping option', async () => {

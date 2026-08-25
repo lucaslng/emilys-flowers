@@ -2,7 +2,7 @@
 // projection only — customer_details and metadata must never leak. Reuses the shared stripe mock from
 // ./order-emails-mocks.ts and the @opennextjs/cloudflare mock from ./rate-limit-mocks.ts (registered once per process).
 
-import { test, expect, describe, beforeEach } from 'bun:test';
+import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
 import { unsetEnv } from './env-helpers';
 import {
   orderEmailMocks,
@@ -65,12 +65,22 @@ function makeSession(): object {
   };
 }
 
+const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
+
 describe('GET /api/checkout/session', () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     resetOrderEmailMocks();
     resetRateLimitMocks();
     orderEmailMocks.currentSession = makeSession();
+  });
+
+  afterEach(() => {
+    if (ORIGINAL_KEY === undefined) {
+      unsetEnv('STRIPE_SECRET_KEY');
+    } else {
+      process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
+    }
   });
 
   test('returns the sanitized projection for a valid cs_test_ id', async () => {

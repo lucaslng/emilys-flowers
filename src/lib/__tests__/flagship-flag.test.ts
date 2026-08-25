@@ -120,8 +120,11 @@ describe("evaluateFlowersEnabled", () => {
 });
 
 describe("isUnderConstruction", () => {
+  const original = process.env.UNDER_CONSTRUCTION;
+
   afterEach(() => {
-    unsetEnv("UNDER_CONSTRUCTION");
+    if (original === undefined) unsetEnv("UNDER_CONSTRUCTION");
+    else process.env.UNDER_CONSTRUCTION = original;
   });
 
   test("true when UNDER_CONSTRUCTION is 'true'", () => {
