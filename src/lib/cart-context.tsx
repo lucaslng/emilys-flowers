@@ -135,6 +135,12 @@ function isCartItem(v: unknown): v is CartItem {
     Number.isInteger(p.price) &&
     p.price > 0 &&
     Array.isArray(p.images) &&
+    p.images.every(
+      (image) =>
+        typeof image === 'string' &&
+        image.startsWith('/') &&
+        !image.startsWith('//')
+    ) &&
     (p.category === 'flower' || p.category === 'bouquet') &&
     Array.isArray(p.tags) &&
     typeof p.inStock === 'boolean'
