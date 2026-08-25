@@ -36,6 +36,25 @@ describe("organizationSchema", () => {
     expect(schema.logo).toBe(`${SITE_URL}/apple-touch-icon.png`);
     expect(schema.priceRange).toBe("$$");
   });
+
+  test("exposes a stable @id for entity references", () => {
+    const schema = organizationSchema();
+    expect(schema["@id"]).toBe(`${SITE_URL}#organization`);
+  });
+
+  test("consolidates the brand entity via sameAs", () => {
+    const schema = organizationSchema();
+    expect(schema.sameAs).toEqual(["https://instagram.com/emilysflowers_"]);
+  });
+
+  test("provides a contact point with the contact email", () => {
+    const schema = organizationSchema();
+    expect(schema.contactPoint).toEqual({
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "hello@emilysflowers.ca",
+    });
+  });
 });
 
 describe("webSiteSchema", () => {
@@ -45,6 +64,13 @@ describe("webSiteSchema", () => {
     expect(schema["@type"]).toBe("WebSite");
     expect(schema.name).toBe("Emily's Flowers");
     expect(schema.url).toBe(SITE_URL);
+  });
+
+  test("references the Organization node as publisher by @id", () => {
+    const schema = webSiteSchema();
+    expect(schema.publisher).toEqual({
+      "@id": `${SITE_URL}#organization`,
+    });
   });
 });
 
