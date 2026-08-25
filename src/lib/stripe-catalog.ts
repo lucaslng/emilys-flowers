@@ -56,6 +56,7 @@ export function mapStripeProduct(
     inStock: product.active,
     flowerType,
     color,
+    updatedAt: product.updated,
   };
 }
 
