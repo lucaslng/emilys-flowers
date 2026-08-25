@@ -8,6 +8,7 @@ import {
   rateLimitMocks,
   resetRateLimitMocks,
 } from './rate-limit-mocks';
+import { unsetEnv } from './env-helpers';
 
 const { GET } = await import('@/app/api/admin/callback/route');
 
@@ -71,7 +72,7 @@ describe('GET /api/admin/callback', () => {
     globalThis.fetch = originalFetch;
     for (const [key, value] of Object.entries(savedEnv)) {
       if (value === undefined) {
-        delete process.env[key];
+        unsetEnv(key);
       } else {
         process.env[key] = value;
       }

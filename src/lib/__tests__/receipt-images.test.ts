@@ -1,13 +1,14 @@
 // PRODUCT_IMAGES parsing is memoized per raw value, so each test sets its own value and restores it afterwards.
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import { resolveReceiptImage } from '@/lib/receipt-images';
 
 const ORIGINAL = process.env.PRODUCT_IMAGES;
 
 describe('resolveReceiptImage', () => {
   afterEach(() => {
-    if (ORIGINAL === undefined) delete process.env.PRODUCT_IMAGES;
+    if (ORIGINAL === undefined) unsetEnv("PRODUCT_IMAGES");
     else process.env.PRODUCT_IMAGES = ORIGINAL;
   });
 
@@ -44,7 +45,7 @@ describe('resolveReceiptImage', () => {
   });
 
   test('tolerates missing and invalid PRODUCT_IMAGES JSON', () => {
-    delete process.env.PRODUCT_IMAGES;
+    unsetEnv("PRODUCT_IMAGES");
     expect(resolveReceiptImage('Green Evangeline')).toBe(
       '/placeholders/flower.svg'
     );

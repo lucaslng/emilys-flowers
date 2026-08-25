@@ -1,4 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import { SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
 import {
@@ -43,8 +44,8 @@ function setAllEnv() {
 }
 
 function clearAllEnv() {
-  for (const name of REQUIRED_VARS) delete process.env[name];
-  delete process.env.BASE_URL;
+  for (const name of REQUIRED_VARS) unsetEnv(name);
+  unsetEnv("BASE_URL");
 }
 
 beforeEach(() => {
@@ -71,7 +72,7 @@ describe('isOidcConfigured', () => {
   });
 
   test('is false when a required env var is missing', () => {
-    delete process.env.OIDC_CLIENT_SECRET;
+    unsetEnv("OIDC_CLIENT_SECRET");
     expect(isOidcConfigured()).toBe(false);
   });
 
@@ -104,8 +105,8 @@ describe('isOidcConfigured', () => {
 
 describe('getOidcConfig', () => {
   test('throws naming exactly the missing required env vars', () => {
-    delete process.env.OIDC_ISSUER;
-    delete process.env.ADMIN_SESSION_SECRET;
+    unsetEnv("OIDC_ISSUER");
+    unsetEnv("ADMIN_SESSION_SECRET");
     expect(() => getOidcConfig(CALLBACK_URL)).toThrow(
       'OIDC admin auth is not configured: missing OIDC_ISSUER, ADMIN_SESSION_SECRET'
     );
@@ -325,7 +326,7 @@ describe('createSessionToken / verifySessionToken', () => {
       .setExpirationTime('8h')
       .sign(new TextEncoder().encode(config.sessionSecret));
 
-    delete process.env.ADMIN_OIDC_GROUPS;
+    unsetEnv("ADMIN_OIDC_GROUPS");
     expect(await verifySessionToken(token)).toBeNull();
   });
 
@@ -456,7 +457,7 @@ describe('outbound IdP fetches', () => {
   }
 
   test('discovery requests carry an abort signal (10s timeout)', async () => {
-    delete process.env.OIDC_ISSUER;
+    unsetEnv("OIDC_ISSUER");
     const { calls, restore } = stubFetchCapturingInit();
     try {
       await getOidcDiscovery('https://timeout-check.example.com');
@@ -546,7 +547,7 @@ describe('discovery issuer cross-check', () => {
   });
 
   test('skips the cross-check when OIDC_ISSUER is unset', async () => {
-    delete process.env.OIDC_ISSUER;
+    unsetEnv("OIDC_ISSUER");
     const stub = stubDiscoveryDoc({
       issuer: 'https://someone-else.example.com',
       authorization_endpoint: 'https://someone-else.example.com/authorize',

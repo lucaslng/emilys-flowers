@@ -1,4 +1,5 @@
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import { getStripeClient } from '@/lib/stripe-client';
 
 const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
@@ -6,14 +7,14 @@ const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
 describe('getStripeClient', () => {
   afterEach(() => {
     if (ORIGINAL_KEY === undefined) {
-      delete process.env.STRIPE_SECRET_KEY;
+      unsetEnv("STRIPE_SECRET_KEY");
     } else {
       process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
     }
   });
 
   test('returns null when STRIPE_SECRET_KEY is unset', () => {
-    delete process.env.STRIPE_SECRET_KEY;
+    unsetEnv("STRIPE_SECRET_KEY");
     expect(getStripeClient()).toBeNull();
   });
 
@@ -42,7 +43,7 @@ describe('getStripeClient', () => {
   });
 
   test('a null result is not cached — setting the key afterwards constructs', () => {
-    delete process.env.STRIPE_SECRET_KEY;
+    unsetEnv("STRIPE_SECRET_KEY");
     expect(getStripeClient()).toBeNull();
 
     process.env.STRIPE_SECRET_KEY = 'sk_test_late';

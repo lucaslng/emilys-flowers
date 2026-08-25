@@ -3,6 +3,7 @@
 // ./order-emails-mocks.ts and the @opennextjs/cloudflare mock from ./rate-limit-mocks.ts (registered once per process).
 
 import { test, expect, describe, beforeEach } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import {
   orderEmailMocks,
   resetOrderEmailMocks,
@@ -141,7 +142,7 @@ describe('GET /api/checkout/session', () => {
   });
 
   test('returns 503 when STRIPE_SECRET_KEY is absent', async () => {
-    delete process.env.STRIPE_SECRET_KEY;
+    unsetEnv("STRIPE_SECRET_KEY");
 
     const response = await GET(sessionRequest('cs_test_abc123'));
 

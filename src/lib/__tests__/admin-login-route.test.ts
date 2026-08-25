@@ -2,6 +2,7 @@
 // outbound IdP discovery is stubbed via globalThis.fetch instead.
 
 import { test, expect, describe, beforeEach, afterEach } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import {
   rateLimitMocks,
   resetRateLimitMocks,
@@ -55,7 +56,7 @@ describe('GET /api/admin/login', () => {
     globalThis.fetch = originalFetch;
     for (const [key, value] of Object.entries(savedEnv)) {
       if (value === undefined) {
-        delete process.env[key];
+        unsetEnv(key);
       } else {
         process.env[key] = value;
       }
@@ -110,7 +111,7 @@ describe('GET /api/admin/login', () => {
   });
 
   test('unconfigured OIDC is rejected before the limiter is consulted', async () => {
-    delete process.env.OIDC_ISSUER;
+    unsetEnv("OIDC_ISSUER");
 
     const response = await GET(loginRequest());
 

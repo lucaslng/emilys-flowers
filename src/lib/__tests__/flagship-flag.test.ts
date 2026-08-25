@@ -1,4 +1,5 @@
 import { test, expect, describe, afterEach } from "bun:test";
+import { unsetEnv } from "./env-helpers";
 import {
   flowersEnabledFromEvaluateResponse,
   underConstructionFromEvaluateResponse,
@@ -67,18 +68,18 @@ describe("evaluateUnderConstruction", () => {
   };
 
   afterEach(() => {
-    if (original.appId === undefined) delete process.env.FLAGSHIP_APP_ID;
+    if (original.appId === undefined) unsetEnv("FLAGSHIP_APP_ID");
     else process.env.FLAGSHIP_APP_ID = original.appId;
-    if (original.accountId === undefined) delete process.env.CLOUDFLARE_ACCOUNT_ID;
+    if (original.accountId === undefined) unsetEnv("CLOUDFLARE_ACCOUNT_ID");
     else process.env.CLOUDFLARE_ACCOUNT_ID = original.accountId;
-    if (original.apiToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN;
+    if (original.apiToken === undefined) unsetEnv("CLOUDFLARE_API_TOKEN");
     else process.env.CLOUDFLARE_API_TOKEN = original.apiToken;
-    if (original.enabled === undefined) delete process.env.UNDER_CONSTRUCTION_ENABLED;
+    if (original.enabled === undefined) unsetEnv("UNDER_CONSTRUCTION_ENABLED");
     else process.env.UNDER_CONSTRUCTION_ENABLED = original.enabled;
   });
 
   test("false when UNDER_CONSTRUCTION_ENABLED is not 'true' (preview/dev builds)", async () => {
-    delete process.env.UNDER_CONSTRUCTION_ENABLED;
+    unsetEnv("UNDER_CONSTRUCTION_ENABLED");
     process.env.FLAGSHIP_APP_ID = "app";
     process.env.CLOUDFLARE_ACCOUNT_ID = "acct";
     process.env.CLOUDFLARE_API_TOKEN = "token";
@@ -87,9 +88,9 @@ describe("evaluateUnderConstruction", () => {
 
   test("false when Flagship credentials are missing (local dev, E2E)", async () => {
     process.env.UNDER_CONSTRUCTION_ENABLED = "true";
-    delete process.env.FLAGSHIP_APP_ID;
-    delete process.env.CLOUDFLARE_ACCOUNT_ID;
-    delete process.env.CLOUDFLARE_API_TOKEN;
+    unsetEnv("FLAGSHIP_APP_ID");
+    unsetEnv("CLOUDFLARE_ACCOUNT_ID");
+    unsetEnv("CLOUDFLARE_API_TOKEN");
     expect(await evaluateUnderConstruction()).toBe(false);
   });
 });
@@ -102,25 +103,25 @@ describe("evaluateFlowersEnabled", () => {
   };
 
   afterEach(() => {
-    if (original.appId === undefined) delete process.env.FLAGSHIP_APP_ID;
+    if (original.appId === undefined) unsetEnv("FLAGSHIP_APP_ID");
     else process.env.FLAGSHIP_APP_ID = original.appId;
-    if (original.accountId === undefined) delete process.env.CLOUDFLARE_ACCOUNT_ID;
+    if (original.accountId === undefined) unsetEnv("CLOUDFLARE_ACCOUNT_ID");
     else process.env.CLOUDFLARE_ACCOUNT_ID = original.accountId;
-    if (original.apiToken === undefined) delete process.env.CLOUDFLARE_API_TOKEN;
+    if (original.apiToken === undefined) unsetEnv("CLOUDFLARE_API_TOKEN");
     else process.env.CLOUDFLARE_API_TOKEN = original.apiToken;
   });
 
   test("true when Flagship credentials are missing (local dev, E2E)", async () => {
-    delete process.env.FLAGSHIP_APP_ID;
-    delete process.env.CLOUDFLARE_ACCOUNT_ID;
-    delete process.env.CLOUDFLARE_API_TOKEN;
+    unsetEnv("FLAGSHIP_APP_ID");
+    unsetEnv("CLOUDFLARE_ACCOUNT_ID");
+    unsetEnv("CLOUDFLARE_API_TOKEN");
     expect(await evaluateFlowersEnabled()).toBe(true);
   });
 });
 
 describe("isUnderConstruction", () => {
   afterEach(() => {
-    delete process.env.UNDER_CONSTRUCTION;
+    unsetEnv("UNDER_CONSTRUCTION");
   });
 
   test("true when UNDER_CONSTRUCTION is 'true'", () => {
@@ -129,7 +130,7 @@ describe("isUnderConstruction", () => {
   });
 
   test("false when UNDER_CONSTRUCTION is unset", () => {
-    delete process.env.UNDER_CONSTRUCTION;
+    unsetEnv("UNDER_CONSTRUCTION");
     expect(isUnderConstruction()).toBe(false);
   });
 
@@ -169,7 +170,7 @@ describe("isFlowersEnabled", () => {
   const original = process.env.FLOWERS_ENABLED;
 
   afterEach(() => {
-    if (original === undefined) delete process.env.FLOWERS_ENABLED;
+    if (original === undefined) unsetEnv("FLOWERS_ENABLED");
     else process.env.FLOWERS_ENABLED = original;
   });
 
@@ -179,7 +180,7 @@ describe("isFlowersEnabled", () => {
   });
 
   test("true when unset", () => {
-    delete process.env.FLOWERS_ENABLED;
+    unsetEnv("FLOWERS_ENABLED");
     expect(isFlowersEnabled()).toBe(true);
   });
 

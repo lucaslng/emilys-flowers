@@ -3,6 +3,7 @@
 // so the route's pure logic (rate picking, payload building, address validation) still runs for real.
 
 import { test, expect, describe, beforeEach, mock } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import type { ChitChatsShipment } from '@/lib/chitchats';
 import { ADDRESS_FIELD_MAX_LENGTHS } from '@/lib/address-validation';
 import {
@@ -499,7 +500,7 @@ describe('POST /api/checkout with ChitChats configured', () => {
   });
 
   test('returns 503 when STRIPE_SECRET_KEY is absent', async () => {
-    delete process.env.STRIPE_SECRET_KEY;
+    unsetEnv("STRIPE_SECRET_KEY");
 
     const response = await POST(checkoutRequest({ items: validItems }));
 

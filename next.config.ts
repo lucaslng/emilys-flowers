@@ -53,15 +53,15 @@ const securityHeaders = [
 
 export default async function nextConfig(): Promise<NextConfig> {
   // Evaluated once per build in the main process; static-gen workers inherit the env vars.
-  if (process.env.FLOWERS_ENABLED === undefined) {
+  if (typeof process.env.FLOWERS_ENABLED === "undefined") {
     process.env.FLOWERS_ENABLED = String(await evaluateFlowersEnabled());
   }
 
-  if (process.env.UNDER_CONSTRUCTION === undefined) {
+  if (typeof process.env.UNDER_CONSTRUCTION === "undefined") {
     process.env.UNDER_CONSTRUCTION = String(await evaluateUnderConstruction());
   }
 
-  if (process.env.PRODUCT_IMAGES === undefined) {
+  if (typeof process.env.PRODUCT_IMAGES === "undefined") {
     process.env.PRODUCT_IMAGES = JSON.stringify(scanProductImages());
   }
 
