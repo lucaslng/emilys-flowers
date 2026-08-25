@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 // Pinned deterministic build: FLOWERS_ENABLED/UNDER_CONSTRUCTION bypass live Flagship evaluation.
 // An empty `STRIPE_SECRET_KEY=` would shadow `.env` (Next.js doesn't override existing vars), hence the conditional prefix.
 const stripePrefix =
-  process.env.STRIPE_SECRET_KEY !== undefined &&
+  typeof process.env.STRIPE_SECRET_KEY !== "undefined" &&
   process.env.STRIPE_SECRET_KEY !== ""
     ? `STRIPE_SECRET_KEY=${process.env.STRIPE_SECRET_KEY} `
     : "";

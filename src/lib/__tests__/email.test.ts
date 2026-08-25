@@ -1,4 +1,5 @@
 import { test, expect, describe } from 'bun:test';
+import { unsetEnv } from './env-helpers';
 import { Resend } from 'resend';
 import {
   sendOrderConfirmationEmail,
@@ -119,7 +120,7 @@ describe('sendOrderConfirmationEmail', () => {
 
   test('throws when RESEND_API_KEY is missing', async () => {
     const original = process.env.RESEND_API_KEY;
-    delete process.env.RESEND_API_KEY;
+    unsetEnv("RESEND_API_KEY");
     try {
       // No client injected: the default `new Resend(requireApiKey())` evaluates and throws on the missing env var.
       await expect(
@@ -206,7 +207,7 @@ describe('sendShippedEmail', () => {
 
   test('throws when RESEND_API_KEY is missing', async () => {
     const original = process.env.RESEND_API_KEY;
-    delete process.env.RESEND_API_KEY;
+    unsetEnv("RESEND_API_KEY");
     try {
       // No client injected: the default `new Resend(requireApiKey())` evaluates and throws on the missing env var.
       await expect(

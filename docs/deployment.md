@@ -40,12 +40,15 @@ declared in **all three** config blocks — top level plus both `[env.*]`
 stanzas — with a **distinct `namespace_id` per block** (`1001` top-level,
 `1002` production, `1003` preview; string-wrapped ints, account-unique) so
 each environment keeps an independent counter. Note that `bun run cf-typegen`
-regenerates a `RATE_LIMITER: RateLimit` entry in `cloudflare-env.d.ts`, but
-the generated file currently breaks `tsc --noEmit` elsewhere (its
-`NodeJS.ProcessEnv` augmentation makes env vars non-optional, breaking
-`delete process.env.X` in unit tests, and its runtime-types section conflicts
-with lib.dom), so `rate-limit.ts` types the binding structurally instead and
-the generated file stays ungenerated (it's gitignored).
+regenerates the committed `cloudflare-env.d.ts`, which is included in
+`tsconfig` and typechecked. Env-var members are typed as **required**
+(`KEY: string;`) — they are guaranteed present at worker runtime — so unit
+tests manipulate `process.env` via `unsetEnv`
+(`Reflect.deleteProperty`) in `src/lib/__tests__/env-helpers.ts` instead of
+`delete process.env.X`. Runtime types stay off (`--include-runtime false`
+strips workerd globals, which would conflict with lib.dom), so generated
+binding types only resolve via `skipLibCheck`; for that reason `rate-limit.ts`
+still types the `RATE_LIMITER` binding structurally.
 
 ## Under-construction gate (Flagship)
 

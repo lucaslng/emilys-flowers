@@ -3,8 +3,8 @@
 //
 // Object bindings can't ride process.env (OpenNext's populateProcessEnv copies only strings), hence getCloudflareContext().
 //
-// The binding is typed structurally instead of via the generated cloudflare-env.d.ts: regenerating that file adds required
-// NodeJS.ProcessEnv fields, which breaks every `delete process.env.X` in the unit tests under tsc --noEmit.
+// The binding is typed structurally instead of via the generated cloudflare-env.d.ts: --include-runtime false strips
+// workerd globals, so generated binding types only resolve via skipLibCheck.
 //
 // Every failure mode fails OPEN — outside the Workers runtime (bun test, Playwright serve) there is no binding at all;
 // availability beats quota protection.
