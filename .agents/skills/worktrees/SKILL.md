@@ -1,3 +1,8 @@
+---
+name: worktrees
+description: Emily's Flowers worktree-lane protocol (OpenChamber-managed lanes). Use for any worktree or lane operation in this repo — creating, working in, integrating, or cleaning up lanes. Supersedes the global `worktrees` skill and its retired `.slim/worktrees/` convention; within this repo, always follow this skill instead.
+---
+
 # Skill: worktrees (Emily's Flowers project convention)
 
 This project manages worktree lanes through **OpenChamber**. Lanes are not
@@ -9,12 +14,19 @@ sibling-lane structure was retired when lane management moved to OpenChamber.
 This replaces both the old sibling-directory protocol and the global
 oh-my-opencode-slim `.slim/worktrees/` skill — follow neither of those.
 
+## When to use a lane
+
+Use a worktree lane for parallel tasks needing separate checkouts, risky or
+wide-reaching refactors, exploratory spikes that may be discarded, or any task
+the user asks to isolate. Do not open a lane for small single-file edits,
+docs-only tweaks, or minor fixes — handle those in the current checkout.
+
 ## Layout facts
 
 - New lanes live under OpenChamber's managed data dir:
   `~/.local/share/opencode/worktree/<repo-hash>/<name>/`. This location is not
-  configurable (`<repo-hash>` is the repo's root-commit hash, so it survives
-  re-clones).
+  configurable; `<repo-hash>` is an opaque OpenChamber-managed identifier for
+  the repo — do not rely on deriving it from the commit history or path.
 - Folder names are slugs of the branch name: `feature/foo` → `feature-foo`.
 - The OpenChamber project is the repo root itself (`~/Documents/emilys-flowers`).
 - Linked worktrees of this repo are discovered automatically and fully
@@ -30,6 +42,10 @@ Every lane branch uses one of:
 
 Always name the branch explicitly; never let OpenChamber auto-name it
 (unnamed branches default to `openchamber/<folder>`). Base new lanes on `main`.
+
+Branches created before this policy (e.g. `chore/…`, `fix/…`) still exist —
+leave them as-is; never flag or rename them. New lanes must use the prefixes
+above.
 
 ## Creating a lane
 
