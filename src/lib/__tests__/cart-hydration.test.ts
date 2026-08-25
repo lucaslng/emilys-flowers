@@ -75,6 +75,29 @@ describe("sanitizeStoredCart", () => {
     }
   });
 
+  test("drops items whose images contain non-path entries", () => {
+    const cases: unknown[] = [
+      { quantity: 1, product: { ...rose, images: ["https://evil.example/rose.png"] } },
+      { quantity: 1, product: { ...rose, images: ["//evil.example/rose.png"] } },
+      { quantity: 1, product: { ...rose, images: ["products/ribbon-rose/a.webp"] } },
+      { quantity: 1, product: { ...rose, images: [42] } },
+      { quantity: 1, product: { ...rose, images: [null] } },
+      { quantity: 1, product: { ...rose, images: ["/ok.webp", "javascript:alert(1)"] } },
+    ];
+    for (const item of cases) {
+      expect(sanitizeStoredCart([item])).toEqual([]);
+    }
+  });
+
+  test("keeps items whose images are all root-relative paths", () => {
+    const roseWithPaths = {
+      ...rose,
+      images: ["/products/ribbon-rose/rose.webp", "/placeholders/flower.svg"],
+    };
+    const out = sanitizeStoredCart([{ product: roseWithPaths, quantity: 2 }]);
+    expect(out).toEqual([{ product: roseWithPaths, quantity: 2 }]);
+  });
+
   test("keeps only valid items when mixed with garbage", () => {
     const out = sanitizeStoredCart([
       { product: rose, quantity: 2 },
