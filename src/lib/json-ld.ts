@@ -13,11 +13,18 @@ export function serializeJsonLd(data: Record<string, unknown>): string {
 export function organizationSchema() {
   return {
     '@context': 'https://schema.org',
+    '@id': `${SITE_URL}#organization`,
     '@type': ['Organization', 'Store'],
     name: "Emily's Flowers",
     url: SITE_URL,
     logo: `${SITE_URL}/apple-touch-icon.png`,
     priceRange: '$$',
+    sameAs: ['https://instagram.com/emilysflowers_'],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      email: 'hello@emilysflowers.ca',
+    },
   };
 }
 
@@ -27,6 +34,7 @@ export function webSiteSchema() {
     '@type': 'WebSite',
     name: "Emily's Flowers",
     url: SITE_URL,
+    publisher: { '@id': `${SITE_URL}#organization` },
   };
 }
 
