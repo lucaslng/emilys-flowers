@@ -17,10 +17,6 @@ mock.module('@/lib/stripe-catalog', () => ({
   getAllProducts: async () => sitemapMocks.products,
 }));
 
-mock.module('@/lib/site', () => ({
-  ...realSite,
-}));
-
 const sitemap = (await import('@/app/sitemap')).default;
 
 function makeProduct(overrides: Partial<Product> = {}): Product {
@@ -73,7 +69,7 @@ describe('sitemap', () => {
       makeProduct({ category: 'bouquet', slug: 'bouquet-one' }),
     ];
     const routes = await sitemap();
-    for (const path of ['', '/bouquets', '/faq']) {
+    for (const path of ['', '/flowers', '/bouquets', '/faq']) {
       const entry = routes.find((r) => r.url === `${realSite.SITE_URL}${path}`);
       expect(entry).toBeDefined();
       expect(entry?.lastModified).toBeUndefined();
