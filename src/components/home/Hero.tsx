@@ -33,19 +33,18 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
       <span aria-hidden="true" className="heart-float text-xs text-rose-line" style={{ left: '84%', top: '14%', animationDuration: '9s', animationDelay: '1.5s' }}>♡</span>
       <span aria-hidden="true" className="heart-float text-base text-rose-deep" style={{ left: '70%', top: '72%', animationDuration: '8s', animationDelay: '3s' }}>♡</span>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-8 lg:px-8 lg:py-28">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-8 lg:px-8 lg:pt-40 lg:pb-28">
         <div className="max-w-xl">
           <p className="font-hand text-3xl leading-none text-rose-deep">
             handcrafted ribbon flowers ♡
           </p>
           <h1 className="mt-4 font-sans text-4xl font-bold uppercase leading-[1.08] tracking-[0.04em] text-foreground sm:text-5xl lg:text-6xl">
-            Forever blooms,
+            Love folded
             <br />
-            folded by hand
+            into every petal
           </h1>
           <p className="mt-6 max-w-md font-sans text-base leading-relaxed text-muted">
-            Every petal is cut, folded, and stitched by hand - ribbon flowers
-            that never wilt, made to your palette and kept for a lifetime.
+            Bouquets you never say goodbye to.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Button as={Link} href="/bouquets" variant="primary" size="lg">
