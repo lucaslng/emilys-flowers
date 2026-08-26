@@ -39,13 +39,12 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             handcrafted ribbon flowers ♡
           </p>
           <h1 className="mt-4 font-sans text-4xl font-bold uppercase leading-[1.08] tracking-[0.04em] text-foreground sm:text-5xl lg:text-6xl">
-            Forever blooms,
+            Love folded
             <br />
-            folded by hand
+            into every petal
           </h1>
           <p className="mt-6 max-w-md font-sans text-base leading-relaxed text-muted">
-            Every petal is cut, folded, and stitched by hand - ribbon flowers
-            that never wilt, made to your palette and kept for a lifetime.
+            Bouquets you never say goodbye to.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Button as={Link} href="/bouquets" variant="primary" size="lg">
