@@ -33,7 +33,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
       <span aria-hidden="true" className="heart-float text-xs text-rose-line" style={{ left: '84%', top: '14%', animationDuration: '9s', animationDelay: '1.5s' }}>♡</span>
       <span aria-hidden="true" className="heart-float text-base text-rose-deep" style={{ left: '70%', top: '72%', animationDuration: '8s', animationDelay: '3s' }}>♡</span>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-8 lg:px-8 lg:py-28">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-8 lg:px-8 lg:pt-40 lg:pb-28">
         <div className="max-w-xl">
           <p className="font-hand text-3xl leading-none text-rose-deep">
             handcrafted ribbon flowers ♡
