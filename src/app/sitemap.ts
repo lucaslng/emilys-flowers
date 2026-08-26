@@ -4,14 +4,12 @@ import { isFlowerCategory, isFlowersEnabled } from '@/lib/flagship-flag';
 import { SITE_URL } from '@/lib/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const lastModified = new Date();
   const showFlowers = isFlowersEnabled();
   const products = await getAllProducts();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
-      lastModified,
       changeFrequency: 'weekly',
       priority: 1,
     },
@@ -19,7 +17,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ? ([
           {
             url: `${SITE_URL}/flowers`,
-            lastModified,
             changeFrequency: 'monthly',
             priority: 0.8,
           },
@@ -27,13 +24,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : []),
     {
       url: `${SITE_URL}/bouquets`,
-      lastModified,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/faq`,
-      lastModified,
       changeFrequency: 'monthly',
       priority: 0.5,
     },
@@ -43,7 +38,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((p) => showFlowers || !isFlowerCategory(p.category))
     .map((p) => ({
       url: `${SITE_URL}/products/${p.slug}`,
-      lastModified,
+      lastModified:
+        typeof p.updatedAt === 'number'
+          ? new Date(p.updatedAt * 1000)
+          : undefined,
       changeFrequency: 'monthly',
       priority: 0.6,
     }));

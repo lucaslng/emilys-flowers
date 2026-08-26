@@ -20,6 +20,7 @@ function makeProduct(overrides: Partial<Stripe.Product> = {}): Stripe.Product {
     name: "Pink Rose",
     description: null,
     active: true,
+    updated: 1756000000,
     metadata: { category: "flower", color: "pink", flower_type: "rose" },
     ...overrides,
   } as Stripe.Product;
@@ -59,7 +60,16 @@ describe("mapStripeProduct", () => {
       inStock: true,
       flowerType: "rose",
       color: "pink",
+      updatedAt: 1756000000,
     });
+  });
+
+  test("maps the Stripe updated timestamp to updatedAt", () => {
+    const p = mapStripeProduct(
+      makeProduct({ updated: 1720000000 }),
+      makePrice(399)
+    );
+    expect(p.updatedAt).toBe(1720000000);
   });
 
   test("uses the Stripe description when present", () => {

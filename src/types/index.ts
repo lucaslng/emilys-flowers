@@ -16,6 +16,8 @@ export interface Product {
   flowerType?: string;
   /** Stripe metadata `color` (flowers only, e.g. "cream_white"). */
   color?: string;
+  /** Stripe product `updated` unix timestamp (seconds) — used as the sitemap lastmod signal. */
+  updatedAt?: number;
 }
 
 export interface CartItem {
