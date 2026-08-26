@@ -11,6 +11,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/faq',
   },
+  openGraph: {
+    title: 'FAQ',
+    description:
+      'Shipping answers for Emily\u2019s Flowers - where online orders are delivered and how to arrange international delivery.',
+    url: '/faq',
+    type: 'website',
+    siteName: "Emily's Flowers",
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: "Handcrafted pink ribbon rose bouquet — Emily's Flowers, forever blooming",
+      },
+    ],
+  },
 };
 
 export default function FaqPage() {

@@ -10,6 +10,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/terms',
   },
+  openGraph: {
+    title: 'Terms of Service',
+    description:
+      'Terms of Service for using emilysflowers.ca and ordering from Emily\u2019s Flowers.',
+    url: '/terms',
+    type: 'website',
+    siteName: "Emily's Flowers",
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: "Handcrafted pink ribbon rose bouquet — Emily's Flowers, forever blooming",
+      },
+    ],
+  },
 };
 
 const cardClass = 'stitch relative bg-background px-6 py-8 sm:px-10 sm:py-10';

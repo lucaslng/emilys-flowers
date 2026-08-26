@@ -22,10 +22,27 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return {};
+  const ogImage = {
+    url: product.images[0],
+    alt: product.name,
+  };
   return {
     title: product.name,
     description: product.description,
     alternates: { canonical: `/products/${product.slug}` },
+    openGraph: {
+      title: product.name,
+      description: product.description,
+      url: `/products/${product.slug}`,
+      type: 'website',
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description: product.description,
+      images: [ogImage.url],
+    },
   };
 }
 

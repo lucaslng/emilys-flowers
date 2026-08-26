@@ -10,6 +10,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/privacy',
   },
+  openGraph: {
+    title: 'Privacy Policy',
+    description:
+      'How Emily\u2019s Flowers collects, uses, and discloses your personal information when you visit emilysflowers.ca or make a purchase.',
+    url: '/privacy',
+    type: 'website',
+    siteName: "Emily's Flowers",
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: "Handcrafted pink ribbon rose bouquet — Emily's Flowers, forever blooming",
+      },
+    ],
+  },
 };
 
 const cardClass = 'stitch relative bg-background px-6 py-8 sm:px-10 sm:py-10';

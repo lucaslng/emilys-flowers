@@ -69,10 +69,27 @@ describe('sitemap', () => {
       makeProduct({ category: 'bouquet', slug: 'bouquet-one' }),
     ];
     const routes = await sitemap();
-    for (const path of ['', '/flowers', '/bouquets', '/faq']) {
+    for (const path of ['', '/flowers', '/bouquets', '/faq', '/terms', '/privacy']) {
       const entry = routes.find((r) => r.url === `${realSite.SITE_URL}${path}`);
       expect(entry).toBeDefined();
       expect(entry?.lastModified).toBeUndefined();
+    }
+  });
+
+  test('/terms and /privacy are listed with low yearly priority', async () => {
+    const routes = await sitemap();
+    for (const path of ['/terms', '/privacy']) {
+      const entry = routes.find((r) => r.url === `${realSite.SITE_URL}${path}`);
+      expect(entry).toBeDefined();
+      expect(entry?.changeFrequency).toBe('yearly');
+      expect(entry?.priority).toBe(0.3);
+    }
+  });
+
+  test('cart, checkout, and admin routes are absent', async () => {
+    const urls = (await sitemap()).map((r) => r.url);
+    for (const path of ['/cart', '/checkout', '/admin/orders']) {
+      expect(urls).not.toContain(`${realSite.SITE_URL}${path}`);
     }
   });
 
