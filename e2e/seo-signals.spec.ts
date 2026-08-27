@@ -31,6 +31,10 @@ function hasType(types: JsonLdType | undefined, wanted: string): boolean {
   return typeof types === "string" ? types === wanted : types.includes(wanted);
 }
 
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function extractJsonLdBlobs(html: string): JsonValue[] {
   const blobs: JsonValue[] = [];
   const pattern =
@@ -68,7 +72,7 @@ test.describe("SEO crawl and index signals", () => {
       expect(body).toContain(`<loc>${ORIGIN}${path}</loc>`);
     }
     expect(body).toMatch(
-      new RegExp(`<loc>${ORIGIN.replace(/\./g, "\\.")}/products/[^<]+</loc>`),
+      new RegExp(`<loc>${escapeForRegExp(ORIGIN)}/products/[^<]+</loc>`),
     );
   });
 
