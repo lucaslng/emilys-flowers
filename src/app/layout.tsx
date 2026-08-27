@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Martian_Mono, Reenie_Beanie } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
@@ -17,6 +17,10 @@ const reenie = Reenie_Beanie({
   variable: "--font-reenie",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+};
 
 export const metadata: Metadata = {
   title: {

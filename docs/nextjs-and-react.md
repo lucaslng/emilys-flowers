@@ -135,19 +135,25 @@ export async function POST(request: Request) {
 ## Metadata API
 
 Static metadata (export a `Metadata` object) or dynamic (`generateMetadata`).
-This project doesn't currently export much metadata — if you add it:
+The current surface:
 
-```ts
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: "Emily's Flowers",
-  description: 'Handcrafted ribbon-flower arrangements',
-}
-```
+- `src/app/layout.tsx` holds the root defaults: title template, description,
+  `metadataBase`, icons, manifest, and root-level `openGraph`/`twitter` for the
+  homepage card. It also exports `viewport` (`themeColor`) — `themeColor`
+  belongs in the `Viewport` export, not in `metadata`, since Next.js 14.
+- Every page sets its own canonical via `alternates.canonical`; cart, checkout,
+  success, and admin pages add `robots: { index: false }`.
+- Product pages use async `generateMetadata` with per-product `openGraph` and
+  `twitter`. Metadata merges **shallowly** across segments, so any page that
+  sets `openGraph` replaces the root's object wholesale and must re-declare
+  every field it wants (title, description, url, images). Unset `twitter`
+  fields fall back to `openGraph` at resolve time.
 
 For dynamic routes, `generateMetadata` is async and `params` is a Promise (see
 [Async request APIs](#async-request-apis-required-not-optional) above).
+
+`src/app/sitemap.ts` emits static + product routes and `src/app/robots.ts`
+disallows cart/checkout/admin paths.
 
 ## `next.config.ts`
 

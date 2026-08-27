@@ -12,6 +12,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/bouquets',
   },
+  openGraph: {
+    title: 'Handcrafted Ribbon Bouquets',
+    description:
+      'Browse our collection of handcrafted ribbon bouquets — romantic, rustic, seasonal, and more. Forever-blooming arrangements handcrafted with love, ready to ship.',
+    url: '/bouquets',
+    type: 'website',
+    siteName: "Emily's Flowers",
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: "Handcrafted pink ribbon rose bouquet — Emily's Flowers, forever blooming",
+      },
+    ],
+  },
 };
 
 export default async function BouquetsPage() {

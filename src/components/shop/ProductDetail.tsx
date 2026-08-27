@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import { formatCAD } from '@/lib/format';
 import { formatLabel } from '@/lib/product-utils';
@@ -8,6 +7,7 @@ import { Product } from '@/types';
 import Button from '@/components/ui/Button';
 import ProductGallery from '@/components/shop/ProductGallery';
 import ArrowFlourish from '@/components/shop/ArrowFlourish';
+import Breadcrumb, { type Crumb } from '@/components/shop/Breadcrumb';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
 import { addWithPetalBurst } from '@/lib/petal-burst';
@@ -26,9 +26,15 @@ interface ProductDetailProps {
 export default function ProductDetail({ product }: ProductDetailProps) {
   const { addToCart } = useCart();
 
-  const backHref = product.category === 'flower' ? '/flowers' : '/bouquets';
-  const backLabel =
-    product.category === 'flower' ? 'Back to Flowers' : 'Back to Bouquets';
+  const categoryHref = product.category === 'flower' ? '/flowers' : '/bouquets';
+  const crumbs: Crumb[] = [
+    { name: 'Home', href: '/' },
+    {
+      name: product.category === 'flower' ? 'Flowers' : 'Bouquets',
+      href: categoryHref,
+    },
+    { name: product.name },
+  ];
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     addToCart(product);
@@ -40,6 +46,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       <div aria-hidden="true" className="vignette absolute inset-0" />
 
       <Container className="relative z-10">
+        <Breadcrumb items={crumbs} className="mb-10 sm:mb-12" />
         <div className="grid gap-12 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:items-center lg:gap-16">
           <div className="relative mx-auto w-full max-w-xl">
             <div className="relative rotate-1 border border-border bg-background/90 p-6 backdrop-blur-[1px] sm:p-8">
@@ -68,14 +75,6 @@ export default function ProductDetail({ product }: ProductDetailProps) {
           </div>
 
           <div className="relative">
-            <Link
-              href={backHref}
-              className="mb-5 inline-flex w-fit items-center gap-1 font-sans text-xs font-medium uppercase tracking-[0.18em] text-muted transition-colors hover:text-rose-deep"
-            >
-              <span aria-hidden="true">←</span>
-              {backLabel}
-            </Link>
-
             <div className="flex items-center gap-2">
               <ArrowFlourish size="md" />
               <span className="font-hand text-3xl leading-none text-rose-deep">
