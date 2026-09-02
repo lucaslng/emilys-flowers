@@ -38,6 +38,6 @@
     "sharp": "^0.35.3",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "wrangler": "^4.124.0"
+    "wrangler": "^4.127.1"
   }
 }
