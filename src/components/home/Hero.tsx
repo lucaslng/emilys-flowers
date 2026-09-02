@@ -15,7 +15,7 @@ import PageWash from '@/components/ui/PageWash';
 export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) {
   return (
     <section className="relative isolate overflow-hidden">
-      <div aria-hidden="true" className="wrapping-grid absolute inset-0" />
+      <div aria-hidden="true" className="seed-pearls absolute inset-0" />
       <div aria-hidden="true" className="vignette absolute inset-0" />
       <PageWash background="radial-gradient(ellipse 42% 34% at 78% 30%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)" />
 

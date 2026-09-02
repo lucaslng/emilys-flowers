@@ -140,6 +140,7 @@ product-facing cards** rather than introducing generic rounded/shadowed cards.
 ### Texture & motif utilities
 
 - `.wrapping-grid` — faint rose grid, like frosted wrapping paper
+- `.seed-pearls` — faint rose dot lattice on the same 26px rhythm (Hero ground)
 - `.vignette` — soft diffused warm light
 - `.stitch` — dashed border (hand-sewn seam)
 - `.washi` — semi-transparent tape strip

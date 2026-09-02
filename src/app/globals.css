@@ -297,6 +297,12 @@ html {
   background-size: 26px 26px;
 }
 
+/* ─── Texture: seed-pearl dots (stitching-bead rhythm) ─────────── */
+.seed-pearls {
+  background-image: radial-gradient(rgba(177, 110, 110, 0.1) 1px, transparent 1.5px);
+  background-size: 26px 26px;
+}
+
 /* ─── Texture: soft diffused warm light (satin vignette) ───────── */
 .vignette {
   background:
