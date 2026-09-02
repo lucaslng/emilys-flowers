@@ -2,8 +2,25 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import BouquetSticker from '@/components/ui/BouquetSticker';
 import StarMotif from '@/components/ui/StarMotif';
+import FlowerMotif from '@/components/ui/FlowerMotif';
 import ArrowFlourish from '@/components/shop/ArrowFlourish';
 import PageWash from '@/components/ui/PageWash';
+
+const scatteredFlowers = [
+  { left: '3%', top: '5%', size: 28, rotate: -16, opacity: 0.18, tone: 'text-rose' },
+  { left: '15%', top: '2%', size: 28, rotate: 26, opacity: 0.25, tone: 'text-blush' },
+  { left: '38%', top: '6%', size: 28, rotate: -30, opacity: 0.22, tone: 'text-champagne' },
+  { left: '48%', top: '14%', size: 28, rotate: 12, opacity: 0.14, tone: 'text-rose-deep' },
+  { left: '2%', top: '44%', size: 28, rotate: 20, opacity: 0.12, tone: 'text-rose-deep' },
+  { left: '45%', top: '45%', size: 28, rotate: -8, opacity: 0.15, tone: 'text-rose' },
+  { left: '3%', top: '78%', size: 28, rotate: -24, opacity: 0.18, tone: 'text-rose-line' },
+  { left: '30%', top: '90%', size: 28, rotate: 30, opacity: 0.16, tone: 'text-rose' },
+  { left: '52%', top: '92%', size: 28, rotate: -14, opacity: 0.2, tone: 'text-champagne' },
+  { left: '90%', top: '94%', size: 28, rotate: 18, opacity: 0.14, tone: 'text-rose-deep' },
+  { left: '4%', top: '62%', size: 28, rotate: 8, opacity: 0.15, tone: 'text-rose-line' },
+  { left: '50%', top: '26%', size: 28, rotate: -20, opacity: 0.18, tone: 'text-champagne' },
+  { left: '70%', top: '93%', size: 28, rotate: 24, opacity: 0.13, tone: 'text-rose' },
+];
 
 /**
  * Hero — "the gift box". Off-center composition: the headline block sits on
@@ -15,9 +32,17 @@ import PageWash from '@/components/ui/PageWash';
 export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) {
   return (
     <section className="relative isolate overflow-hidden">
-      <div aria-hidden="true" className="wrapping-grid absolute inset-0" />
       <div aria-hidden="true" className="vignette absolute inset-0" />
       <PageWash background="radial-gradient(ellipse 42% 34% at 78% 30%, rgba(243, 228, 211, 0.5), rgba(243, 228, 211, 0) 70%)" />
+
+      {scatteredFlowers.map((f) => (
+        <FlowerMotif
+          key={`${f.left}-${f.top}`}
+          size={f.size}
+          className={`pointer-events-none absolute ${f.tone}`}
+          style={{ left: f.left, top: f.top, rotate: `${f.rotate}deg`, opacity: f.opacity }}
+        />
+      ))}
 
       {/* Kept top-right so its rotated left end never dips into the headline. */}
       <div
