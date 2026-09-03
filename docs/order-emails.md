@@ -10,8 +10,10 @@
 1. **Checkout completes** → Stripe fires `checkout.session.completed` to
    `POST /api/webhooks/stripe` → the webhook sends the customer an **order
    confirmation** email (via Resend) with their items, totals, and shipping
-   address, and stamps `confirmation_email_sent_at` (+
-   `confirmation_email_id`) onto the Stripe session's metadata.
+   address, then an **owner notification** email to
+   `contact@emilysflowers.ca` with the same order details, and stamps
+   `confirmation_email_sent_at` (+ `confirmation_email_id`) onto the Stripe
+   session's metadata.
 2. **You review the order** at `/admin/orders` (OIDC-gated). Each paid
    order shows its items, totals, and shipping address.
 3. **You confirm + ship** → you type an estimated shipping time into the
@@ -27,7 +29,7 @@ Resend domain).
 
 | File | Purpose |
 |---|---|
-| `src/lib/email.ts` | `sendOrderConfirmationEmail` / `sendShippedEmail` — Resend SDK wrappers, HTML/text builders, escaping, `formatPrice` |
+| `src/lib/email.ts` | `sendOrderConfirmationEmail` / `sendShippedEmail` / `sendOwnerOrderNotificationEmail` — Resend SDK wrappers, HTML/text builders, escaping, `formatPrice` |
 | `src/app/api/webhooks/stripe/route.ts` | Stripe webhook receiver; verifies signature, maps session → confirmation email |
 | `src/app/admin/orders/page.tsx` | Server-rendered admin order list (OIDC-gated, `force-dynamic`) |
 | `src/app/admin/orders/admin-login.tsx` | **Removed** — the password login island no longer exists; replaced by the OIDC flow |
@@ -99,6 +101,21 @@ so they must be deployed as `wrangler secret put` per Worker (see
   returns **500** so Stripe redelivers while Resend's idempotency key still
   dedupes (<24h); each redelivery re-attempts the stamp, and once it lands the
   app-level check dedupes any later (>24h) retries.
+- **Owner notification email**: after the customer confirmation send succeeds
+  and before the stamp, the webhook sends the owner
+  (`contact@emilysflowers.ca`, same `FROM_ADDRESS`) an internal notification —
+  order number + total in the subject; customer name/email, items, totals, and
+  shipping address in the body. It uses its own idempotency key
+  (`owner-${event.id}`) so it dedupes independently of the customer's
+  `event.id` key. The send is **best-effort**: a failure is logged and the
+  handler continues to the stamp and returns **200** — the owner address
+  failing persistently (e.g. suppressed in Resend) must not block the stamp,
+  because past Resend's 24h idempotency window a blocked stamp would make
+  Stripe's retries duplicate the *customer's* confirmation email. A missed
+  owner email is low-harm: orders remain reviewable at `/admin/orders`. The
+  owner email reuses `emailShell` but passes its `includeComplianceFooter = false`
+  flag — the CASL footer's copy is written for customers who placed the order,
+  not for the business receiving the notification.
 - All other event types → `200 { received: true }`.
 
 ### Local testing
@@ -262,8 +279,9 @@ session TTLs, or compliance requirements.
 
 ## CASL compliance
 
-Both order emails are **purely transactional** (order confirmation + shipping
-notification). Under Canada's Anti-Spam Legislation, that means:
+The two customer-facing order emails are **purely transactional** (order
+confirmation + shipping notification). Under Canada's Anti-Spam Legislation,
+that means:
 
 - **Consent is waived** via CASL s.6(6)(b) (the message facilitates, completes,
   or confirms a transaction the recipient entered into) and s.6(6)(d)/(f)
@@ -278,6 +296,13 @@ notification). Under Canada's Anti-Spam Legislation, that means:
   in `src/lib/email.ts`. Because this information is static (not a campaign
   with expiry), it satisfies CASL s.6(3)'s requirement that the information
   remain valid for 60 days after sending.
+
+The **owner notification** email (to `contact@emilysflowers.ca`) is an internal
+business notification, not a commercial electronic message to a customer — it
+omits the compliance footer (`emailShell`'s `includeComplianceFooter = false`),
+and the prescribed-information requirements below don't apply to it. Keep it
+that way: it identifies the sender ("Emily's Flowers") and carries no
+marketing content.
 
 ### Unsubscribe runbook
 

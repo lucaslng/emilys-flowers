@@ -21,6 +21,7 @@ export const orderEmailMocks = {
   }>,
   emailSendCalls: [] as unknown[][],
   emailShouldThrow: false,
+  ownerEmailShouldThrow: false,
   stripeUpdateShouldThrow: false,
   stripeUpdateFailuresRemaining: 0,
   stripeUpdateAttempts: 0,
@@ -39,6 +40,7 @@ export function resetOrderEmailMocks() {
   orderEmailMocks.stripeUpdateCalls.length = 0;
   orderEmailMocks.emailSendCalls.length = 0;
   orderEmailMocks.emailShouldThrow = false;
+  orderEmailMocks.ownerEmailShouldThrow = false;
   orderEmailMocks.stripeUpdateShouldThrow = false;
   orderEmailMocks.stripeUpdateFailuresRemaining = 0;
   orderEmailMocks.stripeUpdateAttempts = 0;
@@ -108,7 +110,10 @@ mock.module('resend', () => {
     emails = {
       send: async (...args: unknown[]) => {
         orderEmailMocks.emailSendCalls.push(args);
-        if (orderEmailMocks.emailShouldThrow) {
+        const isOwnerSend =
+          (args[0] as { to?: string } | undefined)?.to ===
+          'contact@emilysflowers.ca';
+        if (orderEmailMocks.emailShouldThrow || (isOwnerSend && orderEmailMocks.ownerEmailShouldThrow)) {
           throw new Error('Resend send failed');
         }
         return { data: { id: 're_123' }, error: null, headers: null };

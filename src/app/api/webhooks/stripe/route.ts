@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import {
   sendOrderConfirmationEmail,
+  sendOwnerOrderNotificationEmail,
   type EmailLineItem,
   type OrderConfirmationData,
 } from '@/lib/email';
@@ -13,9 +14,10 @@ import {
 import { getStripeClient } from '@/lib/stripe-client';
 
 /**
- * Stripe webhook endpoint: sends the order confirmation email on
- * `checkout.session.completed`. Signature verification is skipped only outside
- * production (dev convenience); a missing secret in production is a hard 500.
+ * Stripe webhook endpoint: sends the order confirmation email and the owner
+ * order-notification email on `checkout.session.completed`. Signature
+ * verification is skipped only outside production (dev convenience); a missing
+ * secret in production is a hard 500.
  */
 
 function formatShippingAddress(session: Stripe.Checkout.Session): string | undefined {
@@ -162,6 +164,23 @@ export async function POST(request: Request) {
       console.log(
         `[Webhook] Confirmation email sent for session ${session.id}: ${result.id}`
       );
+
+      const { to: customerEmail, ...order } = confirmation;
+      try {
+        const ownerResult = await sendOwnerOrderNotificationEmail(
+          { ...order, customerEmail },
+          { idempotencyKey: `owner-${event.id}` }
+        );
+        console.log(
+          `[Webhook] Owner notification email sent for session ${session.id}: ${ownerResult.id}`
+        );
+      } catch (error) {
+        // Best-effort: a persistently failing owner address must not block the stamp — past Resend's 24h idempotency window, blocked stamps would duplicate the customer confirmation email on Stripe retries.
+        console.error(
+          `[Webhook] Failed to send owner notification email for session ${session.id}:`,
+          error
+        );
+      }
 
       const stamp = await stampConfirmationMetadata(
         (metadata) => stripe.checkout.sessions.update(session.id, { metadata }),
