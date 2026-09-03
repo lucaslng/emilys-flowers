@@ -234,7 +234,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true });
-    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
     expect(orderEmailMocks.stripeUpdateCalls[0].sessionId).toBe('cs_test_123');
     expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(
@@ -261,6 +261,47 @@ describe('POST /api/webhooks/stripe', () => {
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
   });
 
+  test('sends the owner notification email with the customer email and the owner-scoped idempotency key', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession();
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
+
+    const confirmationCall = orderEmailMocks.emailSendCalls[0];
+    expect((confirmationCall[0] as { to: string }).to).toBe('ada@example.com');
+    expect(confirmationCall[1]).toEqual({ idempotencyKey: 'evt_cs_1' });
+
+    const ownerCall = orderEmailMocks.emailSendCalls[1];
+    const ownerPayload = ownerCall[0] as {
+      to: string;
+      subject: string;
+      text: string;
+    };
+    expect(ownerPayload.to).toBe('contact@emilysflowers.ca');
+    expect(ownerPayload.subject).toBe('New order #EF-ABC123 — $155.97');
+    expect(ownerPayload.text).toContain('Customer: Ada Lovelace (ada@example.com)');
+    expect(ownerCall[1]).toEqual({ idempotencyKey: 'owner-evt_cs_1' });
+  });
+
+  test('returns 500 when sending the owner notification email fails', async () => {
+    orderEmailMocks.currentEvent = completedEvent();
+    orderEmailMocks.currentSession = makeSession();
+    orderEmailMocks.ownerEmailShouldThrow = true;
+
+    const response = await POST(completedRequest());
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: 'Failed to send owner notification email',
+    });
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+  });
+
   test('returns 500 when every metadata stamp attempt fails', async () => {
     orderEmailMocks.currentEvent = completedEvent();
     orderEmailMocks.currentSession = makeSession();
@@ -273,7 +314,7 @@ describe('POST /api/webhooks/stripe', () => {
     expect(await response.json()).toEqual({
       error: 'Failed to stamp confirmation metadata',
     });
-    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
     expect(orderEmailMocks.stripeUpdateAttempts).toBe(3);
   });
 
@@ -286,7 +327,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true });
-    expect(orderEmailMocks.emailSendCalls).toHaveLength(1);
+    expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
     expect(orderEmailMocks.stripeUpdateAttempts).toBe(2);
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
     expect(orderEmailMocks.stripeUpdateCalls[0].params.metadata).toEqual(

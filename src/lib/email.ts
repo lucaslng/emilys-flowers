@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { formatCAD, formatPrice, formatShippingLabel } from '@/lib/format';
 
-// Order emails via Resend; both senders throw when RESEND_API_KEY is missing, with an injectable client for tests.
+// Order emails via Resend; senders throw when RESEND_API_KEY is missing, with an injectable client for tests.
 
 export interface EmailLineItem {
   name: string;
@@ -12,6 +12,17 @@ export interface EmailLineItem {
 export interface OrderConfirmationData {
   to: string;
   orderNumber: string;
+  customerName?: string;
+  items: EmailLineItem[];
+  subtotalCents: number;
+  shippingCents: number;
+  totalCents: number;
+  shippingAddress?: string;
+}
+
+export interface OwnerOrderNotificationData {
+  orderNumber: string;
+  customerEmail: string;
   customerName?: string;
   items: EmailLineItem[];
   subtotalCents: number;
@@ -90,7 +101,7 @@ function complianceFooterLines(): string[] {
   ];
 }
 
-function emailShell(innerHtml: string): string {
+function emailShell(innerHtml: string, includeComplianceFooter = true): string {
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${EMAIL_BG}; padding:24px 0;">
   <tr>
@@ -112,15 +123,15 @@ function emailShell(innerHtml: string): string {
             ${innerHtml}
           </td>
         </tr>
-        ${complianceFooterHtml()}
+        ${includeComplianceFooter ? complianceFooterHtml() : ''}
       </table>
     </td>
   </tr>
 </table>`;
 }
 
-function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
-  const itemRows = data.items
+function buildItemRowsHtml(items: EmailLineItem[]): string {
+  return items
     .map((item) => {
       const lineTotal = item.unitAmountCents * item.quantity;
       return `
@@ -134,6 +145,17 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
         </tr>`;
     })
     .join('');
+}
+
+function buildItemLinesText(items: EmailLineItem[]): string[] {
+  return items.map(
+    (item) =>
+      `- ${item.name} x ${item.quantity} — $${formatPrice(item.unitAmountCents * item.quantity)}`
+  );
+}
+
+function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
+  const itemRows = buildItemRowsHtml(data.items);
 
   const shippingLabel = formatShippingLabel(data.shippingCents);
 
@@ -181,10 +203,7 @@ function buildOrderConfirmationHtml(data: OrderConfirmationData): string {
 }
 
 function buildOrderConfirmationText(data: OrderConfirmationData): string {
-  const lines = data.items.map(
-    (item) =>
-      `- ${item.name} x ${item.quantity} — $${formatPrice(item.unitAmountCents * item.quantity)}`
-  );
+  const lines = buildItemLinesText(data.items);
   const shippingLine = formatShippingLabel(data.shippingCents);
 
   return [
@@ -207,6 +226,78 @@ function buildOrderConfirmationText(data: OrderConfirmationData): string {
     'Warmly,',
     "Emily's Flowers",
     ...complianceFooterLines(),
+  ].join('\n');
+}
+
+function buildOwnerOrderHtml(data: OwnerOrderNotificationData): string {
+  const shippingLabel = formatShippingLabel(data.shippingCents);
+
+  const addressBlock = data.shippingAddress
+    ? `
+        <tr>
+          <td colspan="2" style="padding:16px 0 0; color:${EMAIL_MUTED}; font-size:13px; line-height:1.6;">
+            <span style="font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase; color:${EMAIL_ROSE};">Shipping to</span><br/>
+            ${escapeHtml(data.shippingAddress).replace(/\n/g, '<br/>')}
+          </td>
+        </tr>`
+    : '';
+
+  return emailShell(
+    `
+    <p style="margin:0 0 16px; font-size:15px; font-weight:bold;">You've got a new order!</p>
+    <p style="margin:0 0 16px;">
+      Order <strong>#${escapeHtml(data.orderNumber)}</strong> — <strong>$${formatPrice(data.totalCents)}</strong>
+    </p>
+    <p style="margin:0 0 16px; color:${EMAIL_MUTED}; font-size:13px;">
+      Customer: ${escapeHtml(
+        data.customerName ? `${data.customerName} (${data.customerEmail})` : data.customerEmail
+      )}
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
+      ${buildItemRowsHtml(data.items)}
+      <tr>
+        <td style="padding:12px 0 0; color:${EMAIL_MUTED}; font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Subtotal</td>
+        <td align="right" style="padding:12px 0 0; color:${EMAIL_TEXT}; font-size:13px;">$${formatPrice(data.subtotalCents)}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0 0; color:${EMAIL_MUTED}; font-size:11px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Shipping</td>
+        <td align="right" style="padding:4px 0 0; color:${EMAIL_TEXT}; font-size:13px;">${shippingLabel}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:13px; font-weight:bold; letter-spacing:0.14em; text-transform:uppercase;">Total</td>
+        <td align="right" style="padding:12px 0 0; border-top:2px solid ${EMAIL_BORDER}; color:${EMAIL_TEXT}; font-size:14px; font-weight:bold;">$${formatPrice(data.totalCents)}</td>
+      </tr>
+      ${addressBlock}
+    </table>
+    <p style="margin:20px 0 0; color:${EMAIL_MUTED}; font-size:11px;">
+      Sent automatically when a new order is placed.
+    </p>
+  `,
+    false
+  );
+}
+
+function buildOwnerOrderText(data: OwnerOrderNotificationData): string {
+  const shippingLine = formatShippingLabel(data.shippingCents);
+  const customer = data.customerName
+    ? `${data.customerName} (${data.customerEmail})`
+    : data.customerEmail;
+
+  return [
+    "You've got a new order!",
+    '',
+    `Order #${data.orderNumber}`,
+    `Customer: ${customer}`,
+    '',
+    'Items:',
+    ...buildItemLinesText(data.items),
+    '',
+    `Subtotal: $${formatPrice(data.subtotalCents)}`,
+    `Shipping: ${shippingLine}`,
+    `Total: $${formatPrice(data.totalCents)}`,
+    ...(data.shippingAddress ? ['', 'Shipping to:', data.shippingAddress] : []),
+    '',
+    'Sent automatically when a new order is placed.',
   ].join('\n');
 }
 
@@ -318,6 +409,32 @@ export async function sendShippedEmail(
 
   if (response.error) {
     throw new Error(`Failed to send shipped email: ${response.error.message}`);
+  }
+
+  return { id: response.data.id };
+}
+
+/** Same idempotency-key contract as sendOrderConfirmationEmail. */
+export async function sendOwnerOrderNotificationEmail(
+  data: OwnerOrderNotificationData,
+  opts?: SendEmailOptions,
+  client: Resend = new Resend(requireApiKey())
+): Promise<{ id: string }> {
+  const response = await client.emails.send(
+    {
+      from: FROM_ADDRESS,
+      to: CONTACT_EMAIL,
+      subject: `New order #${data.orderNumber} — $${formatPrice(data.totalCents)}`,
+      text: buildOwnerOrderText(data),
+      html: buildOwnerOrderHtml(data),
+    },
+    opts?.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined
+  );
+
+  if (response.error) {
+    throw new Error(
+      `Failed to send owner order notification email: ${response.error.message}`
+    );
   }
 
   return { id: response.data.id };

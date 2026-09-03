@@ -61,7 +61,7 @@ Deploys to **Cloudflare Workers** via [`@opennextjs/cloudflare`](https://opennex
 
 ## Order emails (Resend)
 
-On `checkout.session.completed`, `POST /api/webhooks/stripe` sends the customer an order-confirmation email via Resend (`src/lib/email.ts`, from `Emily's Flowers <hello@emilysflowers.ca>`). The owner then reviews orders at `/admin/orders` (gated by OIDC — authorization code + PKCE; access restricted to OIDC groups via `ADMIN_OIDC_GROUPS`) and confirms shipping by entering an estimated shipping time, which triggers the shipped email and stamps `shipped_at`/`shipping_estimate` on the Stripe session metadata. Runtime-only secrets: `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `ADMIN_SESSION_SECRET`, `ADMIN_OIDC_GROUPS` (`wrangler secret put` per Worker). See [docs/order-emails.md](docs/order-emails.md).
+On `checkout.session.completed`, `POST /api/webhooks/stripe` sends the customer an order-confirmation email and notifies the owner at `contact@emilysflowers.ca` via Resend (`src/lib/email.ts`, from `Emily's Flowers <hello@emilysflowers.ca>`). The owner then reviews orders at `/admin/orders` (gated by OIDC — authorization code + PKCE; access restricted to OIDC groups via `ADMIN_OIDC_GROUPS`) and confirms shipping by entering an estimated shipping time, which triggers the shipped email and stamps `shipped_at`/`shipping_estimate` on the Stripe session metadata. Runtime-only secrets: `RESEND_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `ADMIN_SESSION_SECRET`, `ADMIN_OIDC_GROUPS` (`wrangler secret put` per Worker). See [docs/order-emails.md](docs/order-emails.md).
 
 ## Testing
 

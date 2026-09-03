@@ -3,8 +3,10 @@ import { unsetEnv } from './env-helpers';
 import { Resend } from 'resend';
 import {
   sendOrderConfirmationEmail,
+  sendOwnerOrderNotificationEmail,
   sendShippedEmail,
   type OrderConfirmationData,
+  type OwnerOrderNotificationData,
 } from '@/lib/email';
 
 interface FakeSendPayload {
@@ -46,6 +48,20 @@ function createFakeClient(options?: { error?: FakeError }) {
 const confirmationData: OrderConfirmationData = {
   to: 'customer@example.com',
   orderNumber: 'EF-ABC123',
+  customerName: 'Ada',
+  items: [
+    { name: 'Blush Romance Bouquet', quantity: 1, unitAmountCents: 8999 },
+    { name: 'Ribbon Rose', quantity: 2, unitAmountCents: 2499 },
+  ],
+  subtotalCents: 13997,
+  shippingCents: 599,
+  totalCents: 14596,
+  shippingAddress: 'Ada\n1 Analytical Way\nToronto, ON\nM5V 2T6\nCA',
+};
+
+const ownerNotificationData: OwnerOrderNotificationData = {
+  orderNumber: 'EF-ABC123',
+  customerEmail: 'ada@example.com',
   customerName: 'Ada',
   items: [
     { name: 'Blush Romance Bouquet', quantity: 1, unitAmountCents: 8999 },
@@ -219,6 +235,84 @@ describe('sendShippedEmail', () => {
           },
           undefined
         )
+      ).rejects.toThrow('RESEND_API_KEY');
+    } finally {
+      if (original !== undefined) {
+        process.env.RESEND_API_KEY = original;
+      }
+    }
+  });
+});
+
+describe('sendOwnerOrderNotificationEmail', () => {
+  test('sends the owner notification to the shop contact with the idempotency key as request option', async () => {
+    const { client, sent, sentOptions } = createFakeClient();
+    const result = await sendOwnerOrderNotificationEmail(
+      ownerNotificationData,
+      { idempotencyKey: 'owner-evt_123' },
+      client
+    );
+
+    expect(result).toEqual({ id: 'email_123' });
+    expect(sent).toHaveLength(1);
+
+    const payload = sent[0];
+    expect(payload.from).toBe("Emily's Flowers <hello@emilysflowers.ca>");
+    expect(payload.to).toBe('contact@emilysflowers.ca');
+    expect(payload.subject).toBe('New order #EF-ABC123 — $145.96');
+    expect(sentOptions[0].idempotencyKey).toBe('owner-evt_123');
+    expect(typeof payload.text).toBe('string');
+    expect(payload.text!.length).toBeGreaterThan(0);
+    expect(typeof payload.html).toBe('string');
+    expect(payload.html!.length).toBeGreaterThan(0);
+  });
+
+  test('renders order, customer, items, totals, and shipping address', async () => {
+    const { client, sent } = createFakeClient();
+    await sendOwnerOrderNotificationEmail(ownerNotificationData, undefined, client);
+
+    const payload = sent[0];
+    expect(payload.text).toContain("You've got a new order!");
+    expect(payload.text).toContain('Order #EF-ABC123');
+    expect(payload.text).toContain('Customer: Ada (ada@example.com)');
+    expect(payload.text).toContain('Blush Romance Bouquet x 1');
+    expect(payload.text).toContain('Ribbon Rose x 2');
+    expect(payload.text).toContain('Subtotal: $139.97');
+    expect(payload.text).toContain('Shipping: $5.99');
+    expect(payload.text).toContain('Total: $145.96');
+    expect(payload.text).toContain('1 Analytical Way');
+    expect(payload.text).toContain('Sent automatically when a new order is placed.');
+    expect(payload.html).toContain('Blush Romance Bouquet');
+    expect(payload.html).toContain('$145.96');
+    expect(payload.html).toContain('ada@example.com');
+  });
+
+  test('omits the customer compliance footer', async () => {
+    const { client, sent } = createFakeClient();
+    await sendOwnerOrderNotificationEmail(ownerNotificationData, undefined, client);
+
+    const payload = sent[0];
+    expect(payload.html).not.toContain('subject=Unsubscribe');
+    expect(payload.html).not.toContain('placed an order with');
+    expect(payload.text).not.toContain("subject 'Unsubscribe'");
+  });
+
+  test('throws when the client reports an error', async () => {
+    const { client } = createFakeClient({
+      error: { message: 'Invalid API key', statusCode: 401, name: 'invalid_api_key' },
+    });
+    await expect(
+      sendOwnerOrderNotificationEmail(ownerNotificationData, undefined, client)
+    ).rejects.toThrow('Failed to send owner order notification email');
+  });
+
+  test('throws when RESEND_API_KEY is missing', async () => {
+    const original = process.env.RESEND_API_KEY;
+    unsetEnv("RESEND_API_KEY");
+    try {
+      // No client injected: the default `new Resend(requireApiKey())` evaluates and throws on the missing env var.
+      await expect(
+        sendOwnerOrderNotificationEmail(ownerNotificationData, undefined)
       ).rejects.toThrow('RESEND_API_KEY');
     } finally {
       if (original !== undefined) {
