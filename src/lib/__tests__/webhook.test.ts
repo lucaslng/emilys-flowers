@@ -287,19 +287,17 @@ describe('POST /api/webhooks/stripe', () => {
     expect(ownerCall[1]).toEqual({ idempotencyKey: 'owner-evt_cs_1' });
   });
 
-  test('returns 500 when sending the owner notification email fails', async () => {
+  test('continues to the stamp when sending the owner notification email fails', async () => {
     orderEmailMocks.currentEvent = completedEvent();
     orderEmailMocks.currentSession = makeSession();
     orderEmailMocks.ownerEmailShouldThrow = true;
 
     const response = await POST(completedRequest());
 
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({
-      error: 'Failed to send owner notification email',
-    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true });
     expect(orderEmailMocks.emailSendCalls).toHaveLength(2);
-    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
+    expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(1);
   });
 
   test('returns 500 when every metadata stamp attempt fails', async () => {

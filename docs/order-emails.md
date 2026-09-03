@@ -102,16 +102,18 @@ so they must be deployed as `wrangler secret put` per Worker (see
   dedupes (<24h); each redelivery re-attempts the stamp, and once it lands the
   app-level check dedupes any later (>24h) retries.
 - **Owner notification email**: after the customer confirmation send succeeds
-  and **before** the stamp, the webhook sends the owner
+  and before the stamp, the webhook sends the owner
   (`contact@emilysflowers.ca`, same `FROM_ADDRESS`) an internal notification —
   order number + total in the subject; customer name/email, items, totals, and
   shipping address in the body. It uses its own idempotency key
   (`owner-${event.id}`) so it dedupes independently of the customer's
-  `event.id` key. The send must precede the stamp: if it fails the handler
-  returns **500** so Stripe retries re-attempt it before the stamp check
-  starts skipping both sends; on retry the customer confirmation dedupes via
-  its idempotency key and the owner email via `owner-${event.id}`. The owner
-  email reuses `emailShell` but passes its `includeComplianceFooter = false`
+  `event.id` key. The send is **best-effort**: a failure is logged and the
+  handler continues to the stamp and returns **200** — the owner address
+  failing persistently (e.g. suppressed in Resend) must not block the stamp,
+  because past Resend's 24h idempotency window a blocked stamp would make
+  Stripe's retries duplicate the *customer's* confirmation email. A missed
+  owner email is low-harm: orders remain reviewable at `/admin/orders`. The
+  owner email reuses `emailShell` but passes its `includeComplianceFooter = false`
   flag — the CASL footer's copy is written for customers who placed the order,
   not for the business receiving the notification.
 - All other event types → `200 { received: true }`.

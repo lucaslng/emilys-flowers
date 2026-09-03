@@ -165,7 +165,6 @@ export async function POST(request: Request) {
         `[Webhook] Confirmation email sent for session ${session.id}: ${result.id}`
       );
 
-      // Owner send must precede the stamp: on failure the 500 retry re-attempts it before the stamp check skips both sends.
       const { to: customerEmail, ...order } = confirmation;
       try {
         await sendOwnerOrderNotificationEmail(
@@ -173,13 +172,10 @@ export async function POST(request: Request) {
           { idempotencyKey: `owner-${event.id}` }
         );
       } catch (error) {
+        // Best-effort: a persistently failing owner address must not block the stamp — past Resend's 24h idempotency window, blocked stamps would duplicate the customer confirmation email on Stripe retries.
         console.error(
           `[Webhook] Failed to send owner notification email for session ${session.id}:`,
           error
-        );
-        return NextResponse.json(
-          { error: 'Failed to send owner notification email' },
-          { status: 500 }
         );
       }
 

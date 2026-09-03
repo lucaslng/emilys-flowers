@@ -111,9 +111,8 @@ mock.module('resend', () => {
       send: async (...args: unknown[]) => {
         orderEmailMocks.emailSendCalls.push(args);
         const isOwnerSend =
-          (args[1] as { idempotencyKey?: string } | undefined)?.idempotencyKey?.startsWith(
-            'owner-'
-          ) ?? false;
+          (args[0] as { to?: string } | undefined)?.to ===
+          'contact@emilysflowers.ca';
         if (orderEmailMocks.emailShouldThrow || (isOwnerSend && orderEmailMocks.ownerEmailShouldThrow)) {
           throw new Error('Resend send failed');
         }
