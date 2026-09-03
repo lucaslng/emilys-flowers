@@ -167,9 +167,12 @@ export async function POST(request: Request) {
 
       const { to: customerEmail, ...order } = confirmation;
       try {
-        await sendOwnerOrderNotificationEmail(
+        const ownerResult = await sendOwnerOrderNotificationEmail(
           { ...order, customerEmail },
           { idempotencyKey: `owner-${event.id}` }
+        );
+        console.log(
+          `[Webhook] Owner notification email sent for session ${session.id}: ${ownerResult.id}`
         );
       } catch (error) {
         // Best-effort: a persistently failing owner address must not block the stamp — past Resend's 24h idempotency window, blocked stamps would duplicate the customer confirmation email on Stripe retries.
