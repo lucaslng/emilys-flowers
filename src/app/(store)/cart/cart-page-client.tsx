@@ -88,9 +88,10 @@ export default function CartPageClient() {
               <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
                 {totalQuantity > 0
-                  ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped ♡`
-                  : 'nothing wrapped yet ♡'}
+                  ? `${totalQuantity} ${totalQuantity === 1 ? 'gift' : 'gifts'} being wrapped`
+                  : 'nothing wrapped yet'}
               </span>
+              <StarMotif size={16} className="text-rose-line" />
             </div>
           </div>
         </Reveal>

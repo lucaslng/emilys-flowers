@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
+import FlowerMotif from '@/components/ui/FlowerMotif';
+import HeartMotif from '@/components/ui/HeartMotif';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -51,13 +53,10 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#E4C9B8]/70" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-[#E4C9B8]/40" />
 
-      <span className="petal-nav text-rose-line text-xs"  style={{ left: '8%',  top: '12px', animationDuration: '9s',  animationDelay: '0s' }}   aria-hidden="true">❀</span>
-      <span className="petal-nav text-rose-line text-sm"  style={{ left: '24%', top: '38px', animationDuration: '12s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
-      <span className="petal-nav text-rose-line text-base" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }}   aria-hidden="true">❀</span>
-      <span className="petal-nav text-rose-line text-xs"  style={{ left: '56%', top: '34px', animationDuration: '13s', animationDelay: '1s' }}   aria-hidden="true">✿</span>
-      <span className="petal-nav text-rose-line text-sm"  style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
-      <span className="petal-nav text-rose-line text-xs"  style={{ left: '82%', top: '40px', animationDuration: '14s', animationDelay: '3s' }}   aria-hidden="true">✿</span>
-      <span className="petal-nav text-rose-line text-sm"  style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }}   aria-hidden="true">❀</span>
+      <FlowerMotif size={14} className="petal-nav text-rose-line opacity-60" style={{ left: '8%', top: '12px', animationDuration: '9s', animationDelay: '0s' }} />
+      <FlowerMotif size={22} className="petal-nav text-rose-line opacity-50" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }} />
+      <FlowerMotif size={18} className="petal-nav text-rose-line opacity-60" style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} />
+      <FlowerMotif size={14} className="petal-nav text-rose-line opacity-50" style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }} />
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
@@ -67,9 +66,7 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
             className="group relative -rotate-1 rounded-none border border-rose-line/60 bg-surface px-3 py-1.5 font-sans text-sm font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:border-rose-line hover:text-rose-deep sm:text-base"
           >
             Emily&#39;s Flowers
-            <span aria-hidden="true" className="absolute -right-2.5 -top-2.5 text-xs text-rose-deep transition-transform duration-300 group-hover:scale-125">
-              ♡
-            </span>
+            <HeartMotif size={12} className="absolute -right-2.5 -top-2.5 text-rose-deep transition-transform duration-300 group-hover:scale-125" />
           </Link>
 
           <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex">

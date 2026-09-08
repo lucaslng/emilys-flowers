@@ -41,8 +41,9 @@ export default function FaqPage() {
             <div className="flex items-center gap-2">
               <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
-                good to know ♡
+                good to know
               </span>
+              <StarMotif size={16} className="text-rose-line" />
             </div>
             <h1 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               FAQ
@@ -60,8 +61,9 @@ export default function FaqPage() {
               However, you can dm us on instagram (@emilysflowers_), and we
               will ship to international locations for a higher delivery fee.
             </p>
-            <p className="mt-6 font-hand text-2xl leading-none text-rose-deep">
-              message us and we&rsquo;ll work it out ♡
+            <p className="mt-6 flex items-center gap-2 font-hand text-2xl leading-none text-rose-deep">
+              <span>message us and we&rsquo;ll work it out</span>
+              <StarMotif size={14} className="text-rose-line" />
             </p>
           </div>
         </div>

@@ -122,8 +122,9 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               >
                 {product.inStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <span className="font-hand text-2xl leading-none text-rose-deep">
-                hand-folded, just for you ♡
+              <span className="flex items-center gap-1.5 font-hand text-2xl leading-none text-rose-deep">
+                hand-folded, just for you
+                <StarMotif size={14} className="text-rose-line" />
               </span>
             </div>
           </div>

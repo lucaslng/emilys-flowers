@@ -6,6 +6,8 @@ import { gsap, useGSAP } from '@/lib/gsap';
 import { firePetalBurst } from '@/lib/petal-burst';
 import Button from '@/components/ui/Button';
 import Container from '@/components/ui/Container';
+import FlowerMotif from '@/components/ui/FlowerMotif';
+import StarMotif from '@/components/ui/StarMotif';
 
 /**
  * 404 — a pressed-flower specimen card. All motion is gated behind
@@ -118,11 +120,11 @@ export default function NotFoundClient({
       <div aria-hidden="true" className="wrapping-grid absolute inset-0 opacity-60" />
       <div aria-hidden="true" className="vignette absolute inset-0" />
 
-      <span className="petal text-rose-line text-xs"   style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }}  aria-hidden="true">&#10040;</span>
-      <span className="petal text-rose-line text-sm"   style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-rose-line text-base" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} aria-hidden="true">&#10040;</span>
-      <span className="petal text-rose-line text-xs"   style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }}  aria-hidden="true">&#10047;</span>
-      <span className="petal text-rose-line text-sm"   style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }}  aria-hidden="true">&#10040;</span>
+      <FlowerMotif size={12} className="petal text-rose-line" style={{ left: '10%', animationDuration: '11s', animationDelay: '0s' }} />
+      <FlowerMotif size={16} className="petal text-rose-line" style={{ left: '22%', animationDuration: '14s', animationDelay: '3s' }} />
+      <FlowerMotif size={20} className="petal text-rose-line" style={{ left: '78%', animationDuration: '12s', animationDelay: '1.5s' }} />
+      <FlowerMotif size={12} className="petal text-rose-line" style={{ left: '88%', animationDuration: '15s', animationDelay: '5s' }} />
+      <FlowerMotif size={16} className="petal text-rose-line" style={{ left: '50%', animationDuration: '13s', animationDelay: '7s' }} />
 
       <Container className="relative z-10">
         <div
@@ -194,8 +196,9 @@ export default function NotFoundClient({
             This bloom has wandered off
           </h1>
 
-          <p className="mt-2 text-center font-hand text-3xl leading-none text-rose-deep">
-            let&rsquo;s find our way back ♡
+          <p className="mt-2 flex items-center justify-center gap-2 text-center font-hand text-3xl leading-none text-rose-deep">
+            <span>let&rsquo;s find our way back</span>
+            <StarMotif size={16} className="text-rose-line" />
           </p>
 
           <p className="mt-3 text-center font-sans text-base text-muted">

@@ -21,8 +21,9 @@ export default async function FeaturedBouquets() {
         <Reveal>
           <div className="relative max-w-xl">
             <StarMotif size={44} className="absolute -left-8 -top-6 text-rose opacity-70" />
-            <p className="font-hand text-3xl leading-none text-rose-deep">
-              the ones everyone asks about ♡
+            <p className="flex items-center gap-2 font-hand text-3xl leading-none text-rose-deep">
+              <span>the ones everyone asks about</span>
+              <StarMotif size={16} className="text-rose-line" />
             </p>
             <h2 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
               Featured Bouquets
