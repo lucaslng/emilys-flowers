@@ -171,11 +171,12 @@ const config: NextConfig = {
 export default config
 ```
 
-Product images are local per-category SVG placeholders served from
-`public/placeholders/` (`/placeholders/flower.svg` for flowers,
-`/placeholders/bouquet.svg` for bouquets), rendered through the
-`ProductImage` component. `remotePatterns` is empty — real product photos
-(and their remote host) will be added later.
+Products without a real Stripe description or without files in
+`public/products/<slug>/` are excluded from the catalog at build time
+(`isCatalogReady` in `src/lib/stripe-catalog.ts`); `imagesForProduct` returns
+`[]` for missing/empty folders. The `ProductImage` component still falls back
+to the category SVG on image-load error. `remotePatterns` is empty — real
+product photos (and their remote host) will be added later.
 
 ---
 

@@ -11,7 +11,7 @@ interface ProductGridProps {
 
 export default function ProductGrid({
   products,
-  emptyMessage = 'No products found.',
+  emptyMessage = "everything's sold out right now — catch the next drop on instagram",
   headingLevel = 'h3',
 }: ProductGridProps) {
   if (products.length === 0) {
