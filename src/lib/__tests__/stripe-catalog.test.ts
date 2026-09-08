@@ -6,7 +6,7 @@ import {
   slugify,
   mapStripeProduct,
   imagesForProduct,
-  PLACEHOLDER_DESCRIPTION,
+  isCatalogReady,
 } from "@/lib/stripe-catalog";
 import type Stripe from "stripe";
 
@@ -44,15 +44,15 @@ describe("slugify", () => {
 });
 
 describe("mapStripeProduct", () => {
-  test("maps a flower with placeholder description and category image", () => {
+  test("maps missing description to empty string with no images", () => {
     const p = mapStripeProduct(makeProduct(), makePrice(399));
     expect(p).toEqual({
       id: "prod_test123",
       slug: "pink-rose",
       name: "Pink Rose",
-      description: PLACEHOLDER_DESCRIPTION,
+      description: "",
       price: 399,
-      images: ["/placeholders/flower.svg"],
+      images: [],
       category: "flower",
       tags: ["rose", "pink"],
       featured: false,
@@ -89,7 +89,7 @@ describe("mapStripeProduct", () => {
       makePrice(7999)
     );
     expect(p.category).toBe("bouquet");
-    expect(p.images).toEqual(["/placeholders/bouquet.svg"]);
+    expect(p.images).toEqual([]);
     expect(p.featured).toBe(true);
     expect(p.featuredOrder).toBe(2);
     expect(p.tags).toContain("featured");
@@ -134,7 +134,7 @@ describe("imagesForProduct", () => {
     writeFileSync(path.join(dir, "01-main.jpg"), "");
     writeFileSync(path.join(dir, "03-lifestyle.jpg"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+    expect(imagesForProduct(slug, baseDir)).toEqual([
       "/products/sorted/01-main.jpg",
       "/products/sorted/02-detail.jpg",
       "/products/sorted/03-lifestyle.jpg",
@@ -150,33 +150,43 @@ describe("imagesForProduct", () => {
     writeFileSync(path.join(dir, ".DS_Store"), "");
     writeFileSync(path.join(dir, "notes.txt"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+    expect(imagesForProduct(slug, baseDir)).toEqual([
       "/products/filtered/01-main.jpg",
       "/products/filtered/cover.PNG",
     ]);
   });
 
-  test("falls back to the category placeholder when the folder is missing", () => {
-    expect(imagesForProduct("no-such-product", "flower", baseDir)).toEqual([
-      "/placeholders/flower.svg",
-    ]);
-    expect(imagesForProduct("no-such-product", "bouquet", baseDir)).toEqual([
-      "/placeholders/bouquet.svg",
-    ]);
+  test("returns an empty array when the folder is missing", () => {
+    expect(imagesForProduct("no-such-product", baseDir)).toEqual([]);
   });
 
-  test("falls back to the category placeholder when the folder has no image files", () => {
+  test("returns an empty array when the folder has no image files", () => {
     const slug = "empty-folder";
     const dir = path.join(baseDir, slug);
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, ".DS_Store"), "");
     writeFileSync(path.join(dir, "README.md"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
-      "/placeholders/flower.svg",
-    ]);
-    expect(imagesForProduct(slug, "bouquet", baseDir)).toEqual([
-      "/placeholders/bouquet.svg",
-    ]);
+    expect(imagesForProduct(slug, baseDir)).toEqual([]);
+  });
+});
+
+describe("isCatalogReady", () => {
+  test("rejects a blank description with images", () => {
+    expect(isCatalogReady({ description: "" }, ["/products/pink-rose/01.jpg"])).toBe(false);
+  });
+
+  test("rejects a whitespace-only description with images", () => {
+    expect(isCatalogReady({ description: "   " }, ["/products/pink-rose/01.jpg"])).toBe(false);
+  });
+
+  test("rejects a valid description with no images", () => {
+    expect(isCatalogReady({ description: "A lovely rose." }, [])).toBe(false);
+  });
+
+  test("accepts a valid description with images", () => {
+    expect(
+      isCatalogReady({ description: "A lovely rose." }, ["/products/pink-rose/01.jpg"])
+    ).toBe(true);
   });
 });
