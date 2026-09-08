@@ -6,6 +6,7 @@ import {
   slugify,
   mapStripeProduct,
   imagesForProduct,
+  isCatalogReady,
 } from "@/lib/stripe-catalog";
 import type Stripe from "stripe";
 
@@ -43,7 +44,7 @@ describe("slugify", () => {
 });
 
 describe("mapStripeProduct", () => {
-  test("maps a flower with empty description and images stub", () => {
+  test("maps missing description to empty string with no images", () => {
     const p = mapStripeProduct(makeProduct(), makePrice(399));
     expect(p).toEqual({
       id: "prod_test123",
@@ -133,7 +134,7 @@ describe("imagesForProduct", () => {
     writeFileSync(path.join(dir, "01-main.jpg"), "");
     writeFileSync(path.join(dir, "03-lifestyle.jpg"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+    expect(imagesForProduct(slug, baseDir)).toEqual([
       "/products/sorted/01-main.jpg",
       "/products/sorted/02-detail.jpg",
       "/products/sorted/03-lifestyle.jpg",
@@ -149,15 +150,14 @@ describe("imagesForProduct", () => {
     writeFileSync(path.join(dir, ".DS_Store"), "");
     writeFileSync(path.join(dir, "notes.txt"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([
+    expect(imagesForProduct(slug, baseDir)).toEqual([
       "/products/filtered/01-main.jpg",
       "/products/filtered/cover.PNG",
     ]);
   });
 
   test("returns an empty array when the folder is missing", () => {
-    expect(imagesForProduct("no-such-product", "flower", baseDir)).toEqual([]);
-    expect(imagesForProduct("no-such-product", "bouquet", baseDir)).toEqual([]);
+    expect(imagesForProduct("no-such-product", baseDir)).toEqual([]);
   });
 
   test("returns an empty array when the folder has no image files", () => {
@@ -167,7 +167,26 @@ describe("imagesForProduct", () => {
     writeFileSync(path.join(dir, ".DS_Store"), "");
     writeFileSync(path.join(dir, "README.md"), "");
 
-    expect(imagesForProduct(slug, "flower", baseDir)).toEqual([]);
-    expect(imagesForProduct(slug, "bouquet", baseDir)).toEqual([]);
+    expect(imagesForProduct(slug, baseDir)).toEqual([]);
+  });
+});
+
+describe("isCatalogReady", () => {
+  test("rejects a blank description with images", () => {
+    expect(isCatalogReady({ description: "" }, ["/products/pink-rose/01.jpg"])).toBe(false);
+  });
+
+  test("rejects a whitespace-only description with images", () => {
+    expect(isCatalogReady({ description: "   " }, ["/products/pink-rose/01.jpg"])).toBe(false);
+  });
+
+  test("rejects a valid description with no images", () => {
+    expect(isCatalogReady({ description: "A lovely rose." }, [])).toBe(false);
+  });
+
+  test("accepts a valid description with images", () => {
+    expect(
+      isCatalogReady({ description: "A lovely rose." }, ["/products/pink-rose/01.jpg"])
+    ).toBe(true);
   });
 });

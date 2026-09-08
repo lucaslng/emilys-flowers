@@ -53,7 +53,6 @@ export function mapStripeProduct(
 /** Real images from public/products/<slug>/ as URL paths; empty array means no real images. baseDir injectable for tests. */
 export function imagesForProduct(
   slug: string,
-  category: Product['category'],
   baseDir: string = path.join(process.cwd(), 'public', 'products')
 ): string[] {
   const dir = path.join(baseDir, slug);
@@ -64,6 +63,13 @@ export function imagesForProduct(
   return files.length > 0
     ? files.map((f) => `/products/${slug}/${f}`)
     : [];
+}
+
+export function isCatalogReady(
+  product: { description: string },
+  images: string[]
+): boolean {
+  return product.description.trim().length > 0 && images.length > 0;
 }
 
 async function fetchCatalog(): Promise<Product[]> {
@@ -86,8 +92,8 @@ async function fetchCatalog(): Promise<Product[]> {
   const products: Product[] = [];
   for (const p of listed) {
     const mapped = mapStripeProduct(p, p.default_price);
-    const images = imagesForProduct(mapped.slug, mapped.category);
-    if (!mapped.description.trim() || images.length === 0) continue;
+    const images = imagesForProduct(mapped.slug);
+    if (!isCatalogReady(mapped, images)) continue;
     products.push({
       ...mapped,
       images,
