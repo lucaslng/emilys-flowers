@@ -319,31 +319,25 @@ test.describe("Keyboard-only flow (WCAG 2.1.1)", () => {
     }
     expect(focusFailures, focusFailures.join("\n")).toEqual([]);
 
-    // Filter (keyboard): raise the "Minimum price" slider by one step.
+    // Filter (keyboard): pick the "Under $30" price-tag chip.
     await page.goto("/bouquets");
     // Streaming can lag the load event under parallel-worker load; wait for the filter to exist first.
-    await expect(page.getByLabel("Minimum price")).toBeAttached();
-    const minPriceInfo = await tabUntil(
+    await expect(page.getByRole("button", { name: "Under $30" })).toBeAttached();
+    const priceChipInfo = await tabUntil(
       page,
-      (info) => info.tag === "INPUT" && info.label === "Minimum price"
+      (info) => info.tag === "BUTTON" && info.text === "Under $30"
     );
-    expect(minPriceInfo, "could not tab to the Minimum price filter on /bouquets").toMatchObject({
-      tag: "INPUT",
-      label: "Minimum price",
+    expect(priceChipInfo, "could not tab to the Under $30 filter on /bouquets").toMatchObject({
+      tag: "BUTTON",
+      text: "Under $30",
     });
-    const priceBefore = await page.evaluate(
-      () => (document.activeElement as HTMLInputElement).value
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Under $30" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
     );
-    await page.keyboard.press("ArrowRight");
-    const priceAfter = await page.evaluate(
-      () => (document.activeElement as HTMLInputElement).value
-    );
-    expect(
-      Number(priceAfter),
-      "ArrowRight on the focused price slider should raise the minimum price"
-    ).toBeGreaterThan(Number(priceBefore));
-    // Restore the original minimum so the next step tabs through the full grid.
-    await page.keyboard.press("ArrowLeft");
+    // Restore the "All prices" bucket so the next step tabs through the full grid.
+    await page.getByRole("button", { name: "All prices" }).click();
 
     // Add to cart: Tab to an enabled "Add to Cart" button and press Enter.
     const addInfo = await tabUntil(
