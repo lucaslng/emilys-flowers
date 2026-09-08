@@ -36,7 +36,7 @@ function GiftTag({
       type="button"
       onClick={onPress}
       aria-pressed={pressed}
-      className={`gift-card relative inline-flex items-center py-1.5 pl-7 pr-3 font-sans text-xs font-medium odd:-rotate-1 even:rotate-1 ${
+      className={`gift-card relative inline-flex items-center whitespace-nowrap py-1 pl-6 pr-2.5 font-sans text-[11px] font-medium odd:-rotate-1 even:rotate-1 ${
         pressed
           ? 'is-emphasized bg-blush text-foreground'
           : 'bg-background text-foreground hover:bg-blush'
@@ -44,11 +44,11 @@ function GiftTag({
     >
       <span
         aria-hidden="true"
-        className="absolute left-2.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-rose-line bg-surface"
+        className="absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-rose-line bg-surface"
       />
       <span
         aria-hidden="true"
-        className="absolute left-[15px] top-1/2 h-px w-2 -translate-y-1/2 rotate-45 bg-rose-line"
+        className="absolute left-[13px] top-1/2 h-px w-2 -translate-y-1/2 rotate-45 bg-rose-line"
       />
       {label}
     </button>
@@ -76,54 +76,50 @@ export default function FilterBar({
     secondaryCategories.length > 1;
 
   return (
-    <div className="stitch relative flex flex-col gap-4 bg-surface p-5 sm:p-6">
-      <p className="font-hand text-2xl leading-none text-rose-deep">
-        filter by…
-      </p>
+    <div className="stitch relative flex flex-col gap-3 bg-surface px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:gap-4">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="whitespace-nowrap font-hand text-xl leading-none text-rose-deep">
+          filter by…
+        </p>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between lg:gap-8">
-        {(showCategories || showSecondary) && (
-          <div className="flex flex-col gap-3">
-            {showCategories && (
-              <div
-                role="group"
-                aria-label="Filter by category"
-                className="flex flex-wrap items-center gap-2"
-              >
-                {categories.map((cat) => (
-                  <GiftTag
-                    key={cat.value}
-                    label={cat.label}
-                    pressed={selectedCategory === cat.value}
-                    onPress={() => onCategoryChange(cat.value)}
-                  />
-                ))}
-              </div>
-            )}
+        {showCategories && (
+          <div
+            role="group"
+            aria-label="Filter by category"
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            {categories.map((cat) => (
+              <GiftTag
+                key={cat.value}
+                label={cat.label}
+                pressed={selectedCategory === cat.value}
+                onPress={() => onCategoryChange(cat.value)}
+              />
+            ))}
+          </div>
+        )}
 
-            {showSecondary && (
-              <div
-                role="group"
-                aria-label="Filter by color"
-                className="flex flex-wrap items-center gap-2"
-              >
-                {secondaryCategories!.map((cat) => (
-                  <GiftTag
-                    key={cat.value}
-                    label={cat.label}
-                    pressed={selectedSecondaryCategory === cat.value}
-                    onPress={() => onSecondaryCategoryChange!(cat.value)}
-                  />
-                ))}
-              </div>
-            )}
+        {showSecondary && (
+          <div
+            role="group"
+            aria-label="Filter by color"
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            {secondaryCategories!.map((cat) => (
+              <GiftTag
+                key={cat.value}
+                label={cat.label}
+                pressed={selectedSecondaryCategory === cat.value}
+                onPress={() => onSecondaryCategoryChange!(cat.value)}
+              />
+            ))}
           </div>
         )}
 
         <div
           role="group"
           aria-label="Filter by price"
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-wrap items-center gap-1.5"
         >
           {priceOptions.map((opt) => (
             <GiftTag
@@ -134,18 +130,19 @@ export default function FilterBar({
             />
           ))}
         </div>
+      </div>
 
-        <div
-          role="group"
-          aria-label="Sort products"
-          className="flex items-center"
-        >
+      <div
+        role="group"
+        aria-label="Sort products"
+        className="flex shrink-0 items-center lg:ml-auto"
+      >
           <span className="relative inline-block -rotate-1">
             <select
               value={selectedSort}
               onChange={(e) => onSortChange(e.target.value)}
               aria-label="Sort products"
-              className="stitch appearance-none bg-background py-2 pl-3 pr-8 font-sans text-xs text-foreground shadow-[0_2px_8px_-4px_rgba(212,165,165,0.6)] transition-colors hover:bg-blush focus:border-rose-line"
+              className="stitch appearance-none whitespace-nowrap bg-background py-1.5 pl-3 pr-8 font-sans text-[11px] text-foreground shadow-[0_2px_8px_-4px_rgba(212,165,165,0.6)] transition-colors hover:bg-blush focus:border-rose-line"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -169,7 +166,6 @@ export default function FilterBar({
             </span>
           </span>
         </div>
-      </div>
     </div>
   );
 }
