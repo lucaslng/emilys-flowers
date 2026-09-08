@@ -133,7 +133,7 @@ export default function CatalogPageClient({
             {title}
           </h1>
           <p
-            className={`mt-4 max-w-md font-sans text-sm leading-relaxed text-muted sm:text-base${
+            className={`mt-4 max-w-md font-body text-sm leading-relaxed text-foreground/85 sm:text-base${
               isRightAligned ? ' ml-auto' : ''
             }`}
           >

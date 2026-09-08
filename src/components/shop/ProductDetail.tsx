@@ -109,7 +109,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
               </div>
             )}
 
-            <p className="mt-6 max-w-md font-sans text-base leading-relaxed text-muted">
+            <p className="mt-6 max-w-md font-body text-base leading-relaxed text-foreground/85">
               {product.description}
             </p>
 

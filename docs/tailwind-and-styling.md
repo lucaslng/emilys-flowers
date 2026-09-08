@@ -57,10 +57,15 @@ chromatic accent. No cool tones (no blues, greens, or cool lavenders).
 
 **Fonts** (set by `next/font` in `layout.tsx`, mapped via `@theme inline`):
 - `--font-sans` → Martian Mono (variable) — the geometric/grid voice for UI,
-  labels, and body
+  labels, headings, and buttons
 - `--font-hand` → Reanie Beanie (single weight 400) — the hand-drawn/chalk
   voice for accents, callouts, and annotations. Small x-height: never use it
   for long body copy.
+- `--font-body` → Fraunces (variable, with italics) — the warm serif voice
+  for paragraphs and descriptive body copy. Warmer than the taupe `muted`
+  tone: pair it with `text-foreground/85` (still ≥ 4.5:1 on cream) for
+  descriptive copy; reserve `text-muted` for meta only (filter labels,
+  prices, footer links).
 - `--font-serif` → aliased to the Martian Mono stack (kept for compatibility)
 
 ### Contrast-critical values

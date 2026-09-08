@@ -162,7 +162,7 @@ export default function WhyChooseUs() {
                     <h3 className="gift-name font-sans text-lg font-bold uppercase tracking-[0.1em] text-foreground sm:text-xl">
                       {reason.title}
                     </h3>
-                    <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-muted sm:text-base">
+                    <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-foreground/85 sm:text-base">
                       {reason.description}
                     </p>
                   </div>

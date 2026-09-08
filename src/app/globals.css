@@ -30,6 +30,7 @@
   --font-sans: var(--font-martian), ui-monospace, SFMono-Regular, Menlo,
     Consolas, monospace;
   --font-hand: var(--font-reenie), "Segoe Script", "Bradley Hand", cursive;
+  --font-body: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --font-serif: var(--font-martian), ui-monospace, SFMono-Regular, Menlo,
     Consolas, monospace;
 }

@@ -65,7 +65,7 @@ export default function ProductCard({
         <Heading className="gift-name font-sans text-base font-bold uppercase tracking-[0.08em] text-foreground">
           <Link href={`/products/${product.slug}`}>{product.name}</Link>
         </Heading>
-        <p className="mt-1.5 line-clamp-2 font-sans text-sm leading-relaxed text-muted">
+        <p className="mt-1.5 font-body text-sm leading-relaxed text-foreground/85">
           {product.description}
         </p>
 

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Martian_Mono, Reenie_Beanie } from "next/font/google";
+import { Fraunces, Martian_Mono, Reenie_Beanie } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -16,6 +16,14 @@ const reenie = Reenie_Beanie({
   weight: "400",
   variable: "--font-reenie",
   subsets: ["latin"],
+});
+
+// Fraunces = the warm serif voice for paragraphs and body copy. Variable with
+// italics; headings stay Martian Mono.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -72,7 +80,7 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const fontClasses = `${martian.variable} ${reenie.variable}`;
+  const fontClasses = `${martian.variable} ${reenie.variable} ${fraunces.variable}`;
   return (
     <html lang="en" className={`${fontClasses} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">

@@ -59,7 +59,7 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
             <br />
             into every petal
           </h1>
-          <p className="mt-6 max-w-md font-sans text-base leading-relaxed text-muted">
+          <p className="mt-6 max-w-md font-body text-base leading-relaxed text-foreground/85">
             Bouquets you never say goodbye to.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">

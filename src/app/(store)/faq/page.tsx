@@ -56,7 +56,7 @@ export default function FaqPage() {
               Shipping Locations
             </h2>
             <div className="gift-divider mt-4" />
-            <p className="mt-5 font-sans text-base leading-relaxed text-muted">
+            <p className="mt-5 font-body text-base leading-relaxed text-foreground/85">
               Unfortunately, we currently only ship online orders to Canada.
               However, you can dm us on instagram (@emilysflowers_), and we
               will ship to international locations for a higher delivery fee.
