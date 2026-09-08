@@ -235,8 +235,9 @@ export default function CheckoutPageClient() {
             <div className="mt-2 flex items-center justify-center gap-2">
               <ArrowFlourish />
               <span className="font-hand text-3xl leading-none text-rose-deep">
-                almost wrapped ♡
+                almost wrapped
               </span>
+              <StarMotif size={16} className="text-rose-line" />
             </div>
           </div>
 

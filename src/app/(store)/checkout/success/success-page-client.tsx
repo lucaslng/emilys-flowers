@@ -15,6 +15,7 @@ import { useCart } from '@/lib/cart-context';
 import Container from '@/components/ui/Container';
 import Button from '@/components/ui/Button';
 import BloomSpinner from '@/components/ui/BloomSpinner';
+import StarMotif from '@/components/ui/StarMotif';
 import OrderReceipt from '@/components/order/OrderReceipt';
 
 /** The sanitized projection returned by GET /api/checkout/session. */
@@ -142,8 +143,9 @@ function CheckoutSuccessContent() {
           <h1 className="font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
             Thank you for your order
           </h1>
-          <p className="mt-3 font-hand text-3xl leading-none text-rose-deep">
-            it&rsquo;s on its way ♡
+          <p className="mt-3 flex items-center justify-center gap-2 font-hand text-3xl leading-none text-rose-deep">
+            <span>it&rsquo;s on its way</span>
+            <StarMotif size={16} className="text-rose-line" />
           </p>
         </div>
 

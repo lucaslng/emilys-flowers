@@ -116,8 +116,9 @@ export default function WhyChooseUs() {
             <div className="relative -rotate-1 border border-border bg-background p-6 sm:p-8">
               <span aria-hidden="true" className="washi absolute -top-3 right-8 h-6 w-24 rotate-2" />
               <StarMotif size={40} className="absolute -right-3 -top-3 text-rose opacity-70" />
-              <p className="font-hand text-3xl leading-none text-rose-deep">
-                our promise ♡
+              <p className="flex items-center gap-2 font-hand text-3xl leading-none text-rose-deep">
+                <span>our promise</span>
+                <StarMotif size={16} className="text-rose-line" />
               </p>
               <h2 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-4xl">
                 Why Emily&rsquo;s Flowers

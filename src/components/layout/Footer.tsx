@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import Container from '@/components/ui/Container';
 import StarMotif from '@/components/ui/StarMotif';
+import FlowerMotif from '@/components/ui/FlowerMotif';
+import HeartMotif from '@/components/ui/HeartMotif';
 import { isFlowersEnabled, isFlowersHref } from '@/lib/flagship-flag';
 
 type FooterLink = { label: string; href: string; external?: boolean };
@@ -50,13 +52,13 @@ export default function Footer() {
           className="wrapping-grid pointer-events-none absolute inset-0 opacity-60"
         />
 
-        <span className="petal text-rose-line text-lg"  style={{ left: '6%',  animationDuration: '11s', animationDelay: '0s' }}   aria-hidden="true">❀</span>
-        <span className="petal text-rose-line text-xl"  style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} aria-hidden="true">✿</span>
-        <span className="petal text-rose-line text-sm"  style={{ left: '38%', animationDuration: '9s',  animationDelay: '4s' }}   aria-hidden="true">❀</span>
-        <span className="petal text-rose-line text-2xl" style={{ left: '52%', animationDuration: '13s', animationDelay: '1s' }}  aria-hidden="true">✿</span>
-        <span className="petal text-rose-line text-base" style={{ left: '66%', animationDuration: '10s', animationDelay: '5.5s' }} aria-hidden="true">❀</span>
-        <span className="petal text-rose-line text-lg"  style={{ left: '78%', animationDuration: '12s', animationDelay: '3s' }}  aria-hidden="true">✿</span>
-        <span className="petal text-rose-line text-sm"  style={{ left: '90%', animationDuration: '15s', animationDelay: '6s' }}  aria-hidden="true">❀</span>
+        <FlowerMotif size={18} className="petal text-rose-line" style={{ left: '6%', animationDuration: '11s', animationDelay: '0s' }} />
+        <FlowerMotif size={22} className="petal text-rose-line" style={{ left: '22%', animationDuration: '14s', animationDelay: '2.5s' }} />
+        <FlowerMotif size={14} className="petal text-rose-line" style={{ left: '38%', animationDuration: '9s', animationDelay: '4s' }} />
+        <FlowerMotif size={26} className="petal text-rose-line" style={{ left: '52%', animationDuration: '13s', animationDelay: '1s' }} />
+        <FlowerMotif size={16} className="petal text-rose-line" style={{ left: '66%', animationDuration: '10s', animationDelay: '5.5s' }} />
+        <FlowerMotif size={18} className="petal text-rose-line" style={{ left: '78%', animationDuration: '12s', animationDelay: '3s' }} />
+        <FlowerMotif size={14} className="petal text-rose-line" style={{ left: '90%', animationDuration: '15s', animationDelay: '6s' }} />
 
         <div className="relative z-10">
           <Container className="py-10 sm:py-16">
@@ -80,21 +82,7 @@ export default function Footer() {
                     <span className="font-hand text-2xl leading-none text-rose-deep">
                       made with
                     </span>
-                    <svg
-                      aria-hidden="true"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="line-boil-fine text-rose-deep"
-                    >
-                      <path
-                        d="M12 20 C 8.5 16.5 4.5 13.5 4.5 9.5 C 4.5 6.5 6.5 4.5 9 4.5 C 10.5 4.5 11.5 5.5 12 7 C 12.5 5.5 13.5 4.5 15 4.5 C 17.5 4.5 19.5 6.5 19.5 9.5 C 19.5 13.5 15.5 16.5 12 20 Z"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <HeartMotif size={18} className="line-boil-fine text-rose-deep" />
                   </span>
                 </div>
                 <StarMotif
@@ -142,11 +130,11 @@ export default function Footer() {
 
         <div className="border-t border-border">
           <Container className="flex items-center justify-center gap-3 py-4 sm:py-6">
-            <span aria-hidden="true" className="text-xs text-rose-line">❀</span>
+            <StarMotif size={12} className="text-rose-line" />
             <span className="font-hand text-xl leading-none text-rose-deep">
               handcrafted with love
             </span>
-            <span aria-hidden="true" className="text-xs text-rose-line">❀</span>
+            <StarMotif size={12} className="text-rose-line" />
           </Container>
         </div>
         </div>

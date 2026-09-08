@@ -2,6 +2,8 @@
 // the entrance is the reduced-motion-guarded `.uc-enter` fade-up in globals.css.
 import BouquetSticker from "@/components/ui/BouquetSticker";
 import PageWash from "@/components/ui/PageWash";
+import StarMotif from "@/components/ui/StarMotif";
+import HeartMotif from "@/components/ui/HeartMotif";
 
 export default function UnderConstruction() {
   return (
@@ -16,8 +18,8 @@ export default function UnderConstruction() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-border" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border" />
 
-      <span aria-hidden="true" className="heart-float text-sm text-rose-deep" style={{ left: '16%', top: '22%', animationDuration: '8s' }}>♡</span>
-      <span aria-hidden="true" className="heart-float text-xs text-rose-line" style={{ left: '82%', top: '26%', animationDuration: '10s', animationDelay: '2s' }}>♡</span>
+      <HeartMotif size={14} className="heart-float text-rose-deep" style={{ left: '16%', top: '22%', animationDuration: '8s' }} />
+      <HeartMotif size={12} className="heart-float text-rose-line" style={{ left: '82%', top: '26%', animationDuration: '10s', animationDelay: '2s' }} />
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className="mx-auto w-full max-w-xl text-center">
@@ -55,7 +57,7 @@ export default function UnderConstruction() {
           >
             <div aria-hidden="true" className="flex items-center gap-3">
               <span className="h-px w-12 bg-rose-line/50" />
-              <span className="text-xs leading-none text-rose-deep">&#10040;</span>
+              <StarMotif size={16} className="text-rose-deep" />
               <span className="h-px w-12 bg-rose-line/50" />
             </div>
             <p className="font-sans text-sm text-muted">

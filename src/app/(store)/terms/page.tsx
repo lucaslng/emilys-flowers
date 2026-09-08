@@ -139,7 +139,7 @@ export default function TermsOfServicePage() {
             </Section>
             <Section>
               <div className="flex justify-center" aria-hidden="true">
-                <span className="text-lg text-rose-line">&#10047;</span>
+                <StarMotif size={20} className="text-rose-line" />
               </div>
               <p className={`${pClass} text-center`}>
                 Thank you so much for supporting Emily's Flowers. Every order genuinely makes my day!

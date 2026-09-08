@@ -2,6 +2,8 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import BouquetSticker from '@/components/ui/BouquetSticker';
 import FlowerMotif from '@/components/ui/FlowerMotif';
+import StarMotif from '@/components/ui/StarMotif';
+import HeartMotif from '@/components/ui/HeartMotif';
 import ArrowFlourish from '@/components/shop/ArrowFlourish';
 import PageWash from '@/components/ui/PageWash';
 
@@ -42,14 +44,15 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
         />
       ))}
 
-      <span aria-hidden="true" className="heart-float text-sm text-rose-deep" style={{ left: '12%', top: '18%', animationDuration: '7s' }}>♡</span>
-      <span aria-hidden="true" className="heart-float text-xs text-rose-line" style={{ left: '84%', top: '14%', animationDuration: '9s', animationDelay: '1.5s' }}>♡</span>
-      <span aria-hidden="true" className="heart-float text-base text-rose-deep" style={{ left: '70%', top: '72%', animationDuration: '8s', animationDelay: '3s' }}>♡</span>
+      <HeartMotif size={14} className="heart-float text-rose-deep" style={{ left: '12%', top: '18%', animationDuration: '7s' }} />
+      <HeartMotif size={12} className="heart-float text-rose-line" style={{ left: '84%', top: '14%', animationDuration: '9s', animationDelay: '1.5s' }} />
+      <HeartMotif size={16} className="heart-float text-rose-deep" style={{ left: '70%', top: '72%', animationDuration: '8s', animationDelay: '3s' }} />
 
       <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-14 px-4 py-20 sm:px-6 sm:py-24 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] lg:gap-8 lg:px-8 lg:pt-40 lg:pb-28">
         <div className="max-w-xl">
-          <p className="font-hand text-3xl leading-none text-rose-deep">
-            handcrafted ribbon flowers ♡
+          <p className="flex items-center gap-2 font-hand text-3xl leading-none text-rose-deep">
+            <span>handcrafted ribbon flowers</span>
+            <StarMotif size={16} className="text-rose-line" />
           </p>
           <h1 className="mt-4 font-sans text-4xl font-bold uppercase leading-[1.08] tracking-[0.04em] text-foreground sm:text-5xl lg:text-6xl">
             Love folded
@@ -82,11 +85,12 @@ export default function Hero({ showFlowers = true }: { showFlowers?: boolean }) 
               <BouquetSticker size={260} tilt={10} />
             </div>
 
-            <div className="relative mt-2 flex justify-end">
+            <div className="relative mt-2 flex items-center justify-end gap-2">
               <ArrowFlourish size="lg" className="line-boil text-rose-deep" />
               <span className="font-hand text-3xl leading-none text-rose-deep">
-                our bouquets ♡
+                our bouquets
               </span>
+              <StarMotif size={14} className="text-rose-line" />
             </div>
           </div>
         </div>

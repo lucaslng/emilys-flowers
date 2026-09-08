@@ -127,8 +127,9 @@ export default function CatalogPageClient({
             size={52}
             className={`absolute ${isRightAligned ? '-right-9' : '-left-9'} -top-7 text-rose opacity-70`}
           />
-          <p className="font-hand text-3xl leading-none text-rose-deep">
-            {products.length} {countLabel} ♡
+          <p className={`flex items-center gap-2 font-hand text-3xl leading-none text-rose-deep${isRightAligned ? ' justify-end' : ''}`}>
+            <span>{products.length} {countLabel}</span>
+            <StarMotif size={16} className="text-rose-line" />
           </p>
           <h1 className="mt-3 font-sans text-3xl font-bold uppercase tracking-[0.06em] text-foreground sm:text-5xl">
             {title}
