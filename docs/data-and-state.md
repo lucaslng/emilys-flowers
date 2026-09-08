@@ -14,17 +14,17 @@ price onto the `Product` shape (slug derived from name, category from
 `default_price.unit_amount`), and memoizes the result with React `cache` so the
 catalog is fetched once per build.
 
-- A single universal `PLACEHOLDER_DESCRIPTION` is used when a Stripe product
-  has no description.
+- Products without a real Stripe description or without files in
+  `public/products/<slug>/` are excluded from the catalog at build time
+  (`isCatalogReady` in `src/lib/stripe-catalog.ts`).
 - Helpers: `getAllProducts`, `getProductBySlug`, `getProductsByCategory`,
   `getFeaturedProducts`.
 - Client-safe pure helpers (`getPriceRange`, `getFlowerTypes`,
   `getFlowerColors`, `formatLabel`) live in `src/lib/product-utils.ts`.
 - Images are scanned at build time from per-product folders under
   `public/products/<slug>/` by `imagesForProduct` (`src/lib/stripe-catalog.ts`),
-  falling back to the per-category SVG placeholder (`/placeholders/flower.svg`,
-  `/placeholders/bouquet.svg`) when the folder is missing; the product detail
-  page shows a gallery of all images. `ProductImage`
+  which returns `[]` for missing folders or folders with no image files; the
+  product detail page shows a gallery of all images. `ProductImage`
   (`src/components/shop/ProductImage.tsx`) still falls back to the category SVG
   on image-load error.
 - A slug → primary-image manifest is also scanned once per build by
