@@ -13,7 +13,7 @@ const footerLinks: FooterGroup[] = [
     links: [
       { label: 'Individual Flowers', href: '/flowers' },
       { label: 'Bouquet Collections', href: '/bouquets' },
-      { label: 'Featured', href: '/' },
+      { label: 'Featured', href: '/bouquets' },
       { label: 'About Us', href: '/#why-emilys-flowers' },
       { label: 'FAQ', href: '/faq' },
       { label: 'Privacy Policy', href: '/privacy' },

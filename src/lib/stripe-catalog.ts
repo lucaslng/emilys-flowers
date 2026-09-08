@@ -1,5 +1,5 @@
 // Server-only (imports the stripe SDK, reads STRIPE_SECRET_KEY): catalog fetched once per build via React cache,
-// images scanned from public/products/<slug>/ with a per-category SVG placeholder fallback.
+// images scanned from public/products/<slug>/.
 
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -12,16 +12,6 @@ import { listActiveProducts } from '@/lib/stripe-products';
 import { getStripeClient } from '@/lib/stripe-client';
 
 export { slugify };
-
-/** Shared placeholder for products without a description — deliberately not per-product copy. */
-export const PLACEHOLDER_DESCRIPTION =
-  'A handcrafted ribbon flower, made to order from premium satin ribbon. ' +
-  'Each bloom is shaped petal by petal, so no two are ever quite alike.';
-
-const PLACEHOLDER_IMAGES: Record<Product['category'], string> = {
-  flower: '/placeholders/flower.svg',
-  bouquet: '/placeholders/bouquet.svg',
-};
 
 function toCategory(raw: unknown): Product['category'] {
   return raw === 'bouquet' ? 'bouquet' : 'flower';
@@ -46,9 +36,9 @@ export function mapStripeProduct(
     id: product.id,
     slug: slugify(product.name),
     name: product.name,
-    description: product.description?.trim() || PLACEHOLDER_DESCRIPTION,
+    description: product.description?.trim() ?? '',
     price: price.unit_amount ?? 0,
-    images: [PLACEHOLDER_IMAGES[category]],
+    images: [],
     category,
     tags,
     featured: featuredOrder !== undefined,
@@ -60,20 +50,20 @@ export function mapStripeProduct(
   };
 }
 
-/** Real images from public/products/<slug>/ as URL paths; placeholder fallback keeps `images` never empty. baseDir injectable for tests. */
+/** Real images from public/products/<slug>/ as URL paths; empty array means no real images. baseDir injectable for tests. */
 export function imagesForProduct(
   slug: string,
   category: Product['category'],
   baseDir: string = path.join(process.cwd(), 'public', 'products')
 ): string[] {
   const dir = path.join(baseDir, slug);
-  if (!existsSync(dir)) return [PLACEHOLDER_IMAGES[category]];
+  if (!existsSync(dir)) return [];
   const files = readdirSync(dir)
     .filter((f) => IMAGE_EXT.test(f))
     .sort();
   return files.length > 0
     ? files.map((f) => `/products/${slug}/${f}`)
-    : [PLACEHOLDER_IMAGES[category]];
+    : [];
 }
 
 async function fetchCatalog(): Promise<Product[]> {
@@ -96,9 +86,11 @@ async function fetchCatalog(): Promise<Product[]> {
   const products: Product[] = [];
   for (const p of listed) {
     const mapped = mapStripeProduct(p, p.default_price);
+    const images = imagesForProduct(mapped.slug, mapped.category);
+    if (!mapped.description.trim() || images.length === 0) continue;
     products.push({
       ...mapped,
-      images: imagesForProduct(mapped.slug, mapped.category),
+      images,
     });
   }
 
