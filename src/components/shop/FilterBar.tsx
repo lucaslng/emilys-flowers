@@ -46,10 +46,6 @@ function GiftTag({
         aria-hidden="true"
         className="absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-rose-line bg-surface"
       />
-      <span
-        aria-hidden="true"
-        className="absolute left-[13px] top-1/2 h-px w-2 -translate-y-1/2 rotate-45 bg-rose-line"
-      />
       {label}
     </button>
   );
