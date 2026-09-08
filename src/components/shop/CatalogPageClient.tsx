@@ -11,8 +11,8 @@ import ArrowFlourish from '@/components/shop/ArrowFlourish';
 import PageWash from '@/components/ui/PageWash';
 
 const sortOptions = [
-  { label: 'Price: Low to High', value: 'price-asc' },
   { label: 'Price: High to Low', value: 'price-desc' },
+  { label: 'Price: Low to High', value: 'price-asc' },
   { label: 'Name: A-Z', value: 'name-asc' },
   { label: 'Name: Z-A', value: 'name-desc' },
 ];
@@ -55,7 +55,7 @@ export default function CatalogPageClient({
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedSecondaryCategory, setSelectedSecondaryCategory] =
     useState('all');
-  const [selectedSort, setSelectedSort] = useState('price-asc');
+  const [selectedSort, setSelectedSort] = useState('price-desc');
   const initialPriceRange = useMemo(() => getPriceRange(products), [products]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<[number, number]>(
     initialPriceRange
