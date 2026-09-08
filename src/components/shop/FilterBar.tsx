@@ -1,19 +1,54 @@
 'use client';
 
+import {
+  PRICE_BUCKET_OPTIONS,
+  type FilterOption,
+  type PriceBucket,
+} from '@/lib/product-utils';
+
 interface FilterBarProps {
-  categories: { label: string; value: string }[];
+  categories: FilterOption[];
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
-  sortOptions: { label: string; value: string }[];
+  sortOptions: FilterOption[];
   selectedSort: string;
   onSortChange: (value: string) => void;
-  priceRange: [number, number];
-  selectedPriceRange: [number, number];
-  onPriceRangeChange: (range: [number, number]) => void;
+  selectedPrice: PriceBucket;
+  onPriceChange: (value: PriceBucket) => void;
+  priceOptions?: FilterOption[];
   /** Optional secondary category group (e.g. flower color) below the primary row. */
-  secondaryCategories?: { label: string; value: string }[];
+  secondaryCategories?: FilterOption[];
   selectedSecondaryCategory?: string;
   onSecondaryCategoryChange?: (value: string) => void;
+}
+
+function GiftTag({
+  label,
+  pressed,
+  onPress,
+}: {
+  label: string;
+  pressed: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      aria-pressed={pressed}
+      className={`gift-card relative inline-flex items-center whitespace-nowrap py-1 pl-6 pr-2.5 font-sans text-[11px] font-medium odd:-rotate-1 even:rotate-1 ${
+        pressed
+          ? 'is-emphasized bg-blush text-foreground'
+          : 'bg-background text-foreground hover:bg-blush'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className="absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-rose-line bg-surface"
+      />
+      {label}
+    </button>
+  );
 }
 
 export default function FilterBar({
@@ -23,137 +58,110 @@ export default function FilterBar({
   sortOptions,
   selectedSort,
   onSortChange,
-  priceRange,
-  selectedPriceRange,
-  onPriceRangeChange,
+  selectedPrice,
+  onPriceChange,
+  priceOptions = PRICE_BUCKET_OPTIONS,
   secondaryCategories,
   selectedSecondaryCategory,
   onSecondaryCategoryChange,
 }: FilterBarProps) {
-  const pillBase =
-    'rounded-none px-3 py-1.5 font-sans text-xs font-medium uppercase tracking-[0.1em] transition-colors';
-  const pillActive = 'bg-rose-deep text-white';
-  const pillIdle =
-    'bg-background text-foreground hover:bg-blush';
+  const showCategories = categories.length > 1;
+  const showSecondary =
+    !!secondaryCategories &&
+    !!onSecondaryCategoryChange &&
+    secondaryCategories.length > 1;
 
   return (
-    <div className="stitch relative flex flex-col gap-5 bg-surface p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-      <div className="flex flex-col gap-3">
-        <div
-          role="group"
-          aria-label="Filter by category"
-          className="flex flex-wrap items-center gap-2"
-        >
-          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
-            Category
-          </span>
-          {categories.map((cat) => (
-            <button
-              key={cat.value}
-              onClick={() => onCategoryChange(cat.value)}
-              aria-pressed={selectedCategory === cat.value}
-              className={`${pillBase} ${
-                selectedCategory === cat.value ? pillActive : pillIdle
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+    <div className="stitch relative flex flex-col gap-3 bg-surface px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:gap-4">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="whitespace-nowrap font-hand text-xl leading-none text-rose-deep">
+          filter by…
+        </p>
 
-        {secondaryCategories && onSecondaryCategoryChange && (
+        {showCategories && (
           <div
             role="group"
-            aria-label="Filter by color"
-            className="flex flex-wrap items-center gap-2"
+            aria-label="Filter by category"
+            className="flex flex-wrap items-center gap-1.5"
           >
-            <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
-              Color
-            </span>
-            {secondaryCategories.map((cat) => (
-              <button
+            {categories.map((cat) => (
+              <GiftTag
                 key={cat.value}
-                onClick={() => onSecondaryCategoryChange(cat.value)}
-                aria-pressed={selectedSecondaryCategory === cat.value}
-                className={`${pillBase} ${
-                  selectedSecondaryCategory === cat.value ? pillActive : pillIdle
-                }`}
-              >
-                {cat.label}
-              </button>
+                label={cat.label}
+                pressed={selectedCategory === cat.value}
+                onPress={() => onCategoryChange(cat.value)}
+              />
             ))}
           </div>
         )}
-      </div>
 
-      <div
-        role="group"
-        aria-label="Filter by price"
-        className="flex flex-wrap items-center gap-2"
-      >
-        <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
-          Price
-        </span>
-        <input
-          type="range"
-          min={priceRange[0]}
-          max={priceRange[1]}
-          step={500}
-          value={selectedPriceRange[0]}
-          onChange={(e) =>
-            onPriceRangeChange([
-              parseInt(e.target.value),
-              selectedPriceRange[1],
-            ])
-          }
-          className="h-2 w-20 cursor-pointer appearance-none rounded-none bg-border accent-rose"
-          aria-label="Minimum price"
-        />
-        <span className="font-sans text-xs text-muted">
-          ${(selectedPriceRange[0] / 100).toFixed(0)}
-        </span>
-        <span className="font-sans text-xs text-muted">—</span>
-        <input
-          type="range"
-          min={priceRange[0]}
-          max={priceRange[1]}
-          step={500}
-          value={selectedPriceRange[1]}
-          onChange={(e) =>
-            onPriceRangeChange([
-              selectedPriceRange[0],
-              parseInt(e.target.value),
-            ])
-          }
-          className="h-2 w-20 cursor-pointer appearance-none rounded-none bg-border accent-rose"
-          aria-label="Maximum price"
-        />
-        <span className="font-sans text-xs text-muted">
-          ${(selectedPriceRange[1] / 100).toFixed(0)}
-        </span>
+        {showSecondary && (
+          <div
+            role="group"
+            aria-label="Filter by color"
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            {secondaryCategories!.map((cat) => (
+              <GiftTag
+                key={cat.value}
+                label={cat.label}
+                pressed={selectedSecondaryCategory === cat.value}
+                onPress={() => onSecondaryCategoryChange!(cat.value)}
+              />
+            ))}
+          </div>
+        )}
+
+        <div
+          role="group"
+          aria-label="Filter by price"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {priceOptions.map((opt) => (
+            <GiftTag
+              key={opt.value}
+              label={opt.label}
+              pressed={selectedPrice === opt.value}
+              onPress={() => onPriceChange(opt.value as PriceBucket)}
+            />
+          ))}
+        </div>
       </div>
 
       <div
         role="group"
         aria-label="Sort products"
-        className="flex items-center gap-2"
+        className="flex shrink-0 items-center lg:ml-auto"
       >
-        <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-deep">
-          Sort
-        </span>
-        <select
-          value={selectedSort}
-          onChange={(e) => onSortChange(e.target.value)}
-          aria-label="Sort products"
-          className="rounded-none border border-border bg-background px-3 py-1.5 font-sans text-xs text-foreground transition-colors focus:border-rose-line"
-        >
-          {sortOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <span className="relative inline-block -rotate-1">
+            <select
+              value={selectedSort}
+              onChange={(e) => onSortChange(e.target.value)}
+              aria-label="Sort products"
+              className="stitch appearance-none whitespace-nowrap bg-background py-1.5 pl-3 pr-8 font-sans text-[11px] text-foreground shadow-[0_2px_8px_-4px_rgba(212,165,165,0.6)] transition-colors hover:bg-blush focus:border-rose-line"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[-4px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-dashed border-[#E4C9B8] bg-surface"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-[22px] top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-dashed border-[#E4C9B8] bg-surface"
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-sans text-xs text-rose-deep"
+            >
+              ⌄
+            </span>
+          </span>
+        </div>
     </div>
   );
 }

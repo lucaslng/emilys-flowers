@@ -22,6 +22,31 @@ export interface FilterOption {
   value: string;
 }
 
+export type PriceBucket = 'all' | 'under-30' | '30-50' | 'over-50';
+
+export const PRICE_BUCKET_OPTIONS: FilterOption[] = [
+  { label: 'All prices', value: 'all' },
+  { label: 'Under $30', value: 'under-30' },
+  { label: '$30–50', value: '30-50' },
+  { label: 'Over $50', value: 'over-50' },
+];
+
+/** Bucket match on integer-cents price; unknown buckets match nothing. */
+export function matchesPriceBucket(price: number, bucket: string): boolean {
+  switch (bucket) {
+    case 'all':
+      return true;
+    case 'under-30':
+      return price < 3000;
+    case '30-50':
+      return price >= 3000 && price <= 5000;
+    case 'over-50':
+      return price > 5000;
+    default:
+      return false;
+  }
+}
+
 /** Unique flower types (metadata `flower_type`) as filter options, "All" first. */
 export function getFlowerTypes(products: Product[]): FilterOption[] {
   const types = [

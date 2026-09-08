@@ -2,7 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { Product } from '@/types';
-import { getPriceRange, type FilterOption } from '@/lib/product-utils';
+import {
+  matchesPriceBucket,
+  type FilterOption,
+  type PriceBucket,
+} from '@/lib/product-utils';
 import Container from '@/components/ui/Container';
 import ProductGrid from '@/components/shop/ProductGrid';
 import FilterBar from '@/components/shop/FilterBar';
@@ -56,10 +60,7 @@ export default function CatalogPageClient({
   const [selectedSecondaryCategory, setSelectedSecondaryCategory] =
     useState('all');
   const [selectedSort, setSelectedSort] = useState('price-desc');
-  const initialPriceRange = useMemo(() => getPriceRange(products), [products]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState<[number, number]>(
-    initialPriceRange
-  );
+  const [selectedPrice, setSelectedPrice] = useState<PriceBucket>('all');
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -74,10 +75,7 @@ export default function CatalogPageClient({
       );
     }
 
-    result = result.filter(
-      (p) =>
-        p.price >= selectedPriceRange[0] && p.price <= selectedPriceRange[1]
-    );
+    result = result.filter((p) => matchesPriceBucket(p.price, selectedPrice));
 
     switch (selectedSort) {
       case 'price-asc':
@@ -101,7 +99,7 @@ export default function CatalogPageClient({
     selectedCategory,
     selectedSecondaryCategory,
     selectedSort,
-    selectedPriceRange,
+    selectedPrice,
     products,
   ]);
 
@@ -171,9 +169,8 @@ export default function CatalogPageClient({
             sortOptions={sortOptions}
             selectedSort={selectedSort}
             onSortChange={setSelectedSort}
-            priceRange={initialPriceRange}
-            selectedPriceRange={selectedPriceRange}
-            onPriceRangeChange={setSelectedPriceRange}
+            selectedPrice={selectedPrice}
+            onPriceChange={setSelectedPrice}
           />
         </div>
 
