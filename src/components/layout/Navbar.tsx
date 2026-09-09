@@ -53,10 +53,10 @@ export default function Navbar({ showFlowers = true }: { showFlowers?: boolean }
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[#E4C9B8]/70" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-[#E4C9B8]/40" />
 
-      <FlowerMotif size={14} className="petal-nav text-rose-line opacity-60" style={{ left: '8%', top: '12px', animationDuration: '9s', animationDelay: '0s' }} />
-      <FlowerMotif size={22} className="petal-nav text-rose-line opacity-50" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }} />
-      <FlowerMotif size={18} className="petal-nav text-rose-line opacity-60" style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} />
-      <FlowerMotif size={14} className="petal-nav text-rose-line opacity-50" style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }} />
+      <FlowerMotif size={12} className="petal-nav text-rose-line opacity-60" style={{ left: '8%', top: '12px', animationDuration: '9s', animationDelay: '0s' }} />
+      <FlowerMotif size={18} className="petal-nav text-rose-line opacity-50" style={{ left: '42%', top: '20px', animationDuration: '10s', animationDelay: '4s' }} />
+      <FlowerMotif size={15} className="petal-nav text-rose-line opacity-60" style={{ left: '68%', top: '16px', animationDuration: '11s', animationDelay: '5.5s' }} />
+      <FlowerMotif size={12} className="petal-nav text-rose-line opacity-50" style={{ left: '92%', top: '22px', animationDuration: '12s', animationDelay: '6s' }} />
 
       <Container>
         <div className="relative flex h-16 items-center justify-between">
