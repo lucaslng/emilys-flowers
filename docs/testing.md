@@ -60,11 +60,12 @@ process-global across test files, so test files must not register a second
 `stripe` mock (see the note in `order-emails-mocks.ts`; `checkout-route.test.ts`
 predates this rule and runs its own per-file mock).
 
-E2E specs assert the live test-catalog counts (36 flowers, 3 bouquets) — update
-them if the Stripe catalog changes. E2E builds run without Flagship
-credentials, so `enable-flowers-page` fails open to enabled (flowers catalogue
-visible) and `under-construction` fails open to off (store renders normally) in
-E2E.
+E2E specs assert the live test-catalog counts (3 bouquets) — update
+them if the Stripe catalog changes. The flowers specs are skipped until the
+flowers page launches (empty catalog while under construction). E2E builds run
+without Flagship credentials, so `enable-flowers-page` fails open to enabled
+(flowers catalogue visible) and `under-construction` fails open to off (store
+renders normally) in E2E.
 
 ### CI sharding
 

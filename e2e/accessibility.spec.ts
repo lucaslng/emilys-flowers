@@ -188,14 +188,14 @@ test.describe("WCAG 2.2 AA automated scans", () => {
   }
 
   test("a product page has no WCAG 2.2 AA violations", async ({ page }) => {
-    await page.goto("/flowers");
-    await expect(page.locator("h1")).toContainText("Individual Flowers");
+    await page.goto("/bouquets");
+    await expect(page.locator("h1")).toContainText("Bouquet Collections");
 
     const firstProductHref = await page
       .locator('a[href^="/products/"]')
       .first()
       .getAttribute("href");
-    expect(firstProductHref, "expected at least one product link on /flowers").toBeTruthy();
+    expect(firstProductHref, "expected at least one product link on /bouquets").toBeTruthy();
 
     await page.goto(firstProductHref!);
     await expect(page.locator("h1")).toBeVisible();

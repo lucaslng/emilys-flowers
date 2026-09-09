@@ -85,8 +85,13 @@ export async function addFirstProductToCart(page: Page) {
 }
 
 /** Shared suite for catalog listing pages; each page keeps its own spec file. */
-export function describeCatalogPageSuite(suiteName: string, path: string) {
-  test.describe(suiteName, () => {
+export function describeCatalogPageSuite(
+  suiteName: string,
+  path: string,
+  options: { skip?: boolean } = {}
+) {
+  const describe = options.skip ? test.describe.skip : test.describe;
+  describe(suiteName, () => {
     test("loads and displays product cards with Add to Cart buttons", async ({ page }) => {
       await page.goto(path);
       const addToCartButtons = page.getByRole("button", { name: "Add to Cart" });
