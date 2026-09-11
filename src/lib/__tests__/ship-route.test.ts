@@ -18,12 +18,9 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
     process.env.RESEND_API_KEY = 're_test_mock';
     process.env.ADMIN_SESSION_SECRET = ADMIN_SESSION_SECRET;
-    // verifySessionToken re-checks ADMIN_OIDC_GROUPS per request, so the groups claim must match the allowlist.
-    process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetOrderEmailMocks();
     adminCookie = `${SESSION_COOKIE}=${await new SignJWT({
       sub: 'admin-1',
-      groups: ['admins'],
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -145,15 +142,8 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
     expect(orderEmailMocks.stripeUpdateCalls).toHaveLength(0);
   });
 
-  test('returns 401 when the session groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
-    const revokedCookie = `${SESSION_COOKIE}=${await new SignJWT({
-      sub: 'admin-1',
-      groups: ['some-other-group'],
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('8h')
-      .sign(new TextEncoder().encode(ADMIN_SESSION_SECRET))}`;
+  test('returns 401 without hitting Stripe or email when the session token is tampered', async () => {
+    const tamperedCookie = `${SESSION_COOKIE}=${adminCookie.split('=')[1].slice(0, -3)}abc`;
     orderEmailMocks.currentSession = {
       id: 'cs_test_123',
       object: 'checkout.session',
@@ -161,7 +151,7 @@ describe('POST /api/admin/orders/[sessionId]/ship', () => {
       customer_details: { email: 'ada@example.com', name: 'Ada Lovelace' },
     };
 
-    const response = await POST(shipRequest('cs_test_123', revokedCookie), {
+    const response = await POST(shipRequest('cs_test_123', tamperedCookie), {
       params: Promise.resolve({ sessionId: 'cs_test_123' }),
     });
 

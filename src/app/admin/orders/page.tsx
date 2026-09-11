@@ -67,7 +67,6 @@ const REQUIRED_ENV_VARS = [
   'OIDC_CLIENT_ID',
   'OIDC_CLIENT_SECRET',
   'ADMIN_SESSION_SECRET',
-  'ADMIN_OIDC_GROUPS',
   'BASE_URL',
 ];
 
@@ -132,11 +131,9 @@ export default async function AdminOrdersPage({
             <p className="mt-2 font-sans text-sm text-muted">
               Sign in to review orders and send shipping notifications.
             </p>
-            {(error === 'forbidden' || error === 'signin') && (
+            {error === 'signin' && (
               <div role="alert" className="alert-warm mt-6">
-                {error === 'forbidden'
-                  ? "Your account isn't in an allowed admin group."
-                  : 'Sign-in failed. Please try again.'}
+                Sign-in failed. Please try again.
               </div>
             )}
             <div className="gift-card mt-6 p-6">

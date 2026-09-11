@@ -49,14 +49,11 @@ describe('GET /api/admin/callback', () => {
       OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
       OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET,
       ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
-      ADMIN_OIDC_GROUPS: process.env.ADMIN_OIDC_GROUPS,
     };
     process.env.OIDC_ISSUER = ISSUER;
     process.env.OIDC_CLIENT_ID = 'client-id';
     process.env.OIDC_CLIENT_SECRET = 'client-secret';
     process.env.ADMIN_SESSION_SECRET = SESSION_SECRET;
-    // Part of REQUIRED_ENV_VARS — earlier files delete it from process.env, so it must be set here.
-    process.env.ADMIN_OIDC_GROUPS = 'admins';
     resetRateLimitMocks();
     originalFetch = globalThis.fetch;
     globalThis.fetch = (async () => {
