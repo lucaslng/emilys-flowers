@@ -306,7 +306,6 @@ not GitHub Secrets and never appear in `deploy.yml`:
 | `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
-| `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
 | `BASE_URL` | `src/lib/base-url.ts` (OIDC callback via `src/lib/admin-auth.ts`; Stripe success/cancel URLs via `src/app/api/checkout/route.ts`) | The site's root URL (e.g. `https://emilysflowers.ca`). Required in production — both the OIDC callback and the checkout success/cancel URLs are derived from it, never from the Host header; optional in dev (falls back to the request origin). The derived callback URL must match the one registered in the provider exactly. |
 
 See [order-emails.md](./order-emails.md) for the flow these power, and its
@@ -351,8 +350,6 @@ echo "your-client-secret" | bunx wrangler secret put OIDC_CLIENT_SECRET --env pr
 # ADMIN_SESSION_SECRET must be >= 32 chars (generate with `openssl rand -base64 32`)
 echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env production
 echo "replace-with-openssl-rand-base64-32-output" | bunx wrangler secret put ADMIN_SESSION_SECRET --env preview
-echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env production
-echo "emilys-flowers-admins" | bunx wrangler secret put ADMIN_OIDC_GROUPS --env preview
 echo "https://emilysflowers.ca" | bunx wrangler secret put BASE_URL --env production
 # Preview: use the per-branch root URL; the callback URL is derived by appending /api/admin/callback
 echo "https://<branch>-emilys-flowers-preview.<subdomain>.workers.dev" | bunx wrangler secret put BASE_URL --env preview

@@ -15,7 +15,6 @@ const REQUIRED_ENV_VARS = [
   'OIDC_CLIENT_ID',
   'OIDC_CLIENT_SECRET',
   'ADMIN_SESSION_SECRET',
-  'ADMIN_OIDC_GROUPS',
 ] as const;
 
 const DISCOVERY_TTL_MS = 60 * 60 * 1000; // 1h
@@ -38,7 +37,6 @@ export interface OidcConfig {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
-  allowedGroups: string[];
   sessionSecret: string;
 }
 
@@ -54,7 +52,6 @@ export interface OidcDiscovery {
 export interface SessionClaims {
   sub: string;
   email?: string;
-  groups?: string[] | string;
 }
 
 export function base64url(bytes: Uint8Array): string {
@@ -94,14 +91,6 @@ export function isOidcConfigured(): boolean {
   return missingRequiredEnvVars().length === 0 && hasValidSessionSecret();
 }
 
-/** Empty/unset ADMIN_OIDC_GROUPS yields an empty allowlist, which fails closed downstream. */
-function getAllowedGroupsFromEnv(): string[] {
-  return (process.env.ADMIN_OIDC_GROUPS ?? '')
-    .split(',')
-    .map((group) => group.trim())
-    .filter(Boolean);
-}
-
 export function getOidcConfig(redirectUri: string): OidcConfig {
   const missing = missingRequiredEnvVars();
   if (missing.length > 0) {
@@ -115,7 +104,6 @@ export function getOidcConfig(redirectUri: string): OidcConfig {
     clientId: process.env.OIDC_CLIENT_ID!,
     clientSecret: process.env.OIDC_CLIENT_SECRET!,
     redirectUri,
-    allowedGroups: getAllowedGroupsFromEnv(),
     sessionSecret: process.env.ADMIN_SESSION_SECRET!,
   };
 }
@@ -197,7 +185,7 @@ export function buildAuthorizeUrl(
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
-  url.searchParams.set('scope', 'openid email profile groups');
+  url.searchParams.set('scope', 'openid email profile');
   url.searchParams.set('state', state);
   url.searchParams.set('code_challenge', codeChallenge);
   url.searchParams.set('code_challenge_method', 'S256');
@@ -283,22 +271,6 @@ export async function fetchUserInfo(
   }
 }
 
-/** True when the claims' `groups` (string or string[]) intersects allowedGroups. */
-export function isAllowedByGroups(
-  claims: Record<string, unknown>,
-  allowedGroups: string[]
-): boolean {
-  if (allowedGroups.length === 0) return false;
-  const groups = claims.groups;
-  const userGroups: string[] =
-    typeof groups === 'string'
-      ? [groups]
-      : Array.isArray(groups)
-        ? groups.filter((group): group is string => typeof group === 'string')
-        : [];
-  return userGroups.some((group) => allowedGroups.includes(group));
-}
-
 export async function createSessionToken(
   config: OidcConfig,
   claims: Record<string, unknown>
@@ -306,7 +278,6 @@ export async function createSessionToken(
   return new SignJWT({
     sub: typeof claims.sub === 'string' ? claims.sub : undefined,
     email: claims.email,
-    groups: claims.groups,
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -314,7 +285,7 @@ export async function createSessionToken(
     .sign(new TextEncoder().encode(config.sessionSecret));
 }
 
-/** Returns null on any failure; re-checks groups against the CURRENT allowlist so allowlist edits revoke sessions before their 8h TTL. */
+/** Returns null on any failure. */
 export async function verifySessionToken(
   token: string | undefined
 ): Promise<SessionClaims | null> {
@@ -328,21 +299,9 @@ export async function verifySessionToken(
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     if (typeof payload.sub !== 'string') return null;
-    if (
-      !isAllowedByGroups(
-        payload as Record<string, unknown>,
-        getAllowedGroupsFromEnv()
-      )
-    ) {
-      return null;
-    }
     return {
       sub: payload.sub,
       email: typeof payload.email === 'string' ? payload.email : undefined,
-      groups:
-        typeof payload.groups === 'string' || Array.isArray(payload.groups)
-          ? payload.groups
-          : undefined,
     };
   } catch {
     return null;

@@ -1,6 +1,6 @@
 // OIDC redirect target: verifies `state` against the cookie, exchanges the
-// code for tokens (PKCE), validates the ID token, checks group membership,
-// and issues the `__Host-admin_session` JWT cookie. Failures redirect to
+// code for tokens (PKCE), validates the ID token, and issues the
+// `__Host-admin_session` JWT cookie. Failures redirect to
 // `/admin/orders?error=...` with the OIDC cookies cleared.
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,7 +12,6 @@ import {
   fetchUserInfo,
   getOidcConfig,
   getOidcDiscovery,
-  isAllowedByGroups,
   isOidcConfigured,
   oidcNotConfiguredResponse,
   resolveRedirectUri,
@@ -48,7 +47,7 @@ export async function GET(request: NextRequest) {
   const cookieState = request.cookies.get(OIDC_STATE_COOKIE)?.value;
   const verifier = request.cookies.get(OIDC_VERIFIER_COOKIE)?.value;
 
-  const failRedirect = (error: 'signin' | 'forbidden') => {
+  const failRedirect = (error: 'signin') => {
     const response = NextResponse.redirect(
       new URL(`/admin/orders?error=${error}`, request.url).toString()
     );
@@ -78,10 +77,6 @@ export async function GET(request: NextRequest) {
     const idClaims = await verifyIdToken(config, discovery, idToken);
     const userInfo = await fetchUserInfo(discovery, accessToken);
     claims = { ...userInfo, ...idClaims }; // ID token wins.
-
-    if (!isAllowedByGroups(claims, config.allowedGroups)) {
-      return failRedirect('forbidden');
-    }
   } catch (error) {
     console.error('[Admin OIDC callback] Error:', error);
     return failRedirect('signin');

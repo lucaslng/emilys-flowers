@@ -11,7 +11,6 @@ import {
   generatePkcePair,
   getOidcConfig,
   getOidcDiscovery,
-  isAllowedByGroups,
   isOidcConfigured,
   oidcNotConfiguredResponse,
   resolveRedirectUri,
@@ -27,7 +26,6 @@ const REQUIRED_VARS = [
   'OIDC_CLIENT_ID',
   'OIDC_CLIENT_SECRET',
   'ADMIN_SESSION_SECRET',
-  'ADMIN_OIDC_GROUPS',
 ];
 
 const BASE_URL = 'https://shop.example.com';
@@ -39,7 +37,6 @@ function setAllEnv() {
   process.env.OIDC_CLIENT_SECRET = 'client-secret';
   process.env.ADMIN_SESSION_SECRET =
     'a-very-long-admin-session-secret-for-hs256-signing';
-  process.env.ADMIN_OIDC_GROUPS = ' admins, shop-owners,, staff ';
   process.env.BASE_URL = BASE_URL;
 }
 
@@ -112,14 +109,13 @@ describe('getOidcConfig', () => {
     );
   });
 
-  test('returns the expected config shape with split/trim/filtered groups', () => {
+  test('returns the expected config shape', () => {
     const config = getOidcConfig(CALLBACK_URL);
     expect(config).toEqual({
       issuer: 'https://accounts.example.com',
       clientId: 'client-123',
       clientSecret: 'client-secret',
       redirectUri: CALLBACK_URL,
-      allowedGroups: ['admins', 'shop-owners', 'staff'],
       sessionSecret: 'a-very-long-admin-session-secret-for-hs256-signing',
     });
   });
@@ -165,7 +161,6 @@ describe('buildAuthorizeUrl', () => {
       clientId: 'client-123',
       clientSecret: 'client-secret',
       redirectUri: CALLBACK_URL,
-      allowedGroups: ['admins'],
       sessionSecret: 'a-very-long-admin-session-secret-for-hs256-signing',
     };
     const discovery = {
@@ -184,50 +179,24 @@ describe('buildAuthorizeUrl', () => {
     expect(parsed.searchParams.get('response_type')).toBe('code');
     expect(parsed.searchParams.get('client_id')).toBe('client-123');
     expect(parsed.searchParams.get('redirect_uri')).toBe(CALLBACK_URL);
-    expect(parsed.searchParams.get('scope')).toBe('openid email profile groups');
+    expect(parsed.searchParams.get('scope')).toBe('openid email profile');
     expect(parsed.searchParams.get('state')).toBe('state-123');
     expect(parsed.searchParams.get('code_challenge')).toBe('challenge-abc');
     expect(parsed.searchParams.get('code_challenge_method')).toBe('S256');
   });
 });
 
-describe('isAllowedByGroups', () => {
-  test('matches when any allowed group is present in a string[] claim', () => {
-    expect(isAllowedByGroups({ groups: ['admins', 'staff'] }, ['admins'])).toBe(
-      true
-    );
-  });
-
-  test('matches a single-string groups claim', () => {
-    expect(isAllowedByGroups({ groups: 'shop-owners' }, ['shop-owners'])).toBe(
-      true
-    );
-  });
-
-  test('returns false when no allowed group is present', () => {
-    expect(isAllowedByGroups({ groups: ['customers'] }, ['admins'])).toBe(
-      false
-    );
-  });
-
-  test('returns false for an empty allowedGroups list', () => {
-    expect(isAllowedByGroups({ groups: ['admins'] }, [])).toBe(false);
-  });
-});
-
 describe('createSessionToken / verifySessionToken', () => {
-  test('roundtrips sub, email, and groups', async () => {
+  test('roundtrips sub and email', async () => {
     const config = getOidcConfig(CALLBACK_URL);
     const token = await createSessionToken(config, {
       sub: 'user-42',
       email: 'owner@example.com',
-      groups: ['admins'],
     });
 
     expect(await verifySessionToken(token)).toEqual({
       sub: 'user-42',
       email: 'owner@example.com',
-      groups: ['admins'],
     });
   });
 
@@ -277,9 +246,9 @@ describe('createSessionToken / verifySessionToken', () => {
     expect(await verifySessionToken(token)).toBeNull();
   });
 
-  test('returns null when the token groups no longer intersect ADMIN_OIDC_GROUPS', async () => {
+  test('returns null when the token has no sub claim', async () => {
     const config = getOidcConfig(CALLBACK_URL);
-    const token = await new SignJWT({ sub: 'user-42', groups: ['old-admins'] })
+    const token = await new SignJWT({ email: 'owner@example.com' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('8h')
@@ -288,62 +257,9 @@ describe('createSessionToken / verifySessionToken', () => {
     expect(await verifySessionToken(token)).toBeNull();
   });
 
-  test('returns null when the allowlist is tightened and excludes all token groups', async () => {
-    process.env.ADMIN_OIDC_GROUPS = 'shop-owners';
-    const token = await new SignJWT({
-      sub: 'user-42',
-      groups: ['staff', 'customers'],
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('8h')
-      .sign(new TextEncoder().encode(process.env.ADMIN_SESSION_SECRET!));
-
-    expect(await verifySessionToken(token)).toBeNull();
-  });
-
-  test('returns null when ADMIN_OIDC_GROUPS is empty (fail closed)', async () => {
-    const config = getOidcConfig(CALLBACK_URL);
-    const token = await new SignJWT({ sub: 'user-42', groups: ['admins'] })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('8h')
-      .sign(new TextEncoder().encode(config.sessionSecret));
-
-    process.env.ADMIN_OIDC_GROUPS = '';
-    expect(await verifySessionToken(token)).toBeNull();
-
-    // Whitespace-only entries are trimmed away, leaving an empty allowlist.
-    process.env.ADMIN_OIDC_GROUPS = ' ,  ';
-    expect(await verifySessionToken(token)).toBeNull();
-  });
-
-  test('returns null when ADMIN_OIDC_GROUPS is unset (fail closed)', async () => {
-    const config = getOidcConfig(CALLBACK_URL);
-    const token = await new SignJWT({ sub: 'user-42', groups: ['admins'] })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('8h')
-      .sign(new TextEncoder().encode(config.sessionSecret));
-
-    unsetEnv("ADMIN_OIDC_GROUPS");
-    expect(await verifySessionToken(token)).toBeNull();
-  });
-
-  test('returns null for a token with no groups claim (fail closed)', async () => {
+  test('accepts a token without an email claim', async () => {
     const config = getOidcConfig(CALLBACK_URL);
     const token = await new SignJWT({ sub: 'user-42' })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('8h')
-      .sign(new TextEncoder().encode(config.sessionSecret));
-
-    expect(await verifySessionToken(token)).toBeNull();
-  });
-
-  test('accepts a single-string groups claim that intersects the allowlist', async () => {
-    const config = getOidcConfig(CALLBACK_URL);
-    const token = await new SignJWT({ sub: 'user-42', groups: 'admins' })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('8h')
@@ -352,7 +268,6 @@ describe('createSessionToken / verifySessionToken', () => {
     expect(await verifySessionToken(token)).toEqual({
       sub: 'user-42',
       email: undefined,
-      groups: 'admins',
     });
   });
 });

@@ -34,9 +34,9 @@ Resend domain).
 | `src/app/admin/orders/page.tsx` | Server-rendered admin order list (OIDC-gated, `force-dynamic`) |
 | `src/app/admin/orders/admin-login.tsx` | **Removed** — the password login island no longer exists; replaced by the OIDC flow |
 | `src/app/admin/orders/ship-form.tsx` | Client island: estimate input → `POST /api/admin/orders/[sessionId]/ship` |
-| `src/lib/admin-auth.ts` | OIDC client + session JWT helpers: discovery, PKCE, token exchange, ID-token verification, group check |
+| `src/lib/admin-auth.ts` | OIDC client + session JWT helpers: discovery, PKCE, token exchange, ID-token verification |
 | `src/app/api/admin/login/route.ts` | Redirects to the OIDC provider (authorization code + PKCE); rate-limited 10/min/IP (`admin-login:` key) |
-| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token + groups claim, sets the `__Host-admin_session` JWT cookie; rate-limited 10/min/IP (`admin-callback:` key, consulted only after the state check passes) |
+| `src/app/api/admin/callback/route.ts` | OIDC callback: exchanges code, verifies ID token, sets the `__Host-admin_session` JWT cookie; rate-limited 10/min/IP (`admin-callback:` key, consulted only after the state check passes) |
 | `src/app/api/admin/logout/route.ts` | Clears the `__Host-admin_session` cookie (POST-only, form-submitted from the admin UI) |
 | `src/app/api/admin/orders/[sessionId]/ship/route.ts` | Format-checks `sessionId` (`cs_(live|test)`, shared helper in `src/lib/stripe-session-id.ts`; malformed → 400), then sends the shipped email + persists metadata |
 
@@ -50,7 +50,6 @@ Resend domain).
 | `OIDC_CLIENT_ID` | `src/lib/admin-auth.ts` | OIDC client ID. Missing → admin page shows a config error. |
 | `OIDC_CLIENT_SECRET` | `src/lib/admin-auth.ts` | OIDC client secret. Missing → admin page shows a config error. |
 | `ADMIN_SESSION_SECRET` | `src/lib/admin-auth.ts` | HS256 signing key for the session JWT (≥ 32 chars; generate with `openssl rand -base64 32`). Missing → admin page shows a config error. |
-| `ADMIN_OIDC_GROUPS` | `src/lib/admin-auth.ts` | Comma-separated group names; the signed-in user must belong to at least one (provider must expose a `groups` claim in the ID token or userinfo). Missing → admin page shows a config error. |
 | `BASE_URL` | `src/lib/base-url.ts` (OIDC callback via `src/lib/admin-auth.ts`; Stripe success/cancel URLs via the checkout route) | The site's root URL (e.g. `https://emilysflowers.ca`); redirect URLs are derived from it (`BASE_URL + /api/admin/callback` for OIDC — the code appends the path). Optional in dev (falls back to the request origin); **required in production** (never derived from the Host header). The derived callback URL must match the one registered in the provider exactly. |
 
 All of these are **server-only** (never `NEXT_PUBLIC_`). `RESEND_API_KEY`,
@@ -163,9 +162,9 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   time — must never prerender). `robots` metadata: `index: false`.
 - Auth: OIDC (authorization code + PKCE) via a generic provider. `GET
   /api/admin/login` redirects to the provider; the provider redirects back to
-  `GET /api/admin/callback`, which exchanges the code for tokens, verifies the
-  ID token against the provider's JWKS, and checks the user's `groups` claim
-  against the `ADMIN_OIDC_GROUPS` allowlist. On success it sets the
+  `GET /api/admin/callback`, which exchanges the code for tokens and verifies the
+  ID token against the provider's JWKS. Any successfully authenticated user
+  gets access — the provider defines who may sign in. On success the callback sets the
   `__Host-admin_session` cookie — a signed JWT (HS256, 8h expiry) — `httpOnly`,
   `sameSite: lax`, always `secure` (the `__Host-` prefix requires it) — and
   redirects to `/admin/orders`.
@@ -176,11 +175,9 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   10 requests / 60 s per client IP via the Workers `RATE_LIMITER` binding
   (surface-prefixed keys; the callback is limited only after its state check
   passes, so garbage callbacks stay quota-free). The page and the ship route
-  verify the `__Host-admin_session` JWT and re-check it against
-  `ADMIN_OIDC_GROUPS` on every request, so removing a group from the
-  allowlist revokes existing sessions immediately. Removing a user from the
-  IdP admin group still waits out the 8h session TTL — the `groups` claim is
-  baked into the JWT at login.
+  verify the `__Host-admin_session` JWT on every request. Removing a user from the
+  IdP still waits out the 8h session TTL — the session JWT is self-contained
+  after login.
 - Order list: latest 25 paid Checkout Sessions (`expand: ['data.line_items']`),
   filtered to `payment_status === 'paid'`, sorted newest first. Each card
   shows the order number (`metadata.order_number`, falling back to the session
@@ -212,9 +209,6 @@ test mode, signed with that endpoint's test-mode `whsec_...` secret.
   derived as `BASE_URL + /api/admin/callback` and must match the URL
   registered in the provider exactly. In dev it's optional and falls back to
   the request origin.
-- The provider must return a `groups` claim (in the ID token or userinfo);
-  the signed-in user must belong to at least one group listed in
-  `ADMIN_OIDC_GROUPS`.
 - Generate the session signing key with `openssl rand -base64 32` and put it
   in `ADMIN_SESSION_SECRET` (≥ 32 chars).
 - Preview Workers have **per-branch URLs**, so the callback URL differs per

@@ -12,7 +12,7 @@ const stripePrefix =
 // these tests never reach Stripe or the real IdP, so the values are inert.
 // Prefixed onto both halves of the chain: `VAR=x a && b` only exports to `a`.
 const adminEnvPrefix =
-  "OIDC_ISSUER=https://accounts.example.com OIDC_CLIENT_ID=e2e-dummy-client OIDC_CLIENT_SECRET=e2e-dummy-secret ADMIN_SESSION_SECRET=e2e-dummy-session-secret-0123456789abcdef ADMIN_OIDC_GROUPS=e2e-admins BASE_URL=http://localhost:3000 ";
+  "OIDC_ISSUER=https://accounts.example.com OIDC_CLIENT_ID=e2e-dummy-client OIDC_CLIENT_SECRET=e2e-dummy-secret ADMIN_SESSION_SECRET=e2e-dummy-session-secret-0123456789abcdef BASE_URL=http://localhost:3000 ";
 
 export default defineConfig({
   testDir: "./e2e",
